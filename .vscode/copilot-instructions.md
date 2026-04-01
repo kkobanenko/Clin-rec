@@ -31,24 +31,42 @@ You can:
 - **Clear Messages:** Use detailed commit messages that explain PRD/TZ alignment
 - **No Stale Changes:** Never leave uncommitted work; always finalize
 
-### 4. Error Handling
+### 4. Error Handling & Container Isolation
+
+**CRITICAL: Before ANY Docker operation, verify working directory and scope.**
+
 When Docker/infrastructure fails:
 
 ```bash
-# 1. Assess state
-docker ps -a                          # See all containers
-docker compose logs <service> | tail  # Check recent logs
-ss -tlnp | grep <port>                # Verify port listeners
+# 0. SAFETY CHECK (ALWAYS FIRST!)
+pwd                                                         # Must be /home/kobanenkokn/Clin-rec
+docker compose config --services                           # Verify expected services only
+docker ps -a --filter "name=crin_" --format "table {{.Names}}\t{{.Status}}"  # Only crin_ containers
 
-# 2. Self-heal
-docker compose down                   # Clean shutdown
-docker compose up -d                  # Fresh start
-sleep 30                              # Wait for health checks
-docker compose ps                     # Confirm healthy
+# 1. Assess state (CRIN_ CONTAINERS ONLY)
+docker compose ps                                           # Project services
+docker compose logs crin_app | tail -20                    # Specific crin_ container logs
+netstat -tlnp 2>/dev/null | grep -E "5433|6380|8000|8501"  # ONLY crin_ project ports
+
+# 2. Self-heal (ISOLATED TO CRIN_)
+docker compose down                                         # Stops only crin_ services
+docker compose up -d                                        # Starts only crin_ services  
+sleep 30                                                    # Wait for health checks
+docker compose ps                                           # Confirm crin_ healthy
 
 # 3. Validate
-curl http://127.0.0.1:8000/health    # API health
-.venv/bin/python scripts/e2e_smoke.py # Full chain test
+curl http://127.0.0.1:8000/health                         # API health
+.venv/bin/python scripts/e2e_smoke.py                      # Full chain test
+
+# 4. Report & retry
+```
+
+**Port Isolation Guarantee:**
+- ✅ SAFE: Ports 5433, 6380, 8000, 8501, 9010, 9011 (crin_ project)
+- ❌ FORBIDDEN: Ports 5432, 6379, 8080, 9000 (other systems)
+- ❌ FORBIDDEN: Touching non-crin_ containers (postgres, redis, airflow, superset, etc.)
+
+See [ISOLATION_POLICY.md](ISOLATION_POLICY.md) for complete safeguards.
 
 # 4. Report & retry
 ```
@@ -132,12 +150,40 @@ When user asks to continue PRD/TZ work, follow this sequence:
 
 ## Restrictions & Safety
 
+### Absolute Restrictions (NEVER do these)
+
 You CANNOT:
 - ❌ Access files outside workspace without explicit permission
 - ❌ Delete containers or databases without explicit user request
 - ❌ Modify production credentials or secrets
 - ❌ Push to main branch without explicit agreement (use feature branches if needed)
 - ❌ Assume user has Docker/infrastructure running; always verify first
+
+### Container & Port Isolation (CRITICAL)
+
+You MUST NEVER:
+- ❌ **Touch non-crin_ containers:** `docker stop airflow`, `docker restart postgres`, etc.
+- ❌ **Access system ports:** 5432 (system postgres), 6379 (system redis), 9000 (system minio), 8080
+- ❌ **Use system services:** Only work with crin_postgres (5433), crin_redis (6380), crin_minio (9010)
+- ❌ **Modify Docker networks/volumes:** Only use crin_pg_data, crin_minio_data
+- ❌ **Change working directory:** Always verify `pwd == /home/kobanenkokn/Clin-rec` before docker operations
+
+**Safety Pre-flight Check (execute before ANY Docker command):**
+```bash
+pwd                                          # Must be /home/kobanenkokn/Clin-rec
+docker compose config --services | sort     # Must match: app minio minio-init postgres redis streamlit worker
+docker ps -a --filter "name=crin_"         # Verify ONLY crin_ containers exist in list
+```
+
+**If port conflict detected:**
+```
+❌ ERROR: Port 8000 already in use by non-crin_ service: [name]
+→ STOP immediately
+→ Report to user: cannot proceed, requires manual intervention
+→ NEVER force kill other services
+```
+
+See [ISOLATION_POLICY.md](ISOLATION_POLICY.md) for complete port/container mapping and safeguards.
 
 ## Communication Style
 
