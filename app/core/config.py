@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     rubricator_api_base_url: str = "https://apicr.minzdrav.gov.ru/api.ashx"
     rubricator_api_list_op: str = "GetJsonClinrecsFilterV2"
     rubricator_api_page_size: int = 100
+    rubricator_api_request_delay: float = 1.0
+    rubricator_api_user_agent: str = "ClinRecPlatform/1.0 (+https://github.com/kkobanenko/Clin-rec)"
     discovery_concurrency: int = 2
     discovery_request_delay: float = 2.0
 

@@ -183,7 +183,13 @@ class DiscoveryService:
         page = 1
         max_pages = 200
         page_size = max(1, settings.rubricator_api_page_size)
+        page_delay = max(0.0, settings.rubricator_api_request_delay)
         total_records = None
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": settings.rubricator_api_user_agent,
+        }
 
         with httpx.Client(timeout=30, follow_redirects=True, trust_env=False) as client:
             while page <= max_pages:
@@ -208,7 +214,12 @@ class DiscoveryService:
                     "columns": [],
                 }
                 try:
-                    response = client.post(settings.rubricator_api_base_url, params=params, json=payload)
+                    response = client.post(
+                        settings.rubricator_api_base_url,
+                        params=params,
+                        json=payload,
+                        headers=headers,
+                    )
                     response.raise_for_status()
                 except Exception:
                     break
@@ -235,6 +246,8 @@ class DiscoveryService:
                 if isinstance(total_records, int) and len(all_records) >= total_records:
                     break
                 page += 1
+                if page_delay > 0:
+                    time.sleep(page_delay)
 
         return self._deduplicate_records(all_records)
 
