@@ -9,7 +9,7 @@ from app.workers.tasks.discovery import run_full_sync, run_incremental_sync
 router = APIRouter(prefix="/sync", tags=["sync"])
 
 
-@router.post("/full", response_model=SyncResponse)
+@router.post("/full", response_model=SyncResponse, status_code=202)
 async def full_sync(db: AsyncSession = Depends(get_db)):
     run = PipelineRun(stage="discovery", run_type="full", status="pending")
     db.add(run)
@@ -20,7 +20,7 @@ async def full_sync(db: AsyncSession = Depends(get_db)):
     return SyncResponse(run_id=run_id, status="pending", message="Full sync queued")
 
 
-@router.post("/incremental", response_model=SyncResponse)
+@router.post("/incremental", response_model=SyncResponse, status_code=202)
 async def incremental_sync(db: AsyncSession = Depends(get_db)):
     run = PipelineRun(stage="discovery", run_type="incremental", status="pending")
     db.add(run)
