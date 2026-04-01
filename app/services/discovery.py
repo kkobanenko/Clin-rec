@@ -10,13 +10,13 @@ import re
 import time
 from datetime import datetime, timezone
 
+import httpx
 from playwright.sync_api import sync_playwright
 
 from app.core.config import settings
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentRegistry
 from app.models.pipeline import PipelineRun
-from app.workers.tasks.probe import probe_document
 
 logger = logging.getLogger(__name__)
 
@@ -55,16 +55,23 @@ class DiscoveryService:
             session.commit()
 
             try:
-                records = self._discover_documents()
+                records, discovery_stats = self._discover_documents()
                 discovered, new_count = self._upsert_records(session, records, mode)
                 run.discovered_count = discovered
                 run.fetched_count = new_count
                 run.status = "completed"
                 run.finished_at = datetime.now(timezone.utc)
-                run.stats_json = {"total_discovered": discovered, "new_or_updated": new_count}
+                run.stats_json = {
+                    "total_discovered": discovered,
+                    "new_or_updated": new_count,
+                    "failed_count": max(0, discovered - new_count),
+                    **discovery_stats,
+                }
                 session.commit()
 
                 # Queue probe tasks for new/updated documents
+                from app.workers.tasks.probe import probe_document
+
                 for reg_id in self._get_probe_candidates(session, mode):
                     probe_document.delay(reg_id)
 
@@ -77,9 +84,27 @@ class DiscoveryService:
         finally:
             session.close()
 
-    def _discover_documents(self) -> list[dict]:
+    def _discover_documents(self) -> tuple[list[dict], dict]:
         """Use Playwright to open the rubricator and capture document data from network requests."""
         records: list[dict] = []
+        stats: dict = {
+            "strategy": "unknown",
+            "api_payloads": 0,
+            "api_records": 0,
+            "dom_records": 0,
+            "runtime_records": 0,
+        }
+
+        # API-first strategy for stability when frontend DOM changes.
+        api_records = self._discover_from_backend_api()
+        if api_records:
+            records.extend(api_records)
+            stats["strategy"] = "backend_api"
+            stats["api_records"] = len(api_records)
+            records = self._deduplicate_records(records)
+            logger.info("Discovered %d document records", len(records))
+            return records, stats
+
         captured_payloads: list[dict] = []
 
         with sync_playwright() as p:
@@ -131,18 +156,87 @@ class DiscoveryService:
         for payload in captured_payloads:
             extracted = self._extract_records_from_payload(payload)
             records.extend(extracted)
+        stats["api_payloads"] = len(captured_payloads)
+        stats["api_records"] = len(records)
 
         # Try to extract from JS runtime as additional fallback for SPA state stores.
         if not records:
-            records.extend(self._discover_from_runtime_state())
+            runtime_records = self._discover_from_runtime_state()
+            records.extend(runtime_records)
+            stats["runtime_records"] = len(runtime_records)
 
         # Fallback: if no API payloads captured, try DOM parsing
         if not records:
-            records = self._discover_from_dom()
+            dom_records = self._discover_from_dom()
+            records = dom_records
+            stats["dom_records"] = len(dom_records)
 
         records = self._deduplicate_records(records)
+        if records and stats["strategy"] == "unknown":
+            stats["strategy"] = "playwright_fallback"
         logger.info("Discovered %d document records", len(records))
-        return records
+        return records, stats
+
+    def _discover_from_backend_api(self) -> list[dict]:
+        """Query rubricator backend API directly when available."""
+        all_records: list[dict] = []
+        page = 1
+        max_pages = 200
+        page_size = max(1, settings.rubricator_api_page_size)
+        total_records = None
+
+        with httpx.Client(timeout=30, follow_redirects=True, trust_env=False) as client:
+            while page <= max_pages:
+                params = {
+                    "op": settings.rubricator_api_list_op,
+                }
+                payload = {
+                    "filters": [
+                        {
+                            "fieldName": "status",
+                            "filterType": 1,
+                            "filterValueType": 2,
+                            "value1": 0,
+                            "value2": "",
+                            "values": [],
+                        }
+                    ],
+                    "sortOption": {"fieldName": "publishdate", "sortType": 2},
+                    "pageSize": page_size,
+                    "currentPage": page,
+                    "useANDoperator": True,
+                    "columns": [],
+                }
+                try:
+                    response = client.post(settings.rubricator_api_base_url, params=params, json=payload)
+                    response.raise_for_status()
+                except Exception:
+                    break
+
+                try:
+                    payload = response.json()
+                except Exception:
+                    break
+
+                if isinstance(payload, dict):
+                    total_records = payload.get("TotalRecords", total_records)
+
+                page_records = self._extract_records_from_payload({"url": str(response.url), "data": payload})
+                if not page_records:
+                    break
+
+                all_records.extend(page_records)
+
+                # Stop when last page appears incomplete.
+                if len(page_records) < page_size:
+                    break
+
+                # Stop when we reached total records according to API response.
+                if isinstance(total_records, int) and len(all_records) >= total_records:
+                    break
+                page += 1
+
+        return self._deduplicate_records(all_records)
 
     def _trigger_spa_activity(self, page) -> None:
         """Trigger typical SPA interactions to force list/XHR loading."""
@@ -207,11 +301,22 @@ class DiscoveryService:
         record = {
             "external_id": str(
                 item.get(
+                    "CodeVersion",
+                    item.get(
+                        "codeVersion",
+                        item.get(
+                            "code",
+                            item.get(
+                                "Id",
                     "id",
                     item.get("ID", item.get("_id", item.get("external_id", item.get("code", "")))),
+                            ),
+                        ),
+                    ),
                 )
             ),
             "title": item.get(
+                "Name",
                 "title",
                 item.get("name", item.get("Title", item.get("naim", item.get("nameClinRec", "")))),
             ),
@@ -245,11 +350,11 @@ class DiscoveryService:
         out: list[dict] = []
 
         def looks_like_doc(item: dict) -> bool:
-            text = " ".join(str(item.get(k, "")) for k in ("title", "name", "Title", "url", "link"))
+            text = " ".join(str(item.get(k, "")) for k in ("Name", "title", "name", "Title", "url", "link", "CodeVersion"))
             keys = {k.lower() for k in item.keys()}
             return bool(
                 re.search(r"(рекомендац|клинич|clin)", text, flags=re.IGNORECASE)
-                or {"id", "title"}.issubset(keys)
+                or ("id" in keys and ("title" in keys or "name" in keys))
                 or "pdf" in keys
                 or "html_url" in keys
                 or "pdf_url" in keys

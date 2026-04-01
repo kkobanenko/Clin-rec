@@ -12,6 +12,9 @@
         "auth.docker.io",
         "dl-cdn.alpinelinux.org",
         "cr.minzdrav.gov.ru",
+        "apicr.minzdrav.gov.ru",
+        "github.com",
+        "gitlab.gdpgroup.ru",
         "localhost",
         "127.0.0.1"
     ],
