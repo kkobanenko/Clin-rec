@@ -220,6 +220,12 @@ def main():
     log(f"  Strategy: {stats.get('strategy', 'N/A')}")
     log(f"  API Records: {stats.get('api_records', 'N/A')}")
     log(f"  Total Discovered: {stats.get('total_discovered', 'N/A')}")
+        if "discovery_service_version" not in stats:
+            log("  [WARN] stats_json missing discovery_service_version")
+            log("  [HINT] App/worker may run outdated code. Rebuild and restart services.")
+        if stats.get("strategy") in (None, "unknown", "N/A") and stats.get("total_discovered", 0) == 0:
+            log("  [HINT] Discovery found 0 records with unknown strategy.")
+            log("  [HINT] Check worker logs and API reachability to apicr.minzdrav.gov.ru.")
 
     # 4. Fetch documents
     first_doc = test_documents_list()

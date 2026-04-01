@@ -32,6 +32,17 @@ DISCOVERY_SERVICE_VERSION = "2.0"  # Incrementor version if extraction logic cha
 
 class DiscoveryService:
     @staticmethod
+    def _first_non_empty(*values):
+        """Return first non-empty scalar value as string-friendly object."""
+        for value in values:
+            if value is None:
+                continue
+            if isinstance(value, str) and not value.strip():
+                continue
+            return value
+        return ""
+
+    @staticmethod
     def _build_url(path: str) -> str:
         clean_base = settings.rubricator_base_url.rstrip("/")
         clean_path = path.strip("/")
@@ -258,12 +269,14 @@ class DiscoveryService:
                         headers=headers,
                     )
                     response.raise_for_status()
-                except Exception:
+                except Exception as api_err:
+                    logger.warning("Backend API request failed on page %d: %s", page, api_err)
                     break
 
                 try:
                     payload = response.json()
-                except Exception:
+                except Exception as json_err:
+                    logger.warning("Backend API returned invalid JSON on page %d: %s", page, json_err)
                     break
 
                 if isinstance(payload, dict):
@@ -340,7 +353,11 @@ class DiscoveryService:
         for item in items:
             if not isinstance(item, dict):
                 continue
-            record = self._normalize_item(item, payload.get("url", ""))
+            try:
+                record = self._normalize_item(item, payload.get("url", ""))
+            except Exception as norm_err:
+                logger.debug("Failed to normalize item from %s: %s", payload.get("url", "unknown"), norm_err)
+                continue
             if record.get("title"):
                 records.append(record)
 
@@ -348,28 +365,29 @@ class DiscoveryService:
 
     def _normalize_item(self, item: dict, source_url: str) -> dict:
         """Normalize a raw item from any API format to our registry schema."""
+        external_id = self._first_non_empty(
+            item.get("CodeVersion"),
+            item.get("codeVersion"),
+            item.get("code"),
+            item.get("Id"),
+            item.get("id"),
+            item.get("ID"),
+            item.get("_id"),
+            item.get("external_id"),
+        )
+
+        title = self._first_non_empty(
+            item.get("Name"),
+            item.get("name"),
+            item.get("Title"),
+            item.get("title"),
+            item.get("naim"),
+            item.get("nameClinRec"),
+        )
+
         record = {
-            "external_id": str(
-                item.get(
-                    "CodeVersion",
-                    item.get(
-                        "codeVersion",
-                        item.get(
-                            "code",
-                            item.get(
-                                "Id",
-                    "id",
-                    item.get("ID", item.get("_id", item.get("external_id", item.get("code", "")))),
-                            ),
-                        ),
-                    ),
-                )
-            ),
-            "title": item.get(
-                "Name",
-                "title",
-                item.get("name", item.get("Title", item.get("naim", item.get("nameClinRec", "")))),
-            ),
+            "external_id": str(external_id) if external_id is not None else "",
+            "title": str(title) if title is not None else "",
             "card_url": item.get("url", item.get("link", "")),
             "html_url": item.get("html_url", item.get("htmlUrl", "")),
             "pdf_url": item.get("pdf_url", item.get("pdfUrl", item.get("pdf", ""))),
@@ -400,11 +418,25 @@ class DiscoveryService:
         out: list[dict] = []
 
         def looks_like_doc(item: dict) -> bool:
-            text = " ".join(str(item.get(k, "")) for k in ("Name", "title", "name", "Title", "url", "link", "CodeVersion"))
+            text = " ".join(
+                str(item.get(k, ""))
+                for k in (
+                    "Name",
+                    "name",
+                    "Title",
+                    "title",
+                    "nameClinRec",
+                    "url",
+                    "link",
+                    "CodeVersion",
+                    "codeVersion",
+                )
+            )
             keys = {k.lower() for k in item.keys()}
             return bool(
                 re.search(r"(рекомендац|клинич|clin)", text, flags=re.IGNORECASE)
                 or ("id" in keys and ("title" in keys or "name" in keys))
+                or ("codeversion" in keys and ("name" in keys or "title" in keys or "nameclinrec" in keys))
                 or "pdf" in keys
                 or "html_url" in keys
                 or "pdf_url" in keys
