@@ -40,10 +40,19 @@ def retry_request(method: str, url: str, **kwargs) -> httpx.Response:
                     resp = client.post(url, **kwargs)
                 else:
                     raise ValueError(f"Unknown method {method}")
+            
+            # Log full error response if status indicates failure
+            if resp.status_code >= 400:
+                try:
+                    error_body = resp.json()
+                except Exception:
+                    error_body = resp.text[:500]
+                log(f"  [DEBUG] HTTP {resp.status_code} response: {error_body}")
+            
             resp.raise_for_status()
             return resp
         except Exception as e:
-            log(f"Attempt {attempt}/{MAX_RETRIES} failed: {e}")
+            log(f"Attempt {attempt}/{MAX_RETRIES} failed: {str(e)[:200]}")
             if attempt == MAX_RETRIES:
                 raise
             time.sleep(2)
@@ -60,6 +69,9 @@ def test_health():
         return True
     except Exception as e:
         log(f"  ✗ Health check failed: {e}")
+        log(f"\n⚠️  API not available at {BASE_URL}")
+        log("   Try: docker compose up -d && docker compose logs -f crin_app")
+        log("   Or:  .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000")
         return False
 
 
