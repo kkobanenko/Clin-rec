@@ -1,7 +1,15 @@
 {
     "workbench.browser.enableChatTools": true,
     "chat.tools.terminal.sandbox.linuxFileSystem": {
-        "allowWrite": ["/home/kobanenkokn/Clin-rec", "/home/kobanenkokn/.local", "/home/kobanenkokn/.cache", "/tmp", "/run"]
+        "allowWrite": [
+            "/home/kobanenkokn/Clin-rec",
+            "/home/kobanenkokn/.local",
+            "/home/kobanenkokn/.cache",
+            "/home/kobanenkokn/.docker",
+            "/tmp",
+            "/run"
+        ],
+        "allowRead": ["/var/run", "/var/lib/docker", "/etc/docker"]
     },
     "chat.tools.terminal.sandbox.network.allowedDomains": [
         "pypi.org",
