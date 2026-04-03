@@ -94,7 +94,7 @@ Pass criteria:
 
 **Streamlit — вкладка Outputs (Sprint 7):** список и деталь `GET /outputs`, постановка `POST /outputs/memo` или `/outputs/generate`, filing `POST /outputs/file`, опрос задач `GET /tasks/{task_id}`. В Docker базовый URL API задаётся **`CRIN_STREAMLIT_API_BASE`** (в [docker-compose.yml](docker-compose.yml) для `streamlit`: `http://app:8000`).
 
-**Streamlit — вкладка Matrix (Sprint 8, explorer):** блок **Pair evidence** вызывает `GET /matrix/pair-evidence` с теми же query-параметрами, что в таблице выше; история ревью — `GET /reviews` (ответ — JSON-массив).
+**Streamlit — вкладка Matrix (Sprint 8, explorer + release):** блок **Pair evidence** вызывает `GET /matrix/pair-evidence`; блок **Release control** — `GET /matrix/release-check` (проверка готовности) и `POST /matrix/release` (активация модели, деактивирует предыдущую). История ревью — `GET /reviews` (ответ — JSON-массив). `POST /review` при `target_type=pair_evidence` теперь обновляет `PairEvidence.review_status`.
 
 **Pair evidence:** после успешного `extract_document` в worker вызывается `CandidateEngine.generate_pairs(version_id)` — появляются строки `pair_evidence` (см. `docs/STORAGE_STAGES.md`).
 

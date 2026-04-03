@@ -1,8 +1,9 @@
+import asyncio
 import csv
 import io
 
 from celery import chain
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,9 +19,13 @@ from app.schemas.matrix import (
     MatrixCellOut,
     MatrixRebuildBody,
     MatrixRebuildQueued,
+    ReleaseCheckOut,
+    ReleaseCreateBody,
+    ReleaseCreateOut,
     ScoringModelVersionCreate,
     ScoringModelVersionOut,
 )
+from app.services.release import ReleaseService
 from app.workers.tasks.score import build_matrix, score_pairs
 from app.schemas.pipeline import PaginatedResponse
 
@@ -252,3 +257,28 @@ async def create_scoring_model(data: ScoringModelVersionCreate, db: AsyncSession
     await db.flush()
     await db.refresh(model)
     return ScoringModelVersionOut.model_validate(model)
+
+
+_release_service = ReleaseService()
+
+
+@router.get("/release-check", response_model=ReleaseCheckOut)
+async def release_check(model_version_id: int = Query(..., ge=1)):
+    """Проверка готовности модели к релизу (TZ §24 Sprint 8)."""
+    result = await asyncio.to_thread(_release_service.check_readiness, model_version_id)
+    return ReleaseCheckOut(**result)
+
+
+@router.post("/release", response_model=ReleaseCreateOut)
+async def create_release(body: ReleaseCreateBody):
+    """
+    Релиз модели: deactivate предыдущую, activate выбранную (TZ §24 Sprint 8).
+    Если не ready — 409.
+    """
+    result = await asyncio.to_thread(
+        _release_service.create_release, body.model_version_id, body.author
+    )
+    if result is None:
+        check = await asyncio.to_thread(_release_service.check_readiness, body.model_version_id)
+        raise HTTPException(status_code=409, detail={"message": "Model not ready for release", "readiness": check})
+    return ReleaseCreateOut(**result)

@@ -83,3 +83,28 @@ class MatrixRebuildQueued(BaseModel):
     task_id: str
     status: str = "queued"
     message: str
+
+
+class ReleaseCheckOut(BaseModel):
+    """Результат проверки готовности модели к релизу."""
+
+    ready: bool
+    has_matrix_cells: bool | None = None
+    sufficient_evidence: bool | None = None
+    low_confidence_acceptable: bool | None = None
+    cell_count: int | None = None
+    pcs_count: int | None = None
+    low_confidence_ratio: float | None = None
+    error: str | None = None
+
+
+class ReleaseCreateBody(BaseModel):
+    model_version_id: int = Field(..., ge=1)
+    author: str = Field(..., min_length=1)
+
+
+class ReleaseCreateOut(BaseModel):
+    model_version_id: int
+    version_label: str
+    released_by: str
+    readiness: dict

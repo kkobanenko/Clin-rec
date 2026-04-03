@@ -393,6 +393,30 @@ def page_matrix():
     last_mtx = st.session_state.get("matrix_rebuild_task_id")
     if last_mtx:
         st.caption(f"Последний rebuild task_id: `{last_mtx}` — опрос: вкладка Knowledge base → статус задач или GET /tasks/{{id}}")
+
+    st.subheader("Release control (Sprint 8)")
+    st.caption("GET /matrix/release-check — проверка готовности; POST /matrix/release — активация модели.")
+    rc1, rc2 = st.columns(2)
+    rc_mvid = rc1.number_input("model_version_id для release", min_value=1, step=1, value=1, key="rc_mvid")
+    if rc2.button("Проверить готовность"):
+        check = api_get("/matrix/release-check", {"model_version_id": int(rc_mvid)})
+        if check:
+            if check.get("error"):
+                st.error(check["error"])
+            elif check.get("ready"):
+                st.success("Модель готова к релизу.")
+            else:
+                st.warning("Модель НЕ готова к релизу.")
+            st.json(check)
+    rl_author = st.text_input("Автор релиза", "", key="rc_author")
+    if st.button("Выполнить релиз (POST /matrix/release)", key="rc_release_btn"):
+        if not rl_author.strip():
+            st.error("Укажите автора.")
+        else:
+            rl = api_post("/matrix/release", {"model_version_id": int(rc_mvid), "author": rl_author.strip()})
+            if rl:
+                st.success(f"Модель v{rl.get('version_label')} активирована. Автор: {rl.get('released_by')}")
+                st.json(rl)
     st.markdown("---")
 
     col1, col2 = st.columns(2)
