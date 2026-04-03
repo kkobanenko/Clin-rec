@@ -6,7 +6,7 @@ import httpx
 import pandas as pd
 import streamlit as st
 
-# В docker: http://app:8000; локально: http://127.0.0.1:8000 (см. CRIN_STREAMLIT_API_BASE в compose).
+# В docker-сети: http://app:8000. С хоста браузер к API: :8008 (см. docker-compose, ISOLATION_POLICY).
 API_BASE = os.environ.get("CRIN_STREAMLIT_API_BASE", "http://app:8000")
 
 

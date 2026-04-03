@@ -10,6 +10,7 @@ Verifies:
 5. GET /documents/{id}/fragments → checks fragment parsing
 """
 
+import os
 import sys
 import time
 import json
@@ -17,8 +18,8 @@ from pathlib import Path
 
 import httpx
 
-
-BASE_URL = "http://127.0.0.1:8000"
+# Docker Compose публикует API на хосте :8008 (см. ISOLATION_POLICY / docker-compose.yml).
+BASE_URL = os.environ.get("CRIN_SMOKE_BASE_URL", "http://127.0.0.1:8008")
 POLL_INTERVAL = 2
 POLL_TIMEOUT = 120
 MAX_RETRIES = 3
@@ -79,7 +80,8 @@ def test_health():
         log(f"  ✗ Health check failed: {e}")
         log(f"\n⚠️  API not available at {BASE_URL}")
         log("   Try: docker compose up -d && docker compose logs -f crin_app")
-        log("   Or:  .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000")
+        log("   Host profile: CRIN_SMOKE_BASE_URL=http://127.0.0.1:8000 uv run python scripts/e2e_smoke.py")
+        log("   Or: uvicorn на хосте на :8000, затем тот же BASE_URL.")
         return False
 
 

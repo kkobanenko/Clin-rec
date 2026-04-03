@@ -53,6 +53,8 @@ tr '\0' '\n' < /proc/<uvicorn_pid>/environ | rg '^CRIN_CELERY_BROKER_URL|^CRIN_C
 
 ## Profile B: docker-compose-only
 
+Публикация API на **хосте: `8008`** → контейнер `app` слушает `8000` (см. `ISOLATION_POLICY.md`). Swagger: `http://127.0.0.1:8008/docs`.
+
 ### Start stack
 ```bash
 docker compose up -d --build app worker
@@ -62,6 +64,7 @@ docker compose up -d --build app worker
 ```bash
 docker logs --tail=80 crin_app
 docker logs --tail=80 crin_worker
+curl -sSf http://127.0.0.1:8008/health
 ```
 
 ### Verify task consumption
@@ -102,18 +105,18 @@ Action:
 - Ensure dependency includes `psycopg2-binary`.
 - Rebuild runtime environment (venv or image) and restart worker.
 
-### Symptom: app container fails to start on port 8000
+### Symptom: app container fails to start (port binding)
 Possible cause:
-- Port conflict with host process.
+- Host port **8008** already in use (published API), or Docker cannot bind.
 
 Checks:
 ```bash
-ss -ltnp | rg ':8000'
-ps -ww -p <pid> -o pid,ppid,cmd
+ss -ltnp | rg ':8008'
+docker compose ps
 ```
 
 Resolution:
-- Stop conflicting process or use a single selected profile.
+- Free **8008** or change the host side in `docker-compose.yml` (`\"8010:8000\"` etc.). Внутри сети compose по-прежнему `http://app:8000`.
 
 ## Safety Notes
 
