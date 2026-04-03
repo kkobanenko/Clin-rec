@@ -10,16 +10,15 @@ import logging
 from typing import Any
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import selectinload
-
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentRegistry, DocumentVersion
-from app.models.knowledge import ArtifactSourceLink, KnowledgeArtifact
+from app.models.knowledge import ArtifactSourceLink, EntityRegistry, KnowledgeArtifact
 from app.models.text import DocumentSection, TextFragment
 
 logger = logging.getLogger(__name__)
 
-COMPILER_VERSION = "0.1.0"
+# Версия компилятора: поднимаем при изменении шаблонов TZ §12.3 (foundation).
+COMPILER_VERSION = "0.2.0"
 
 
 class KnowledgeCompileService:
@@ -124,6 +123,13 @@ class KnowledgeCompileService:
 
             session.flush()
             artifact_id = artifact.id
+
+            # TZ §12.3 foundation-типы (без LLM): карточка документа как сущность, глоссарий, открытые вопросы.
+            # Стратегия entity: для каждого document_registry создаём/находим запись entity_type=document
+            # с привязкой через external_refs_json.document_registry_id (устойчиво и однозначно).
+            entity = self._get_or_create_document_entity(session, registry)
+            self._upsert_satellite_artifacts(session, version_id, registry, canonical_slug, entity.id)
+
             session.commit()
             self._rebuild_master_index(session)
             session.commit()
@@ -157,31 +163,219 @@ class KnowledgeCompileService:
             results.append(self.compile_version(int(vid)))
         return {"status": "ok", "versions": len(results), "results": results}
 
-    def _rebuild_master_index(self, session) -> None:
-        """Обновить единственный master_index со списком source_digest (в той же сессии)."""
+    def _get_or_create_document_entity(self, session, registry: DocumentRegistry) -> EntityRegistry:
+        """
+        Корпусная сущность «документ в реестре»: один EntityRegistry на document_registry_id.
+        Не полагаемся на уникальность title — ключ в external_refs_json.
+        """
+        stmt = select(EntityRegistry).where(EntityRegistry.entity_type == "document")
+        for row in session.execute(stmt).scalars().all():
+            refs = row.external_refs_json or {}
+            if refs.get("document_registry_id") == registry.id:
+                return row
+        ent = EntityRegistry(
+            entity_type="document",
+            canonical_name=(registry.title or f"registry-{registry.id}")[:500],
+            external_refs_json={"document_registry_id": registry.id},
+            aliases_json={"source": "compiler", "note": "автосоздано компилятором v1"},
+            status="active",
+        )
+        session.add(ent)
+        session.flush()
+        return ent
+
+    def _upsert_satellite_artifacts(
+        self,
+        session,
+        version_id: int,
+        registry: DocumentRegistry,
+        digest_slug: str,
+        entity_registry_id: int,
+    ) -> None:
+        """open_question, glossary_term, entity_page — с тем же provenance (document_version)."""
+        digest_link_notes = "normalized corpus version"
+
+        entity_slug = f"entity_page/registry_{registry.id}"
+        entity_title = f"Entity: {registry.title[:180]}" if registry.title else f"Entity registry {registry.id}"
+        entity_md = "\n".join(
+            [
+                f"# {entity_title}",
+                "",
+                f"- `entity_registry_id`: {entity_registry_id}",
+                f"- `document_registry_id`: {registry.id}",
+                f"- `document_version_id`: {version_id}",
+                "",
+                "## Связанный дайджест",
+                "",
+                f"См. [[{digest_slug}]].",
+                "",
+            ]
+        )
+        self._upsert_linked_artifact(
+            session,
+            slug=entity_slug,
+            artifact_type="entity_page",
+            title=entity_title,
+            content_md=entity_md,
+            summary=f"Корпусная сущность документа, registry_id={registry.id}",
+            manifest_json={
+                "compiler": COMPILER_VERSION,
+                "entity_registry_id": entity_registry_id,
+                "registry_id": registry.id,
+                "document_version_id": version_id,
+            },
+            version_id=version_id,
+            link_notes=digest_link_notes,
+        )
+
+        glossary_slug = f"glossary/doc_{registry.id}"
+        term_heading = (registry.title or f"Документ {registry.id}")[:200]
+        glossary_md = "\n".join(
+            [
+                f"# {term_heading}",
+                "",
+                "Карточка термина по официальному названию клинической рекомендации в рубрикаторе.",
+                "",
+                f"- `document_registry_id`: `{registry.id}`",
+                f"- Связанный дайджест: [[{digest_slug}]]",
+                "",
+            ]
+        )
+        self._upsert_linked_artifact(
+            session,
+            slug=glossary_slug,
+            artifact_type="glossary_term",
+            title=f"Glossary: {term_heading[:120]}",
+            content_md=glossary_md,
+            summary=f"Термин по названию документа id={registry.id}",
+            manifest_json={
+                "compiler": COMPILER_VERSION,
+                "registry_id": registry.id,
+                "document_version_id": version_id,
+            },
+            version_id=version_id,
+            link_notes=digest_link_notes,
+        )
+
+        oq_slug = f"open_questions/v{version_id}"
+        oq_md = "\n".join(
+            [
+                "# Открытые вопросы по версии документа",
+                "",
+                "- Ожидается **clinical extraction**: МНН, нозологии, УУР/УДД (TZ §14).",
+                "- Ожидается наполнение `entity_registry` фактическими сущностями из фрагментов.",
+                "- Ожидается связка claims / provenance после извлечения (TZ §12.4).",
+                "",
+                f"`document_version_id`: `{version_id}`, `registry_id`: `{registry.id}`.",
+                "",
+                f"Дайджест источника: [[{digest_slug}]].",
+                "",
+            ]
+        )
+        self._upsert_linked_artifact(
+            session,
+            slug=oq_slug,
+            artifact_type="open_question",
+            title=f"Open questions: version {version_id}",
+            content_md=oq_md,
+            summary=f"Пробелы и вопросы по версии {version_id}",
+            manifest_json={
+                "compiler": COMPILER_VERSION,
+                "registry_id": registry.id,
+                "document_version_id": version_id,
+            },
+            version_id=version_id,
+            link_notes=digest_link_notes,
+        )
+
+    def _upsert_linked_artifact(
+        self,
+        session,
+        *,
+        slug: str,
+        artifact_type: str,
+        title: str,
+        content_md: str,
+        summary: str,
+        manifest_json: dict[str, Any],
+        version_id: int,
+        link_notes: str,
+    ) -> KnowledgeArtifact:
+        art = session.execute(
+            select(KnowledgeArtifact).where(KnowledgeArtifact.canonical_slug == slug)
+        ).scalar_one_or_none()
+        if art:
+            art.title = title
+            art.summary = summary
+            art.content_md = content_md
+            art.artifact_type = artifact_type
+            art.status = "draft"
+            art.generator_version = COMPILER_VERSION
+            art.manifest_json = manifest_json
+            session.query(ArtifactSourceLink).filter(ArtifactSourceLink.artifact_id == art.id).delete(
+                synchronize_session=False
+            )
+        else:
+            art = KnowledgeArtifact(
+                artifact_type=artifact_type,
+                title=title,
+                canonical_slug=slug,
+                status="draft",
+                content_md=content_md,
+                summary=summary,
+                confidence="medium",
+                generator_version=COMPILER_VERSION,
+                manifest_json=manifest_json,
+            )
+            session.add(art)
+            session.flush()
+        session.add(
+            ArtifactSourceLink(
+                artifact_id=art.id,
+                source_kind="document_version",
+                source_id=version_id,
+                support_type="primary",
+                notes=link_notes,
+            )
+        )
+        session.flush()
+        return art
+
+    def _artifact_index_entries(self, session, artifact_type: str) -> list[dict[str, Any]]:
         rows = session.execute(
             select(KnowledgeArtifact)
-            .where(KnowledgeArtifact.artifact_type == "source_digest")
-            .options(selectinload(KnowledgeArtifact.source_links))
+            .where(KnowledgeArtifact.artifact_type == artifact_type)
             .order_by(KnowledgeArtifact.canonical_slug)
         ).scalars().all()
+        return [
+            {"artifact_id": a.id, "slug": a.canonical_slug, "title": a.title, "status": a.status} for a in rows
+        ]
 
-        digest_entries: list[dict[str, Any]] = []
-        for art in rows:
-            digest_entries.append(
-                {
-                    "artifact_id": art.id,
-                    "slug": art.canonical_slug,
-                    "title": art.title,
-                    "status": art.status,
-                }
-            )
+    def _rebuild_master_index(self, session) -> None:
+        """Обновить master_index: дайджесты, entity pages, глоссарий, open questions (TZ §12.2)."""
+        digest_entries = self._artifact_index_entries(session, "source_digest")
+        entity_entries = self._artifact_index_entries(session, "entity_page")
+        glossary_entries = self._artifact_index_entries(session, "glossary_term")
+        openq_entries = self._artifact_index_entries(session, "open_question")
 
-        manifest = {
+        manifest: dict[str, Any] = {
             "compiler": COMPILER_VERSION,
             "digest_count": len(digest_entries),
             "digests": digest_entries,
+            "entity_page_count": len(entity_entries),
+            "entity_pages": entity_entries,
+            "glossary_term_count": len(glossary_entries),
+            "glossary_terms": glossary_entries,
+            "open_question_count": len(openq_entries),
+            "open_questions": openq_entries,
         }
+
+        def lines_for(heading: str, entries: list[dict[str, Any]]) -> list[str]:
+            block: list[str] = [f"## {heading}", ""]
+            for e in entries:
+                block.append(f"- [{e['title']}]({e['slug']}) — id `{e['artifact_id']}`")
+            block.append("")
+            return block
 
         idx_slug = "master_index"
         body = "\n".join(
@@ -189,10 +383,23 @@ class KnowledgeCompileService:
                 "# Knowledge base master index",
                 "",
                 f"Версия компилятора: `{COMPILER_VERSION}`.",
-                f"Дайджестов источников: **{len(digest_entries)}**.",
+                f"- Дайджестов источников: **{len(digest_entries)}**.",
+                f"- Страниц сущностей: **{len(entity_entries)}**.",
+                f"- Терминов глоссария: **{len(glossary_entries)}**.",
+                f"- Реестров открытых вопросов: **{len(openq_entries)}**.",
                 "",
             ]
-            + [f"- [{e['title']}]({e['slug']}) — id `{e['artifact_id']}`" for e in digest_entries]
+            + lines_for("Дайджесты источников (source_digest)", digest_entries)
+            + lines_for("Страницы сущностей (entity_page)", entity_entries)
+            + lines_for("Глоссарий (glossary_term)", glossary_entries)
+            + lines_for("Открытые вопросы (open_question)", openq_entries)
+        )
+        nd = len(digest_entries)
+        ne = len(entity_entries)
+        ng = len(glossary_entries)
+        nq = len(openq_entries)
+        summary_line = (
+            f"Индекс: дайджесты {nd}, entity_page {ne}, glossary {ng}, open_question {nq}"
         )
 
         master = session.execute(
@@ -205,6 +412,7 @@ class KnowledgeCompileService:
             master.manifest_json = manifest
             master.generator_version = COMPILER_VERSION
             master.artifact_type = "master_index"
+            master.summary = summary_line
         else:
             master = KnowledgeArtifact(
                 artifact_type="master_index",
@@ -212,7 +420,7 @@ class KnowledgeCompileService:
                 canonical_slug=idx_slug,
                 status="draft",
                 content_md=body,
-                summary=f"Индекс из {len(digest_entries)} дайджестов",
+                summary=summary_line,
                 confidence="high",
                 generator_version=COMPILER_VERSION,
                 manifest_json=manifest,
