@@ -1,5 +1,6 @@
 """CR Intelligence Platform — Streamlit Admin UI."""
 
+import json
 import os
 
 import httpx
@@ -275,6 +276,103 @@ def page_knowledge_base():
             st.json(ent)
 
 
+# --- Page: Outputs (TZ §17, Sprint 7) ---
+
+
+def page_outputs():
+    """Список output_release, filing и постановка generate — тот же API, что Streamlit зовёт через CRIN_STREAMLIT_API_BASE."""
+    st.header("Analytic outputs")
+    st.caption("Бэкенд: GET/POST `/outputs/*`, опрос задач: GET `/tasks/{task_id}`.")
+
+    st.subheader("Список релизов")
+    o1, o2, o3 = st.columns(3)
+    otype = o1.text_input("Фильтр output_type (опц.)", "", key="out_type_filter")
+    opage = o2.number_input("page", min_value=1, value=1, key="out_page")
+    opsize = o3.number_input("page_size", min_value=5, max_value=200, value=50, key="out_psize")
+    oparams: dict = {"page": int(opage), "page_size": int(opsize)}
+    if otype.strip():
+        oparams["output_type"] = otype.strip()
+    outs = api_get("/outputs", oparams)
+    if outs and outs.get("items"):
+        odf = pd.DataFrame(outs["items"])
+        st.caption(f"Всего: {outs.get('total', 0)}")
+        ocols = [c for c in ("id", "output_type", "title", "review_status", "file_back_status", "released_at") if c in odf.columns]
+        st.dataframe(odf[ocols] if ocols else odf, use_container_width=True)
+    elif outs is not None:
+        st.info("Записей output_release пока нет — создайте через Generate ниже.")
+
+    st.subheader("Деталь output_release")
+    oid = st.number_input("output_id", min_value=1, step=1, value=1, key="out_detail_id")
+    if st.button("Загрузить output", key="out_load_btn"):
+        row = api_get(f"/outputs/{int(oid)}")
+        if row:
+            st.json(row)
+
+    st.subheader("Сгенерировать output (Celery)")
+    gen_use_memo = st.checkbox("Использовать POST /outputs/memo (тип memo)", value=True, key="out_gen_memo")
+    gen_title = st.text_input("title", "", key="out_gen_title")
+    gen_out_type = st.text_input(
+        "output_type (только для /outputs/generate)",
+        "memo",
+        key="out_gen_type",
+        disabled=gen_use_memo,
+    )
+    gen_scope_raw = st.text_area(
+        "scope_json (JSON, можно {})",
+        "{}",
+        height=100,
+        key="out_gen_scope",
+    )
+    if st.button("Поставить в очередь generate", key="out_gen_btn"):
+        try:
+            scope = json.loads(gen_scope_raw.strip() or "{}")
+            if not isinstance(scope, dict):
+                st.error("scope_json должен быть объектом JSON.")
+            else:
+                body = {"title": gen_title or None, "scope_json": scope}
+                if gen_use_memo:
+                    r = api_post("/outputs/memo", body)
+                else:
+                    r = api_post(
+                        "/outputs/generate",
+                        {
+                            "output_type": (gen_out_type or "memo").strip(),
+                            **body,
+                        },
+                    )
+                if r:
+                    tid = r.get("task_id")
+                    if tid:
+                        st.session_state["outputs_last_task_id"] = tid
+                    st.success(f"В очереди: task_id={tid or r}")
+        except json.JSONDecodeError as e:
+            st.error(f"Невалидный JSON: {e}")
+
+    st.subheader("Output filing (POST /outputs/file)")
+    f_oid = st.number_input("output_id для filing", min_value=1, step=1, value=1, key="out_file_oid")
+    f_status = st.selectbox("file_back_status", ["accepted", "rejected", "needs_review"], key="out_file_status")
+    if st.button("Отправить file", key="out_file_btn"):
+        fr = api_post("/outputs/file", {"output_id": int(f_oid), "file_back_status": f_status})
+        if fr:
+            tid = fr.get("task_id")
+            if tid:
+                st.session_state["outputs_last_task_id"] = tid
+            st.success(f"В очереди: task_id={tid or fr}")
+
+    st.subheader("Статус Celery-задачи (outputs)")
+    last_ot = st.session_state.get("outputs_last_task_id")
+    st.caption(f"Последний task_id из этой вкладки: `{last_ot or '—'}`")
+    out_tid = st.text_input("task_id для опроса", key="out_poll_tid", placeholder="UUID ответа generate/file")
+    if st.button("Опросить GET /tasks/{id}", key="out_poll_btn"):
+        tid = (out_tid or "").strip() or last_ot or ""
+        if tid:
+            stat = api_get(f"/tasks/{tid}")
+            if stat:
+                st.write(f"**state**={stat.get('state')} **ready**={stat.get('ready')}")
+        else:
+            st.warning("Нет task_id — сначала запустите generate или file.")
+
+
 # --- Page: Matrix ---
 
 def page_matrix():
@@ -418,6 +516,7 @@ def main():
         "Documents": page_documents,
         "Pipeline": page_pipeline,
         "Knowledge base": page_knowledge_base,
+        "Outputs": page_outputs,
         "Matrix": page_matrix,
         "Reviews": page_reviews,
         "Scoring Models": page_scoring_models,

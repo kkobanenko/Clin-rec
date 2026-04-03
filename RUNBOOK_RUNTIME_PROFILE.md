@@ -90,6 +90,9 @@ Pass criteria:
 | Очередь lint KB | `POST /kb/lint` | `task_id` для `lint_kb`. |
 | Пересчёт scores и матрицы | `POST /matrix/rebuild` | Тело JSON: `{"model_version_id": <int>, "scope_type": "global"\|"disease"}`. Цепочка: `score_pairs` → `build_matrix`. Ответ `202` + `task_id`. |
 | Опрос задачи (read-only) | `GET /tasks/{task_id}` | Поля `state`, `ready`; тело результата задачи не отдаётся. Для UI (Streamlit) — после POST сохранить `task_id` и опрашивать этот маршрут. |
+| Список PairEvidence (обзор) | `GET /matrix/pair-evidence` | Query: `page`, `page_size`, опционально `document_version_id`, `molecule_from_id`, `molecule_to_id`, `review_status`. |
+
+**Streamlit — вкладка Outputs (Sprint 7):** список и деталь `GET /outputs`, постановка `POST /outputs/memo` или `/outputs/generate`, filing `POST /outputs/file`, опрос задач `GET /tasks/{task_id}`. В Docker базовый URL API задаётся **`CRIN_STREAMLIT_API_BASE`** (в [docker-compose.yml](docker-compose.yml) для `streamlit`: `http://app:8000`).
 
 **Pair evidence:** после успешного `extract_document` в worker вызывается `CandidateEngine.generate_pairs(version_id)` — появляются строки `pair_evidence` (см. `docs/STORAGE_STAGES.md`).
 

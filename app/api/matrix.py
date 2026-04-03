@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
+from app.models.clinical import ClinicalContext
 from app.models.evidence import MatrixCell, PairContextScore, PairEvidence
 from app.models.molecule import Molecule
 from app.models.scoring import ScoringModelVersion
@@ -57,6 +58,57 @@ async def list_matrix_cells(
     result = await db.execute(query)
     items = [MatrixCellOut.model_validate(c) for c in result.scalars().all()]
 
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=(total + page_size - 1) // page_size if page_size else 1,
+    )
+
+
+@router.get("/pair-evidence", response_model=PaginatedResponse)
+async def list_pair_evidence(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    document_version_id: int | None = None,
+    molecule_from_id: int | None = None,
+    molecule_to_id: int | None = None,
+    review_status: str | None = None,
+):
+    """
+    Пагинированный список PairEvidence (обзор / matrix explorer).
+    Фильтр document_version_id — через join на clinical_context.
+    """
+    q = select(PairEvidence)
+    count_q = select(func.count(PairEvidence.id))
+
+    if document_version_id is not None:
+        q = q.join(ClinicalContext, PairEvidence.context_id == ClinicalContext.id).where(
+            ClinicalContext.document_version_id == document_version_id
+        )
+        count_q = (
+            select(func.count(PairEvidence.id))
+            .select_from(PairEvidence)
+            .join(ClinicalContext, PairEvidence.context_id == ClinicalContext.id)
+            .where(ClinicalContext.document_version_id == document_version_id)
+        )
+
+    if molecule_from_id is not None:
+        q = q.where(PairEvidence.molecule_from_id == molecule_from_id)
+        count_q = count_q.where(PairEvidence.molecule_from_id == molecule_from_id)
+    if molecule_to_id is not None:
+        q = q.where(PairEvidence.molecule_to_id == molecule_to_id)
+        count_q = count_q.where(PairEvidence.molecule_to_id == molecule_to_id)
+    if review_status is not None and review_status.strip():
+        q = q.where(PairEvidence.review_status == review_status.strip())
+        count_q = count_q.where(PairEvidence.review_status == review_status.strip())
+
+    total = (await db.execute(count_q)).scalar_one()
+    q = q.order_by(PairEvidence.id.desc()).offset((page - 1) * page_size).limit(page_size)
+    rows = (await db.execute(q)).scalars().all()
+    items = [PairEvidenceOut.model_validate(r) for r in rows]
     return PaginatedResponse(
         items=items,
         total=total,
