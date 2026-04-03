@@ -88,7 +88,7 @@ services:
   worker:
     build: .
     container_name: crin_worker
-    command: celery -A app.workers.celery_app worker -l info -Q discovery,probe,fetch,normalize,extract,score,reindex
+    command: celery -A app.workers.celery_app worker -l info -Q discovery,probe,fetch,normalize,extract,score,reindex,compile_kb,lint_kb,refresh_backlinks,detect_conflicts,generate_outputs,file_outputs,rebuild_indexes
     volumes:
       - .:/app
     env_file:

@@ -8,7 +8,6 @@ import httpx
 from app.core.config import settings
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentRegistry, DocumentVersion
-from app.workers.tasks.fetch import fetch_document
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +21,13 @@ class ProbeService:
                 logger.error("Document registry %d not found", registry_id)
                 return
 
-            html_available = self._check_url(doc.html_url) if doc.html_url else False
-            pdf_available = self._check_url(doc.pdf_url) if doc.pdf_url else False
+            html_available = self._check_url(doc.html_url, expected_kind="html") if doc.html_url else False
+            pdf_available = self._check_url(doc.pdf_url, expected_kind="pdf") if doc.pdf_url else False
 
             # Also try to derive URLs from card_url if not set
             if not doc.html_url and doc.card_url:
                 candidate_html = doc.card_url
-                if self._check_url(candidate_html):
+                if self._check_url(candidate_html, expected_kind="html"):
                     doc.html_url = candidate_html
                     html_available = True
 
@@ -37,7 +36,7 @@ class ProbeService:
                     f"{settings.rubricator_base_url.rstrip('/')}/"
                     f"{settings.rubricator_pdf_path.strip('/')}/{doc.external_id}"
                 )
-                if self._check_url(candidate_pdf):
+                if self._check_url(candidate_pdf, expected_kind="pdf"):
                     doc.pdf_url = candidate_pdf
                     pdf_available = True
 
@@ -84,19 +83,26 @@ class ProbeService:
 
             # Queue fetch
             if source_primary != "unknown":
+                from app.workers.tasks.fetch import fetch_document
+
                 fetch_document.delay(version_id)
 
         finally:
             session.close()
 
-    def _check_url(self, url: str) -> bool:
-        """Check if a URL is accessible (HEAD request)."""
+    def _check_url(self, url: str, expected_kind: str = "html") -> bool:
+        """Check if a URL is accessible and matches the expected content kind."""
         if not url:
             return False
         try:
             with httpx.Client(timeout=15, follow_redirects=True) as client:
                 resp = client.head(url)
-                return resp.status_code == 200
+                if resp.status_code != 200:
+                    return False
+                content_type = (resp.headers.get("content-type") or "").lower()
+                if expected_kind == "pdf":
+                    return "application/pdf" in content_type
+                return "text/html" in content_type or "application/xhtml+xml" in content_type
         except Exception as e:
             logger.debug("URL check failed for %s: %s", url, e)
             return False

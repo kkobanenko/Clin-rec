@@ -9,7 +9,6 @@ from app.core.config import settings
 from app.core.storage import artifact_key, content_hash, upload_artifact
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentRegistry, DocumentVersion, SourceArtifact
-from app.workers.tasks.normalize import normalize_document
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +58,8 @@ class FetchService:
                 session.commit()
 
                 # Queue normalization
+                from app.workers.tasks.normalize import normalize_document
+
                 normalize_document.delay(version_id)
                 logger.info("Fetched artifacts for version %d (doc %d)", version_id, doc.id)
             else:
@@ -85,6 +86,16 @@ class FetchService:
 
                 data = resp.content
                 data_hash = content_hash(data)
+                actual_ct = resp.headers.get("content-type", expected_content_type)
+
+                if not self._is_valid_artifact_payload(artifact_type, actual_ct, data):
+                    logger.warning(
+                        "Skipping %s artifact for version %d: unexpected content-type=%s",
+                        artifact_type,
+                        version.id,
+                        actual_ct,
+                    )
+                    return False
 
                 # Check if we already have this exact artifact
                 existing = (
@@ -102,7 +113,6 @@ class FetchService:
 
                 ext = "html" if artifact_type == "html" else artifact_type
                 key = artifact_key(doc.id, version.id, artifact_type, ext)
-                actual_ct = resp.headers.get("content-type", expected_content_type)
                 upload_artifact(data, key, actual_ct)
 
                 artifact = SourceArtifact(
@@ -128,3 +138,12 @@ class FetchService:
                 time.sleep(RETRY_BACKOFF * (attempt + 1))
 
         return False
+
+    @staticmethod
+    def _is_valid_artifact_payload(artifact_type: str, content_type: str | None, data: bytes) -> bool:
+        normalized_ct = (content_type or "").lower()
+        if artifact_type == "pdf":
+            return "application/pdf" in normalized_ct and data.startswith(b"%PDF-")
+        if artifact_type == "html":
+            return "text/html" in normalized_ct or "application/xhtml+xml" in normalized_ct
+        return True

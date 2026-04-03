@@ -1,1 +1,1 @@
-from app.workers.tasks import discovery, probe, fetch, normalize, extract, score  # noqa: F401
+from app.workers.tasks import discovery, extract, fetch, kb, normalize, probe, score  # noqa: F401

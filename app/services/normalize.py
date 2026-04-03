@@ -11,7 +11,6 @@ from app.core.storage import download_artifact
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentVersion, SourceArtifact
 from app.models.text import DocumentSection, TextFragment
-from app.workers.tasks.extract import extract_document
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +25,14 @@ NOISE_SELECTORS = [
 
 
 class NormalizeService:
-    def normalize(self, version_id: int) -> None:
+    def normalize(self, version_id: int) -> bool:
+        """Нормализует версию документа. Возвращает True если данные закоммичены."""
         session = get_sync_session()
         try:
             version = session.get(DocumentVersion, version_id)
             if not version:
                 logger.error("DocumentVersion %d not found", version_id)
-                return
+                return False
 
             # Remove old sections/fragments for this version
             old_sections = session.query(DocumentSection).filter_by(document_version_id=version_id).all()
@@ -51,17 +51,12 @@ class NormalizeService:
             html_artifact = next((a for a in artifacts if a.artifact_type == "html"), None)
             pdf_artifact = next((a for a in artifacts if a.artifact_type == "pdf"), None)
 
-            sections = []
-            if html_artifact:
-                raw_data = download_artifact(html_artifact.raw_path)
-                sections = self._normalize_html(raw_data)
-            elif pdf_artifact:
-                raw_data = download_artifact(pdf_artifact.raw_path)
-                sections = self._normalize_pdf(raw_data)
+            sections = self._extract_sections(version, html_artifact, pdf_artifact)
 
             if not sections:
                 logger.warning("No sections extracted for version %d", version_id)
-                return
+                session.rollback()
+                return False
 
             # Write to DB
             for sec_order, (sec_title, sec_path, fragments) in enumerate(sections):
@@ -89,11 +84,44 @@ class NormalizeService:
             session.commit()
             logger.info("Normalized version %d: %d sections", version_id, len(sections))
 
-            # Queue extraction
-            extract_document.delay(version_id)
+            # Дальнейший pipeline: worker ставит chain compile_kb → extract.
 
+            return True
+        except Exception:
+            session.rollback()
+            raise
         finally:
             session.close()
+
+    def _extract_sections(
+        self,
+        version: DocumentVersion,
+        html_artifact: SourceArtifact | None,
+        pdf_artifact: SourceArtifact | None,
+    ) -> list[tuple[str, str, list[tuple[str, str]]]]:
+        """Extract sections using the preferred source, with PDF fallback for thin HTML shells."""
+        preferred_source = version.source_type_primary or ""
+
+        if preferred_source == "pdf" and pdf_artifact:
+            raw_data = download_artifact(pdf_artifact.raw_path)
+            return self._normalize_pdf(raw_data)
+
+        if html_artifact:
+            raw_data = download_artifact(html_artifact.raw_path)
+            sections = self._normalize_html(raw_data)
+            if sections:
+                return sections
+            if pdf_artifact:
+                logger.info(
+                    "HTML artifact produced no sections for version %d, falling back to PDF",
+                    version.id,
+                )
+
+        if pdf_artifact:
+            raw_data = download_artifact(pdf_artifact.raw_path)
+            return self._normalize_pdf(raw_data)
+
+        return []
 
     def _normalize_html(self, raw_data: bytes) -> list[tuple[str, str, list[tuple[str, str]]]]:
         """Parse HTML content into sections with fragments.

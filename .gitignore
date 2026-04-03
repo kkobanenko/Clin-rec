@@ -20,3 +20,4 @@ htmlcov/
 data/
 artifacts/
 .DS_Store
+smoke_test_results.json
