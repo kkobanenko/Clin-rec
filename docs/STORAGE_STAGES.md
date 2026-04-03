@@ -13,7 +13,8 @@
 | **Compile KB** (Celery `compile_document_version` / `POST /kb/compile`) | **`entity_registry`** (тип `document` на `document_registry_id`), **`knowledge_artifact`**: `source_digest`, `entity_page`, `glossary_term`, `open_question`, **`master_index`**; **`artifact_source_link`** (provenance на `document_version`). |
 | **refresh_backlinks** | **`artifact_backlink`** — рёбра из `[[slug]]` / markdown-ссылок в `content_md`. |
 | **rebuild_indexes** (после миграции 003) | обновление **`knowledge_artifact.search_vector`** (FTS, `simple`). |
-| **Clinical extraction / scoring** | сущности клинического слоя, evidence, matrix — по мере реализации задач `extract` / `score`. |
+| **Clinical extraction** (`extract_document`) | **`clinical_context`**; при нахождении МНН — доп. строки **`entity_registry`** (`entity_type=molecule`, связь `external_refs_json.molecule_id`). |
+| **Scoring** | evidence, **`matrix_cell`** — задачи `score`. |
 | **Output generate** | **`output_release`** — черновик записи аналитического output. |
 | **Output file** | обновление **`output_release`** (`file_back_status`, при `accepted` — `released_at`). |
 

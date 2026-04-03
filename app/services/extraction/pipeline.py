@@ -6,6 +6,7 @@ from app.core.sync_database import get_sync_session
 from app.models.clinical import ClinicalContext
 from app.models.document import DocumentRegistry, DocumentVersion
 from app.models.text import DocumentSection, TextFragment
+from app.services.knowledge_entity_sync import ensure_molecule_entities
 from app.services.extraction.context_extractor import ContextExtractor
 from app.services.extraction.mnn_extractor import MnnExtractor
 from app.services.extraction.relation_extractor import RelationExtractor
@@ -84,6 +85,10 @@ class ExtractionPipeline:
                     "title": section.section_title or "",
                     "fragments": frag_data,
                 })
+
+            # Извлечённые МНН → entity_registry (канонические сущности для KB/scoring).
+            mol_ids = {h["molecule_id"] for h in all_mnn_results if h.get("molecule_id") is not None}
+            ensure_molecule_entities(session, mol_ids)
 
             # Extract clinical contexts
             contexts = self.context_extractor.extract_from_document(

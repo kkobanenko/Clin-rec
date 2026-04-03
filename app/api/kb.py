@@ -91,6 +91,33 @@ async def get_artifact(artifact_id: int, db: AsyncSession = Depends(get_db)):
     return KnowledgeArtifactDetailOut.model_validate(art)
 
 
+@router.get("/entities", response_model=PaginatedResponse)
+async def list_entities(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    entity_type: str | None = None,
+    search: str | None = Query(None, description="Подстрока в canonical_name (ILIKE)"),
+):
+    """Список сущностей entity_registry (в т.ч. molecule после extract)."""
+    q = select(EntityRegistry)
+    count_q = select(func.count(EntityRegistry.id))
+    if entity_type:
+        q = q.where(EntityRegistry.entity_type == entity_type)
+        count_q = count_q.where(EntityRegistry.entity_type == entity_type)
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        filt = EntityRegistry.canonical_name.ilike(term)
+        q = q.where(filt)
+        count_q = count_q.where(filt)
+    total = (await db.execute(count_q)).scalar_one()
+    q = q.order_by(EntityRegistry.id).offset((page - 1) * page_size).limit(page_size)
+    rows = (await db.execute(q)).scalars().all()
+    items = [EntityRegistryOut.model_validate(r) for r in rows]
+    pages = (total + page_size - 1) // page_size if page_size else 1
+    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, pages=pages)
+
+
 @router.get("/entities/{entity_id}", response_model=EntityRegistryOut)
 async def get_entity(entity_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(EntityRegistry).where(EntityRegistry.id == entity_id))

@@ -193,9 +193,28 @@ def page_knowledge_base():
     elif arts:
         st.info("Артефактов нет — сначала normalize + compile для версий документов.")
 
+    st.subheader("Сущности entity_registry (список)")
+    e1, e2, e3 = st.columns(3)
+    et_filter = e1.text_input("Тип сущности", "", placeholder="molecule", key="kb_ent_type")
+    ent_search = e2.text_input("Поиск по имени", "", key="kb_ent_search")
+    ent_psize = e3.number_input("page_size entities", min_value=5, max_value=200, value=30, key="kb_ent_psize")
+    ent_params: dict = {"page": 1, "page_size": int(ent_psize)}
+    if et_filter.strip():
+        ent_params["entity_type"] = et_filter.strip()
+    if ent_search.strip():
+        ent_params["search"] = ent_search.strip()
+    ent_list = api_get("/kb/entities", ent_params)
+    if ent_list and ent_list.get("items"):
+        edf = pd.DataFrame(ent_list["items"])
+        st.caption(f"Сущностей: {ent_list.get('total', 0)}")
+        ecs = [c for c in ("id", "entity_type", "canonical_name", "status") if c in edf.columns]
+        st.dataframe(edf[ecs], use_container_width=True)
+    elif ent_list:
+        st.info("Нет сущностей — после extract с МНН появятся molecule; compile создаёт document.")
+
     st.subheader("Деталь артефакта")
-    aid = st.number_input("artifact_id", min_value=1, step=1, value=1)
-    if st.button("Загрузить артефакт"):
+    aid = st.number_input("artifact_id", min_value=1, step=1, value=1, key="kb_artifact_id")
+    if st.button("Загрузить артефакт", key="kb_load_art"):
         det = api_get(f"/kb/artifacts/{int(aid)}")
         if det:
             st.json({k: det.get(k) for k in ("id", "artifact_type", "canonical_slug", "title", "status") if k in det})
@@ -211,9 +230,9 @@ def page_knowledge_base():
         else:
             st.info("Нет claim с conflict_group_id")
 
-    st.subheader("Сущность entity_registry")
-    eid = st.number_input("entity_id", min_value=1, step=1, value=1)
-    if st.button("Загрузить сущность"):
+    st.subheader("Деталь сущности entity_registry")
+    eid = st.number_input("entity_id", min_value=1, step=1, value=1, key="kb_entity_id")
+    if st.button("Загрузить сущность", key="kb_load_ent"):
         ent = api_get(f"/kb/entities/{int(eid)}")
         if ent:
             st.json(ent)
