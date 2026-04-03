@@ -57,12 +57,23 @@ class KnowledgeLintService:
                     }
                 )
 
+            # Незакрытые группы конфликтов: distinct conflict_group_id среди claims.
+            conflict_groups = (
+                session.scalar(
+                    select(func.count(func.distinct(KnowledgeClaim.conflict_group_id))).where(
+                        KnowledgeClaim.conflict_group_id.isnot(None)
+                    )
+                )
+                or 0
+            )
+
             result = {
                 "status": "ok",
                 "issue_count": len(issues),
                 "issues": issues,
+                "conflict_groups_distinct": int(conflict_groups),
             }
-            logger.info("lint_kb: %s issues", len(issues))
+            logger.info("lint_kb: %s issues, conflict_groups=%s", len(issues), conflict_groups)
             return result
         finally:
             session.close()
