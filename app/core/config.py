@@ -54,5 +54,8 @@ class Settings(BaseSettings):
     # Streamlit
     streamlit_port: int = 8501
 
+    # Сгенерированные output-файлы (memo и др.) на локальном диске (TZ §16).
+    output_files_dir: str = "var/crin_outputs"
+
 
 settings = Settings()

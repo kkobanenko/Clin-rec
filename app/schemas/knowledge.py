@@ -88,6 +88,12 @@ class OutputFileRequest(BaseModel):
     file_back_status: str  # accepted | rejected | needs_review
 
 
+class OutputFileBackBody(BaseModel):
+    """Тело POST /outputs/file-back/{id} (алиас к POST /outputs/file)."""
+
+    file_back_status: str
+
+
 class OutputReleaseOut(BaseModel):
     id: int
     output_type: str

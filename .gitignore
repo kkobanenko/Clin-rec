@@ -19,5 +19,6 @@ htmlcov/
 *.log
 data/
 artifacts/
+var/
 .DS_Store
 smoke_test_results.json

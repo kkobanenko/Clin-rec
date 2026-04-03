@@ -7,7 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
 from app.models.knowledge import OutputRelease
-from app.schemas.knowledge import OutputFileRequest, OutputGenerateRequest, OutputReleaseOut
+from app.schemas.knowledge import (
+    OutputFileBackBody,
+    OutputFileRequest,
+    OutputGenerateRequest,
+    OutputReleaseOut,
+)
 from app.schemas.pipeline import PaginatedResponse
 from app.workers.tasks.kb import file_outputs as file_outputs_task
 from app.workers.tasks.kb import generate_outputs as generate_outputs_task
@@ -36,6 +41,29 @@ async def file_output(body: OutputFileRequest):
     """Output filing workflow: обновление статуса (обработка в worker)."""
     async_result = file_outputs_task.delay(body.output_id, body.file_back_status)
     return {"task_id": async_result.id, "status": "queued", "output_id": body.output_id}
+
+
+@router.post("/memo", status_code=202)
+async def generate_memo_alias(body: OutputGenerateRequest):
+    """TZ §17: алиас POST /outputs/generate с output_type=memo."""
+    async_result = generate_outputs_task.delay(
+        output_type="memo",
+        title=body.title,
+        scope_json=body.scope_json,
+    )
+    return {
+        "task_id": async_result.id,
+        "status": "queued",
+        "output_type": "memo",
+        "message": "memo generation queued — см. GET /outputs",
+    }
+
+
+@router.post("/file-back/{output_id}", status_code=202)
+async def file_back_alias(output_id: int, body: OutputFileBackBody):
+    """TZ §17: алиас к POST /outputs/file с output_id в пути."""
+    async_result = file_outputs_task.delay(output_id, body.file_back_status)
+    return {"task_id": async_result.id, "status": "queued", "output_id": output_id}
 
 
 @router.get("", response_model=PaginatedResponse)

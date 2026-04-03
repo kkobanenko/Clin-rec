@@ -4,13 +4,65 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
+from sqlalchemy import select
+
+from app.core.config import settings
 from app.core.sync_database import get_sync_session
-from app.models.knowledge import OutputRelease
+from app.models.knowledge import KnowledgeArtifact, OutputRelease
 
 logger = logging.getLogger(__name__)
 
-GENERATOR_VERSION = "0.1.0"
+GENERATOR_VERSION = "0.2.0"
+
+
+def _build_memo_markdown(
+    session,
+    output_id: int,
+    scope_json: dict | None,
+) -> tuple[str, dict]:
+    """
+    Простой Markdown-memo: список последних дайджестов или slug из scope_json.
+    Возвращает (текст файла, memo_manifest для scope_json).
+    """
+    lines: list[str] = [
+        "# Analytic memo",
+        "",
+        f"- `output_release_id`: `{output_id}`",
+        f"- `generator_version`: `{GENERATOR_VERSION}`",
+        "",
+        "## Ссылки на дайджесты (source_digest)",
+        "",
+    ]
+    manifest: dict = {"generator_version": GENERATOR_VERSION, "digest_slugs": []}
+    scope = scope_json or {}
+    limit = int(scope.get("digest_limit", 10))
+    if scope.get("digest_slugs"):
+        for slug in scope["digest_slugs"]:
+            manifest["digest_slugs"].append(slug)
+            lines.append(f"- [[{slug}]]")
+    else:
+        rows = session.execute(
+            select(KnowledgeArtifact.canonical_slug, KnowledgeArtifact.title)
+            .where(KnowledgeArtifact.artifact_type == "source_digest")
+            .order_by(KnowledgeArtifact.id.desc())
+            .limit(limit)
+        ).all()
+        for slug, title in rows:
+            manifest["digest_slugs"].append(str(slug))
+            lines.append(f"- [{title}]({slug})")
+    body = "\n".join(lines) + "\n"
+    return body, manifest
+
+
+def _write_output_file(output_id: int, output_type: str, body: str) -> Path:
+    """Сохраняем UTF-8 файл под управляемым префиксом каталога (см. CRIN_OUTPUT_FILES_DIR)."""
+    root = Path(settings.output_files_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / f"{output_type}_{output_id}.md"
+    path.write_text(body, encoding="utf-8")
+    return path.resolve()
 
 
 def create_pending_output(
@@ -19,7 +71,9 @@ def create_pending_output(
     scope_json: dict | None = None,
     generator_version: str = GENERATOR_VERSION,
 ) -> int:
-    """Создать строку output_release в статусе ожидания (пока без файла в S3)."""
+    """
+    Создать output_release; для memo — сразу пишем markdown на диск и ставим file_pointer (TZ §16).
+    """
     session = get_sync_session()
     try:
         safe_title = (title or "").strip() or f"{output_type} draft"
@@ -32,9 +86,20 @@ def create_pending_output(
             file_back_status="pending",
         )
         session.add(row)
+        session.flush()
+        oid = row.id
+
+        if output_type == "memo":
+            body, memo_manifest = _build_memo_markdown(session, oid, scope_json)
+            path = _write_output_file(oid, "memo", body)
+            row.file_pointer = str(path)
+            merged_scope = dict(scope_json or {})
+            merged_scope["memo_manifest"] = memo_manifest
+            row.scope_json = merged_scope
+
         session.commit()
         session.refresh(row)
-        logger.info("Created output_release id=%s type=%s", row.id, output_type)
+        logger.info("Created output_release id=%s type=%s pointer=%s", row.id, output_type, row.file_pointer)
         return row.id
     except Exception:
         session.rollback()
