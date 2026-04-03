@@ -2,7 +2,7 @@
 
 import logging
 
-from app.services.index_stats import collect_index_stats
+from app.services.index_stats import collect_index_stats, refresh_knowledge_artifact_fts
 from app.services.knowledge_backlinks import refresh_all_backlinks_sync
 from app.services.knowledge_compile import KnowledgeCompileService
 from app.services.knowledge_conflicts import detect_conflicts_sync
@@ -64,7 +64,9 @@ def file_outputs(output_id: int, file_back_status: str) -> dict:
 
 @celery_app.task(name="app.workers.tasks.kb.rebuild_indexes", queue="rebuild_indexes")
 def rebuild_indexes() -> dict:
-    """Снимок счётчиков таблиц до полноценного FTS/BI."""
+    """FTS по knowledge_artifact + снимок счётчиков таблиц (TZ §19)."""
+    fts = refresh_knowledge_artifact_fts()
     stats = collect_index_stats()
+    stats.update(fts)
     logger.info("rebuild_indexes stats=%s", stats)
     return stats
