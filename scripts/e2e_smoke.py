@@ -18,8 +18,8 @@ from pathlib import Path
 
 import httpx
 
-# Docker Compose публикует API на хосте :8008 (см. ISOLATION_POLICY / docker-compose.yml).
-BASE_URL = os.environ.get("CRIN_SMOKE_BASE_URL", "http://127.0.0.1:8008")
+# Docker Compose публикует API на хосте :8000 (см. ISOLATION_POLICY / docker-compose.yml).
+BASE_URL = os.environ.get("CRIN_SMOKE_BASE_URL", "http://127.0.0.1:8000")
 POLL_INTERVAL = 2
 POLL_TIMEOUT = 120
 MAX_RETRIES = 3

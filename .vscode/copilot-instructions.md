@@ -46,7 +46,7 @@ docker ps -a --filter "name=crin_" --format "table {{.Names}}\t{{.Status}}"  # O
 # 1. Assess state (CRIN_ CONTAINERS ONLY)
 docker compose ps                                           # Project services
 docker compose logs crin_app | tail -20                    # Specific crin_ container logs
-netstat -tlnp 2>/dev/null | grep -E "5433|6380|8008|8501"  # ONLY crin_ project ports
+netstat -tlnp 2>/dev/null | grep -E "5433|6380|8000|8501"  # ONLY crin_ project ports
 
 # 2. Self-heal (ISOLATED TO CRIN_)
 docker compose down                                         # Stops only crin_ services
@@ -55,14 +55,14 @@ sleep 30                                                    # Wait for health ch
 docker compose ps                                           # Confirm crin_ healthy
 
 # 3. Validate
-curl http://127.0.0.1:8008/health                         # API health (compose host port)
+curl http://127.0.0.1:8000/health                         # API health (compose host port)
 .venv/bin/python scripts/e2e_smoke.py                      # Full chain test
 
 # 4. Report & retry
 ```
 
 **Port Isolation Guarantee:**
-- ✅ SAFE: Ports 5433, 6380, 8008, 8501, 9010, 9011 (crin_ project)
+- ✅ SAFE: Ports 5433, 6380, 8000, 8501, 9010, 9011 (crin_ project)
 - ❌ FORBIDDEN: Ports 5432, 6379, 8080, 9000 (other systems)
 - ❌ FORBIDDEN: Touching non-crin_ containers (postgres, redis, airflow, superset, etc.)
 
@@ -74,7 +74,7 @@ See [ISOLATION_POLICY.md](ISOLATION_POLICY.md) for complete safeguards.
 ## Project Context
 
 ### Architecture
-- **FastAPI** backend: host **8008** → container **8000** (`crin_app`)
+- **FastAPI** backend: host **8000** → container **8000** (`crin_app`)
 - **Celery** workers (container: crin_worker)
 - **PostgreSQL** on port 5433 (container: crin_postgres)
 - **Redis** on port 6380 (container: crin_redis)
@@ -177,7 +177,7 @@ docker ps -a --filter "name=crin_"         # Verify ONLY crin_ containers exist 
 
 **If port conflict detected:**
 ```
-❌ ERROR: Port 8008 already in use by non-crin_ service: [name]
+❌ ERROR: Port 8000 already in use by non-crin_ service: [name]
 → STOP immediately
 → Report to user: cannot proceed, requires manual intervention
 → NEVER force kill other services

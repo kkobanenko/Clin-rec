@@ -64,9 +64,9 @@ services:
     build: .
     container_name: crin_app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    # Host 8008: избегаем конфликта с чужими сервисами на :8000 (ISOLATION_POLICY).
+    # Хост :8000 зарезервирован для crin_app (ISOLATION_POLICY.md). При EADDRINUSE — osвободить порт или см. §Emergency.
     ports:
-      - "8008:8000"
+      - "8000:8000"
     volumes:
       - .:/app
     env_file:

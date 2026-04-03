@@ -15,7 +15,7 @@ from pathlib import Path
 # Expected project configuration
 EXPECTED_CWD = "/home/kobanenkokn/Clin-rec"
 EXPECTED_SERVICES = {"app", "minio", "minio-init", "postgres", "redis", "streamlit", "worker"}
-CRIN_PORTS = {"5433", "6380", "8008", "8501", "9010", "9011"}
+CRIN_PORTS = {"5433", "6380", "8000", "8501", "9010", "9011"}
 CRIN_CONTAINER_PREFIX = "crin_"
 
 # Forbidden ports (used by other services)
