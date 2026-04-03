@@ -14,6 +14,7 @@ venv/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+.playwright-mcp/
 htmlcov/
 .coverage
 *.log
