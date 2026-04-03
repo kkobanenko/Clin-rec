@@ -1,10 +1,13 @@
 """CR Intelligence Platform — Streamlit Admin UI."""
 
+import os
+
 import httpx
 import pandas as pd
 import streamlit as st
 
-API_BASE = "http://app:8000"
+# В docker: http://app:8000; локально: http://127.0.0.1:8000 (см. CRIN_STREAMLIT_API_BASE в compose).
+API_BASE = os.environ.get("CRIN_STREAMLIT_API_BASE", "http://app:8000")
 
 
 def api_get(path: str, params: dict | None = None) -> dict | list | None:
@@ -139,6 +142,83 @@ def page_pipeline():
             st.info("No pipeline runs yet")
 
 
+# --- Page: Knowledge base (TZ §21) ---
+
+
+def page_knowledge_base():
+    st.header("Knowledge base")
+
+    st.subheader("Master index")
+    mi = api_get("/kb/indexes/master")
+    if mi:
+        if mi.get("artifact_id"):
+            st.caption(
+                f"artifact_id={mi.get('artifact_id')} slug={mi.get('canonical_slug')}"
+            )
+            if mi.get("manifest_json"):
+                with st.expander("manifest_json"):
+                    st.json(mi["manifest_json"])
+            body = mi.get("content_md") or ""
+            st.markdown(body if body else "*пусто*", unsafe_allow_html=False)
+        else:
+            st.info(mi.get("message", "Нет master_index — выполните компиляцию после корпуса."))
+
+    st.subheader("Действия")
+    c1, c2 = st.columns(2)
+    if c1.button("Запустить compile_kb (Celery)"):
+        r = api_post("/kb/compile")
+        if r:
+            st.success(f"В очереди: task_id={r.get('task_id', r)}")
+    if c2.button("Запустить lint_kb (Celery)"):
+        r = api_post("/kb/lint")
+        if r:
+            st.success(f"В очереди: task_id={r.get('task_id', r)}")
+
+    st.subheader("Артефакты")
+    f1, f2, f3 = st.columns(3)
+    atype = f1.text_input("Тип артефакта (опц.)", "", placeholder="source_digest")
+    qsearch = f2.text_input("Поиск (title/summary/slug)", "")
+    psize = f3.number_input("page_size", min_value=5, max_value=200, value=50)
+    params: dict = {"page": 1, "page_size": int(psize)}
+    if atype.strip():
+        params["artifact_type"] = atype.strip()
+    if qsearch.strip():
+        params["search"] = qsearch.strip()
+    arts = api_get("/kb/artifacts", params)
+    if arts and arts.get("items"):
+        df = pd.DataFrame(arts["items"])
+        st.caption(f"Всего: {arts.get('total', 0)}")
+        show_cols = [c for c in ("id", "artifact_type", "canonical_slug", "title", "status") if c in df.columns]
+        st.dataframe(df[show_cols], use_container_width=True)
+    elif arts:
+        st.info("Артефактов нет — сначала normalize + compile для версий документов.")
+
+    st.subheader("Деталь артефакта")
+    aid = st.number_input("artifact_id", min_value=1, step=1, value=1)
+    if st.button("Загрузить артефакт"):
+        det = api_get(f"/kb/artifacts/{int(aid)}")
+        if det:
+            st.json({k: det.get(k) for k in ("id", "artifact_type", "canonical_slug", "title", "status") if k in det})
+            if det.get("content_md"):
+                st.markdown("---")
+                st.text_area("content_md", det["content_md"], height=320, disabled=True)
+
+    st.subheader("Группы конфликтов (claims)")
+    cfs = api_get("/kb/conflicts")
+    if cfs is not None:
+        if cfs:
+            st.dataframe(pd.DataFrame([{"conflict_group_id": x.get("conflict_group_id"), "claims": len(x.get("claim_ids", []))} for x in cfs]), use_container_width=True)
+        else:
+            st.info("Нет claim с conflict_group_id")
+
+    st.subheader("Сущность entity_registry")
+    eid = st.number_input("entity_id", min_value=1, step=1, value=1)
+    if st.button("Загрузить сущность"):
+        ent = api_get(f"/kb/entities/{int(eid)}")
+        if ent:
+            st.json(ent)
+
+
 # --- Page: Matrix ---
 
 def page_matrix():
@@ -264,6 +344,7 @@ def main():
         "Dashboard": page_dashboard,
         "Documents": page_documents,
         "Pipeline": page_pipeline,
+        "Knowledge base": page_knowledge_base,
         "Matrix": page_matrix,
         "Reviews": page_reviews,
         "Scoring Models": page_scoring_models,

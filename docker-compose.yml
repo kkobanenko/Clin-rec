@@ -123,6 +123,7 @@ services:
       CRIN_DATABASE_URL_SYNC: postgresql://crplatform:crplatform@postgres:5432/crplatform
       CRIN_REDIS_URL: redis://redis:6379/0
       CRIN_S3_ENDPOINT_URL: http://minio:9000
+      CRIN_STREAMLIT_API_BASE: http://app:8000
     depends_on:
       - app
 
