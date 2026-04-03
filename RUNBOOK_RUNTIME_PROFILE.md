@@ -94,6 +94,8 @@ Pass criteria:
 
 **Streamlit — вкладка Outputs (Sprint 7):** список и деталь `GET /outputs`, постановка `POST /outputs/memo` или `/outputs/generate`, filing `POST /outputs/file`, опрос задач `GET /tasks/{task_id}`. В Docker базовый URL API задаётся **`CRIN_STREAMLIT_API_BASE`** (в [docker-compose.yml](docker-compose.yml) для `streamlit`: `http://app:8000`).
 
+**Streamlit — вкладка Matrix (Sprint 8, explorer):** блок **Pair evidence** вызывает `GET /matrix/pair-evidence` с теми же query-параметрами, что в таблице выше; история ревью — `GET /reviews` (ответ — JSON-массив).
+
 **Pair evidence:** после успешного `extract_document` в worker вызывается `CandidateEngine.generate_pairs(version_id)` — появляются строки `pair_evidence` (см. `docs/STORAGE_STAGES.md`).
 
 **Страницы МНН:** при `compile` для версии документа `KnowledgeCompileService` создаёт недостающие `entity_page` для `entity_registry` с `entity_type=molecule`, чтобы закрыть lint `missing_entity_page_molecule`.

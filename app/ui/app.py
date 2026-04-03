@@ -431,6 +431,52 @@ def page_matrix():
         if detail:
             st.json(detail)
 
+    # Sprint 8 — matrix explorer: список PairEvidence (TZ §24).
+    st.markdown("---")
+    st.subheader("Pair evidence (explorer)")
+    st.caption("GET /matrix/pair-evidence — кандидатные пары после extract / CandidateEngine.")
+    px1, px2, px3 = st.columns(3)
+    pe_page = px1.number_input("page", min_value=1, value=1, key="pe_page")
+    pe_psize = px2.number_input("page_size", min_value=5, max_value=200, value=30, key="pe_psize")
+    pe_dv = px3.number_input("document_version_id (0 = все)", min_value=0, value=0, key="pe_dv")
+    py1, py2, py3 = st.columns(3)
+    pe_mf = py1.number_input("molecule_from_id (0 = все)", min_value=0, value=0, key="pe_mf")
+    pe_mt = py2.number_input("molecule_to_id (0 = все)", min_value=0, value=0, key="pe_mt")
+    pe_rs = py3.text_input("review_status (пусто = все)", "", key="pe_rs")
+    if st.button("Загрузить pair_evidence", key="pe_load_btn"):
+        pep: dict = {"page": int(pe_page), "page_size": int(pe_psize)}
+        if pe_dv > 0:
+            pep["document_version_id"] = int(pe_dv)
+        if pe_mf > 0:
+            pep["molecule_from_id"] = int(pe_mf)
+        if pe_mt > 0:
+            pep["molecule_to_id"] = int(pe_mt)
+        if pe_rs.strip():
+            pep["review_status"] = pe_rs.strip()
+        ped = api_get("/matrix/pair-evidence", pep)
+        if ped:
+            pit = ped.get("items", [])
+            st.caption(f"Всего записей: {ped.get('total', 0)}")
+            if pit:
+                pdf = pd.DataFrame(pit)
+                pcols = [
+                    c
+                    for c in (
+                        "id",
+                        "context_id",
+                        "molecule_from_id",
+                        "molecule_to_id",
+                        "fragment_id",
+                        "relation_type",
+                        "review_status",
+                        "final_fragment_score",
+                    )
+                    if c in pdf.columns
+                ]
+                st.dataframe(pdf[pcols] if pcols else pdf, use_container_width=True)
+            else:
+                st.info("Нет PairEvidence для заданных фильтров.")
+
 
 # --- Page: Reviews ---
 
@@ -439,14 +485,14 @@ def page_reviews():
 
     # Review history
     st.subheader("Recent Review Actions")
-    reviews = api_get("/reviews", {"page_size": 50})
-    if reviews:
-        items = reviews.get("items", [])
-        if items:
-            df = pd.DataFrame(items)
-            st.dataframe(df, use_container_width=True)
-        else:
+    reviews = api_get("/reviews")
+    if reviews is not None:
+        if isinstance(reviews, list) and reviews:
+            st.dataframe(pd.DataFrame(reviews), use_container_width=True)
+        elif isinstance(reviews, list):
             st.info("No review actions yet")
+        else:
+            st.warning("Unexpected /reviews response shape")
 
     # Submit review
     st.subheader("Submit Review")
