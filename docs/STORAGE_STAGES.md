@@ -10,11 +10,11 @@
 | **Probe** (по цепочке после discovery) | **`document_version`** (в т.ч. `source_type_primary`), при необходимости новые версии. |
 | **Fetch** | **`source_artifact`**: ссылка `raw_path` на объект в S3/MinIO, хэш, тип. |
 | **Normalize** | **`document_section`**, **`text_fragment`** — нормализованный текст и структура (результат индексирования/парсинга в табличном виде). |
-| **Compile KB** (Celery `compile_document_version` / `POST /kb/compile`) | **`entity_registry`** (тип `document` на `document_registry_id`), **`knowledge_artifact`**: `source_digest`, `entity_page`, `glossary_term`, `open_question`, **`master_index`**; **`artifact_source_link`** (provenance на `document_version`). |
+| **Compile KB** (Celery `compile_document_version` / `POST /kb/compile`) | **`entity_registry`** (тип `document` на `document_registry_id`), **`knowledge_artifact`**: `source_digest`, `entity_page` (в т.ч. **страницы МНН** `entity_page/molecule_{id}` для строк `entity_type=molecule` — см. `KnowledgeCompileService._ensure_molecule_entity_pages`), `glossary_term`, `open_question`, **`master_index`**; **`artifact_source_link`** (provenance на `document_version`). |
 | **refresh_backlinks** | **`artifact_backlink`** — рёбра из `[[slug]]` / markdown-ссылок в `content_md`. |
 | **rebuild_indexes** (после миграции 003) | обновление **`knowledge_artifact.search_vector`** (FTS, `simple`). |
-| **Clinical extraction** (`extract_document`) | **`clinical_context`**; при нахождении МНН — доп. строки **`entity_registry`** (`entity_type=molecule`, связь `external_refs_json.molecule_id`). |
-| **Scoring** | evidence, **`matrix_cell`** — задачи `score`. |
+| **Clinical extraction** (`extract_document` / очередь `extract`) | **`clinical_context`**; при нахождении МНН — доп. строки **`entity_registry`** (`entity_type=molecule`, связь `external_refs_json.molecule_id`). После успешного `ExtractionPipeline.extract` вызывается **`CandidateEngine.generate_pairs(version_id)`** → строки **`pair_evidence`** (кандидатные пары TZ §15.1). |
+| **Scoring / matrix** | Celery `score_pairs`, `build_matrix` (очередь `score`). Явный запуск цепочки: **`POST /matrix/rebuild`** (`model_version_id`, `scope_type`) → `score_pairs` → `build_matrix`. **`pair_context_score`**, **`matrix_cell`**. |
 | **Output generate** | **`output_release`** — черновик записи аналитического output. |
 | **Output file** | обновление **`output_release`** (`file_back_status`, при `accepted` — `released_at`). |
 

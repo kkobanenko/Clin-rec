@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MatrixCellOut(BaseModel):
@@ -70,3 +70,16 @@ class ScoringModelVersionCreate(BaseModel):
     weights_json: dict
     code_commit_hash: str | None = None
     description: str | None = None
+
+
+class MatrixRebuildBody(BaseModel):
+    """POST /matrix/rebuild: очередь score_pairs → build_matrix."""
+
+    model_version_id: int = Field(..., ge=1)
+    scope_type: str = "global"
+
+
+class MatrixRebuildQueued(BaseModel):
+    task_id: str
+    status: str = "queued"
+    message: str

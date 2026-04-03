@@ -6,7 +6,7 @@ import httpx
 import pandas as pd
 import streamlit as st
 
-# В docker-сети: http://app:8000. С хоста браузер к API: :8008 (см. docker-compose, ISOLATION_POLICY).
+# В docker: http://app:8000; локально: http://127.0.0.1:8000 (см. CRIN_STREAMLIT_API_BASE в compose).
 API_BASE = os.environ.get("CRIN_STREAMLIT_API_BASE", "http://app:8000")
 
 
@@ -168,11 +168,32 @@ def page_knowledge_base():
     if c1.button("Запустить compile_kb (Celery)"):
         r = api_post("/kb/compile")
         if r:
-            st.success(f"В очереди: task_id={r.get('task_id', r)}")
+            tid = r.get("task_id")
+            if tid:
+                st.session_state["kb_compile_task_id"] = tid
+            st.success(f"В очереди: task_id={tid or r}")
     if c2.button("Запустить lint_kb (Celery)"):
         r = api_post("/kb/lint")
         if r:
-            st.success(f"В очереди: task_id={r.get('task_id', r)}")
+            tid = r.get("task_id")
+            if tid:
+                st.session_state["kb_lint_task_id"] = tid
+            st.success(f"В очереди: task_id={tid or r}")
+
+    st.subheader("Статус фоновых задач (Celery)")
+    st.caption("Read-only GET /tasks/{task_id} — state и ready, без тела результата.")
+    last_c = st.session_state.get("kb_compile_task_id")
+    last_l = st.session_state.get("kb_lint_task_id")
+    st.caption(f"Последние из UI: compile=`{last_c or '—'}` lint=`{last_l or '—'}`")
+    kb_tid = st.text_input("task_id для опроса", key="kb_poll_task_id", placeholder="UUID из ответа /kb/compile или /kb/lint")
+    if st.button("Опросить статус задачи"):
+        tid = (kb_tid or "").strip() or last_c or last_l or ""
+        if tid:
+            stat = api_get(f"/tasks/{tid}")
+            if stat:
+                st.write(f"**state**={stat.get('state')} **ready**={stat.get('ready')}")
+        else:
+            st.warning("Укажите task_id или сначала запустите compile/lint.")
 
     st.subheader("Артефакты")
     f1, f2, f3 = st.columns(3)
@@ -222,13 +243,29 @@ def page_knowledge_base():
                 st.markdown("---")
                 st.text_area("content_md", det["content_md"], height=320, disabled=True)
 
-    st.subheader("Группы конфликтов (claims)")
+    st.subheader("Группы конфликтов")
     cfs = api_get("/kb/conflicts")
     if cfs is not None:
         if cfs:
             st.dataframe(pd.DataFrame([{"conflict_group_id": x.get("conflict_group_id"), "claims": len(x.get("claim_ids", []))} for x in cfs]), use_container_width=True)
         else:
             st.info("Нет claim с conflict_group_id")
+
+    st.subheader("Claims (GET /kb/claims)")
+    q1, q2 = st.columns(2)
+    claim_artifact = q1.number_input("artifact_id (0 = без фильтра)", min_value=0, value=0, key="kb_claims_artifact")
+    claim_psize = q2.number_input("page_size claims", min_value=5, max_value=200, value=50, key="kb_claims_psize")
+    cparams: dict = {"page": 1, "page_size": int(claim_psize)}
+    if claim_artifact > 0:
+        cparams["artifact_id"] = int(claim_artifact)
+    clm = api_get("/kb/claims", cparams)
+    if clm and clm.get("items"):
+        cdf = pd.DataFrame(clm["items"])
+        st.caption(f"Всего claims: {clm.get('total', 0)}")
+        ccols = [c for c in ("id", "artifact_id", "claim_type", "claim_text", "review_status", "conflict_group_id") if c in cdf.columns]
+        st.dataframe(cdf[ccols] if ccols else cdf, use_container_width=True)
+    elif clm:
+        st.info("Claims не найдены для заданных параметров.")
 
     st.subheader("Деталь сущности entity_registry")
     eid = st.number_input("entity_id", min_value=1, step=1, value=1, key="kb_entity_id")
@@ -242,6 +279,23 @@ def page_knowledge_base():
 
 def page_matrix():
     st.header("Substitution Matrix")
+
+    st.subheader("Пересчёт матрицы (Celery)")
+    st.caption("POST /matrix/rebuild — цепочка score_pairs → build_matrix (очередь score). Нужен model_version_id.")
+    mr1, mr2, mr3 = st.columns(3)
+    mvid = mr1.number_input("model_version_id", min_value=1, step=1, value=1, key="matrix_rebuild_mvid")
+    mscope = mr2.selectbox("scope_type", ["global", "disease"], key="matrix_rebuild_scope")
+    if mr3.button("Запустить /matrix/rebuild"):
+        rb = api_post("/matrix/rebuild", {"model_version_id": int(mvid), "scope_type": mscope})
+        if rb:
+            rtid = rb.get("task_id")
+            if rtid:
+                st.session_state["matrix_rebuild_task_id"] = rtid
+            st.success(f"В очереди: task_id={rtid or rb}")
+    last_mtx = st.session_state.get("matrix_rebuild_task_id")
+    if last_mtx:
+        st.caption(f"Последний rebuild task_id: `{last_mtx}` — опрос: вкладка Knowledge base → статус задач или GET /tasks/{{id}}")
+    st.markdown("---")
 
     col1, col2 = st.columns(2)
     scope_type = col1.selectbox("Scope", ["global", "disease"])

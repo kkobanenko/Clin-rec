@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import func, select
 
 from app.core.sync_database import get_sync_session
-from app.models.knowledge import ArtifactSourceLink, KnowledgeArtifact, KnowledgeClaim
+from app.models.knowledge import ArtifactSourceLink, EntityRegistry, KnowledgeArtifact, KnowledgeClaim
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,31 @@ class KnowledgeLintService:
                         "count": claims_no_prov,
                     }
                 )
+
+            # TZ §13: entity_page для молекул в entity_registry (после extract).
+            covered_molecules: set[int] = set()
+            for art in session.execute(
+                select(KnowledgeArtifact).where(KnowledgeArtifact.artifact_type == "entity_page")
+            ).scalars():
+                mj = (art.manifest_json or {}).get("molecule_id")
+                if mj is not None:
+                    covered_molecules.add(int(mj))
+            for ent in session.execute(
+                select(EntityRegistry).where(EntityRegistry.entity_type == "molecule")
+            ).scalars():
+                refs = ent.external_refs_json or {}
+                mid = refs.get("molecule_id")
+                if mid is None:
+                    continue
+                mid_int = int(mid)
+                if mid_int not in covered_molecules:
+                    issues.append(
+                        {
+                            "code": "missing_entity_page_molecule",
+                            "entity_registry_id": ent.id,
+                            "molecule_id": mid_int,
+                        }
+                    )
 
             # Незакрытые группы конфликтов: distinct conflict_group_id среди claims.
             conflict_groups = (

@@ -53,8 +53,6 @@ tr '\0' '\n' < /proc/<uvicorn_pid>/environ | rg '^CRIN_CELERY_BROKER_URL|^CRIN_C
 
 ## Profile B: docker-compose-only
 
-Публикация API на **хосте: `8008`** → контейнер `app` слушает `8000` (см. `ISOLATION_POLICY.md`). Swagger: `http://127.0.0.1:8008/docs`.
-
 ### Start stack
 ```bash
 docker compose up -d --build app worker
@@ -64,7 +62,6 @@ docker compose up -d --build app worker
 ```bash
 docker logs --tail=80 crin_app
 docker logs --tail=80 crin_worker
-curl -sSf http://127.0.0.1:8008/health
 ```
 
 ### Verify task consumption
@@ -84,6 +81,19 @@ Pass criteria:
 - `stats_json` contains minimum required fields: `discovery_service_version`, `run_type`, `wall_time_seconds`, `total_discovered`, `duplicates_detected`, `coverage_percent`
 - `/documents` returns consistent records
 - `completed` with `discovered_count = 0` is valid for smoke when lifecycle and observability checks pass
+
+## KB compile, lint, matrix rebuild, статус Celery
+
+| Действие | HTTP | Примечание |
+| --- | --- | --- |
+| Очередь полной перекомпиляции KB | `POST /kb/compile` | В ответе `task_id` (Celery `run_compile_kb`). |
+| Очередь lint KB | `POST /kb/lint` | `task_id` для `lint_kb`. |
+| Пересчёт scores и матрицы | `POST /matrix/rebuild` | Тело JSON: `{"model_version_id": <int>, "scope_type": "global"\|"disease"}`. Цепочка: `score_pairs` → `build_matrix`. Ответ `202` + `task_id`. |
+| Опрос задачи (read-only) | `GET /tasks/{task_id}` | Поля `state`, `ready`; тело результата задачи не отдаётся. Для UI (Streamlit) — после POST сохранить `task_id` и опрашивать этот маршрут. |
+
+**Pair evidence:** после успешного `extract_document` в worker вызывается `CandidateEngine.generate_pairs(version_id)` — появляются строки `pair_evidence` (см. `docs/STORAGE_STAGES.md`).
+
+**Страницы МНН:** при `compile` для версии документа `KnowledgeCompileService` создаёт недостающие `entity_page` для `entity_registry` с `entity_type=molecule`, чтобы закрыть lint `missing_entity_page_molecule`.
 
 ## Troubleshooting
 
@@ -105,18 +115,18 @@ Action:
 - Ensure dependency includes `psycopg2-binary`.
 - Rebuild runtime environment (venv or image) and restart worker.
 
-### Symptom: app container fails to start (port binding)
+### Symptom: app container fails to start on port 8000
 Possible cause:
-- Host port **8008** already in use (published API), or Docker cannot bind.
+- Port conflict with host process.
 
 Checks:
 ```bash
-ss -ltnp | rg ':8008'
-docker compose ps
+ss -ltnp | rg ':8000'
+ps -ww -p <pid> -o pid,ppid,cmd
 ```
 
 Resolution:
-- Free **8008** or change the host side in `docker-compose.yml` (`\"8010:8000\"` etc.). Внутри сети compose по-прежнему `http://app:8000`.
+- Stop conflicting process or use a single selected profile.
 
 ## Safety Notes
 

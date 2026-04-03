@@ -1,6 +1,7 @@
 import csv
 import io
 
+from celery import chain
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
@@ -14,9 +15,12 @@ from app.schemas.clinical import PairEvidenceOut
 from app.schemas.matrix import (
     MatrixCellDetailOut,
     MatrixCellOut,
+    MatrixRebuildBody,
+    MatrixRebuildQueued,
     ScoringModelVersionCreate,
     ScoringModelVersionOut,
 )
+from app.workers.tasks.score import build_matrix, score_pairs
 from app.schemas.pipeline import PaginatedResponse
 
 router = APIRouter(prefix="/matrix", tags=["matrix"])
@@ -164,6 +168,22 @@ async def export_matrix(
         iter([content]),
         media_type="application/x-ndjson",
         headers={"Content-Disposition": "attachment; filename=matrix_export.jsonl"},
+    )
+
+
+@router.post("/rebuild", response_model=MatrixRebuildQueued, status_code=202)
+async def queue_matrix_rebuild(body: MatrixRebuildBody):
+    """
+    Ставит в Celery цепочку: score_pairs(model_version_id) → build_matrix(model_version_id, scope_type).
+    Нужна активная модель и наличие PairEvidence (после extract). См. RUNBOOK_RUNTIME_PROFILE.md.
+    """
+    async_result = chain(
+        score_pairs.s(body.model_version_id),
+        build_matrix.si(body.model_version_id, body.scope_type),
+    ).apply_async()
+    return MatrixRebuildQueued(
+        task_id=async_result.id,
+        message="score_pairs then build_matrix queued on score queue",
     )
 
 

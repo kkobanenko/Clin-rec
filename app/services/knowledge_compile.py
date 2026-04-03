@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentRegistry, DocumentVersion
 from app.models.knowledge import ArtifactSourceLink, EntityRegistry, KnowledgeArtifact
+from app.models.molecule import Molecule
 from app.models.text import DocumentSection, TextFragment
 
 logger = logging.getLogger(__name__)
@@ -131,6 +132,8 @@ class KnowledgeCompileService:
             self._upsert_satellite_artifacts(session, version_id, registry, canonical_slug, entity.id)
 
             session.commit()
+            # TZ §13: минимальные entity_page для МНН из entity_registry (lint missing_entity_page_molecule).
+            self._ensure_molecule_entity_pages(session)
             self._rebuild_master_index(session)
             session.commit()
 
@@ -340,6 +343,58 @@ class KnowledgeCompileService:
         )
         session.flush()
         return art
+
+    def _ensure_molecule_entity_pages(self, session) -> None:
+        """
+        Для каждой строки entity_registry с entity_type=molecule и molecule_id в external_refs
+        создаёт knowledge_artifact (entity_page), если страницы ещё нет. Детерминированный slug.
+        """
+        rows = session.execute(
+            select(EntityRegistry).where(EntityRegistry.entity_type == "molecule")
+        ).scalars()
+        for ent in rows:
+            refs = ent.external_refs_json or {}
+            mid = refs.get("molecule_id")
+            if mid is None:
+                continue
+            mid_int = int(mid)
+            slug = f"entity_page/molecule_{mid_int}"
+            exists = session.execute(
+                select(KnowledgeArtifact.id).where(KnowledgeArtifact.canonical_slug == slug).limit(1)
+            ).scalar_one_or_none()
+            if exists is not None:
+                continue
+            mol = session.get(Molecule, mid_int)
+            inn = (mol.inn_ru or "").strip() if mol else ""
+            title = f"Entity: {inn[:180]}" if inn else f"Entity: molecule_id={mid_int}"
+            body_lines = [
+                f"# {title}",
+                "",
+                f"- `molecule_id`: {mid_int}",
+                f"- `entity_registry_id`: {ent.id}",
+                "",
+            ]
+            if inn:
+                body_lines.insert(3, f"- `inn_ru`: {inn}")
+            body = "\n".join(body_lines)
+            session.add(
+                KnowledgeArtifact(
+                    artifact_type="entity_page",
+                    title=title,
+                    canonical_slug=slug,
+                    status="draft",
+                    content_md=body,
+                    summary=f"Карточка МНН id={mid_int}",
+                    confidence="medium",
+                    generator_version=COMPILER_VERSION,
+                    manifest_json={
+                        "molecule_id": mid_int,
+                        "entity_registry_id": ent.id,
+                        "compiler": COMPILER_VERSION,
+                    },
+                )
+            )
+        session.flush()
 
     def _artifact_index_entries(self, session, artifact_type: str) -> list[dict[str, Any]]:
         rows = session.execute(
