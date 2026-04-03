@@ -4,6 +4,27 @@ This document tracks component versions for reproducibility across runs, per PRD
 
 ## Service Versions
 
+## Document Versions
+
+### PRD v1.2 (2026-04-01)
+
+**File:** `PRD_CR_Intelligence_Platform_v1_2.md`
+
+**Changelog:**
+- Added operational consistency requirement for API/worker queue connectivity.
+- Added MVP operational requirements section (runtime profile, broker alignment, smoke validity, isolation policy).
+- Added explicit Definition of Done for MVP.
+
+### TZ v1.1 (2026-04-01)
+
+**File:** `TZ_CR_Intelligence_Platform_v1_1.md`
+
+**Changelog:**
+- Added mandatory sync PostgreSQL driver requirement for worker runtime.
+- Added runtime profile and queue routing alignment requirements.
+- Added E2E smoke robustness requirements and extended module acceptance criteria.
+- Added explicit Definition of Done for MVP.
+
 ### Discovery Service v2.0 (2026-04-01)
 
 **Changelog:**
@@ -45,6 +66,17 @@ This document tracks component versions for reproducibility across runs, per PRD
 
 ## Configuration Hashing
 
+## Minimum stats_json Contract (completed run)
+
+For a run with status `completed`, `stats_json` must contain at least:
+
+- `discovery_service_version`
+- `run_type`
+- `wall_time_seconds`
+- `total_discovered`
+- `duplicates_detected`
+- `coverage_percent`
+
 To track when configuration changes affect reproducibility:
 
 ```python
@@ -71,7 +103,7 @@ When comparing two runs:
 ## Quality Gates per PRD Section 14
 
 ### Gate A — Source Quality ✅
-- ✅ Stableдiscovery (handled by multi-strategy fallback)
+- ✅ Stable discovery (handled by multi-strategy fallback)
 - ✅ Low duplicate rate (tracked: `duplicates_detected`)
 - ✅ High raw artifact completeness (`coverage_percent`)
 
@@ -103,6 +135,12 @@ Before releasing a matrix version or making config changes:
 - [ ] Parser version tracking in normalize service
 - [ ] Schema version for data model changes
 - [ ] Audit trail linking matrix cells to discovery run versions
+
+## Release Notes (2026-04-01)
+
+- Added `psycopg2-binary` dependency to support sync SQLAlchemy engine in worker runtime.
+- Hardened `scripts/e2e_smoke.py` against intermediate `pending` status and `stats_json = null`.
+- Validated successful E2E run path after runtime profile alignment and worker health checks.
 
 ---
 

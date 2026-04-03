@@ -1,12 +1,14 @@
-PRD v1.1
+PRD v1.2
 
 CR Intelligence Platform
 
-| Версия | v1.1 |
+| Версия | v1.2 |
 | --- | --- |
-| Дата | 31.03.2026 |
+| Дата | 01.04.2026 |
 | Статус | Рабочая версия |
 | Назначение | Внутренний продуктовый и технический контур проекта |
+
+> **Superseded:** актуальная концепция knowledge-compilation и matrix output как downstream — в [PRD_CR_Intelligence_Platform_v1_3_kb.md](PRD_CR_Intelligence_Platform_v1_3_kb.md).
 
 > Документ описывает платформу CR Intelligence Platform для получения, нормализации и интерпретации клинических рекомендаций Минздрава РФ с последующим расчётом explainable-матриц клинической заменяемости МНН.
 
@@ -123,6 +125,7 @@ CR Intelligence Platform — внутренняя платформа для об
 | Наблюдаемость | Логи по этапам, статус run, счётчики discovered/fetched/parsed/failed, алерты на рост ошибок. |
 | Масштабируемость | Поддержка полного и инкрементального обхода; масштабирование по документам и терапевтическим областям. |
 | Аудируемость | Для любого matrix cell доступен путь: версия матрицы → evidence → фрагмент → документ → raw source. |
+| Операционная согласованность | API и worker должны работать в одном runtime profile и использовать один и тот же broker/result backend для очередей. |
 | Безопасность | Ролевой доступ к raw-артефактам, audit log reviewer actions, ограничение на внешнее распространение корпуса. |
 
 # 10. Источниковая стратегия
@@ -218,7 +221,27 @@ CR Intelligence Platform — внутренняя платформа для об
 
 5. Матрица становится используемым аналитическим артефактом, а не экспериментальным скриптом.
 
-# 18. Глоссарий
+# 18. Операционные требования MVP
+
+- Для production-подобного smoke допускается только согласованный профиль запуска: host-only или docker-compose-only.
+
+- API и worker обязаны использовать одинаковые значения `CRIN_CELERY_BROKER_URL` и `CRIN_CELERY_RESULT_BACKEND`; смешивание `localhost` и docker network hostnames в одном запуске запрещено.
+
+- Для worker, использующего sync SQLAlchemy engine, обязательна зависимость совместимого PostgreSQL драйвера (`psycopg2-binary` или эквивалент).
+
+- Smoke-проход считается валидным, если полный sync переходит в `completed`, `stats_json` содержит минимум полей (`discovery_service_version`, `run_type`, `wall_time_seconds`, `total_discovered`, `duplicates_detected`, `coverage_percent`), а `/documents` возвращает согласованные записи.
+
+- Run со статусом `completed` и `discovered_count = 0` считается валидным для smoke при выполнении структурных и интеграционных проверок.
+
+- Любые операции с контейнерами и портами должны соответствовать политике из [ISOLATION_POLICY.md](ISOLATION_POLICY.md).
+
+# 19. Definition of Done (MVP)
+
+- Канонический DoD определяется в [DOD_MVP.md](DOD_MVP.md).
+
+- PRD использует этот DoD без дублирования критериев; любые изменения DoD вносятся сначала в канонический файл.
+
+# 20. Глоссарий
 
 | Поле | Описание |
 | --- | --- |
