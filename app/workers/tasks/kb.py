@@ -3,6 +3,7 @@
 import logging
 
 from app.services.index_stats import collect_index_stats
+from app.services.knowledge_backlinks import refresh_all_backlinks_sync
 from app.services.knowledge_compile import KnowledgeCompileService
 from app.services.knowledge_lint import KnowledgeLintService
 from app.services.output_release_service import apply_file_back, create_pending_output
@@ -31,8 +32,8 @@ def lint_kb() -> dict:
 
 @celery_app.task(name="app.workers.tasks.kb.refresh_backlinks", queue="refresh_backlinks")
 def refresh_backlinks() -> dict:
-    logger.info("refresh_backlinks stub")
-    return {"status": "ok"}
+    """Парсинг [[slug]] и markdown-ссылок в knowledge_artifact.content_md → artifact_backlink."""
+    return refresh_all_backlinks_sync()
 
 
 @celery_app.task(name="app.workers.tasks.kb.detect_conflicts", queue="detect_conflicts")
