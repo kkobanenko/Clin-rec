@@ -111,9 +111,42 @@ def page_documents():
     if bc2.button("Обновить сырьё + нормализацию (refetch)"):
         ref = api_post(f"/documents/{doc_id}/refetch-normalize")
         if ref:
+            st.session_state["last_fetch_task_id"] = ref.get("task_id")
+            st.session_state["last_fetch_doc_id"] = int(doc_id)
             st.success(
                 f"Очередь fetch->normalize: task_id={ref.get('task_id')}, version_id={ref.get('version_id')}"
             )
+    st.caption(
+        "Refetch: принудительно перезагружает сырьё (force=True), затем normalize. "
+        "Далее: «Проверить статус fetch», при FAILURE — см. error; «Загрузить журнал pipeline»; затем «Load Document»."
+    )
+    if st.button("Проверить статус fetch (Celery)", key="poll_fetch_task"):
+        tid = st.session_state.get("last_fetch_task_id")
+        did = st.session_state.get("last_fetch_doc_id")
+        if not tid or did != int(doc_id):
+            st.warning("Сначала нажмите refetch для этого Document ID (или task_id не сохранён в сессии).")
+        else:
+            stat = api_get(f"/tasks/{tid}", {"include_result": "true"})
+            if stat:
+                st.write(f"state={stat.get('state')} ready={stat.get('ready')}")
+                if stat.get("error"):
+                    st.error(stat["error"])
+                if stat.get("result"):
+                    st.json(stat["result"])
+    if st.button("Загрузить журнал pipeline (БД)", key="load_pipeline_log"):
+        log = api_get(f"/documents/{doc_id}/pipeline-events", {"limit": 40})
+        if log:
+            st.session_state["pipeline_log_for_id"] = int(doc_id)
+            st.session_state["pipeline_log"] = log
+    plog = st.session_state.get("pipeline_log")
+    if plog is not None and st.session_state.get("pipeline_log_for_id") == int(doc_id):
+        st.subheader("Журнал pipeline (fetch/normalize)")
+        st.caption("GET /documents/{id}/pipeline-events — таблица pipeline_event_log")
+        items = plog.get("items", [])
+        if items:
+            st.dataframe(pd.DataFrame(items), use_container_width=True)
+        else:
+            st.info("Записей нет. Выполните refetch; если таблица отсутствует — примените миграцию alembic 004.")
     if bc3.button("Переизвлечь МНН / пары (reextract)"):
         rex = api_post(f"/documents/{doc_id}/reextract")
         if rex:

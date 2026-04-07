@@ -97,3 +97,22 @@ class FragmentListOut(BaseModel):
     version_id: int
     fragments: list[FragmentOut] = []
     total: int
+
+
+class PipelineEventOut(BaseModel):
+    id: int
+    created_at: datetime
+    document_version_id: int | None
+    celery_task_id: str | None
+    stage: str
+    status: str
+    message: str
+    detail_json: dict | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class PipelineEventListOut(BaseModel):
+    document_id: int
+    items: list[PipelineEventOut]
+    total: int

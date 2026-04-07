@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     rubricator_list_fallback_path: str = "clin_recomend"
     rubricator_view_path: str = "clin-rec/view"
     rubricator_pdf_path: str = "clin-rec/pdf"
+    # Страницы с полным контентом КР и кнопкой «Скачать PDF» (не путать с clin-rec/view SPA).
+    rubricator_view_cr_path: str = "view-cr"
+    rubricator_preview_cr_path: str = "preview-cr"
     rubricator_api_base_url: str = "https://apicr.minzdrav.gov.ru/api.ashx"
     rubricator_api_list_op: str = "GetJsonClinrecsFilterV2"
     rubricator_api_page_size: int = 100

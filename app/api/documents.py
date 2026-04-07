@@ -9,7 +9,9 @@ from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db
 from app.core.storage import download_artifact
 from app.models.document import DocumentRegistry, DocumentVersion, SourceArtifact
+from app.models.pipeline_event import PipelineEventLog
 from app.models.text import DocumentSection, TextFragment
+from app.services.artifact_validation import is_valid_artifact_payload
 from app.schemas.documents import (
     DocumentDetailOut,
     DocumentRegistryOut,
@@ -17,6 +19,8 @@ from app.schemas.documents import (
     FragmentListOut,
     FragmentOut,
     NormalizedDocumentOut,
+    PipelineEventListOut,
+    PipelineEventOut,
     SectionOut,
     SourceArtifactOut,
 )
@@ -25,6 +29,53 @@ from app.workers.tasks.extract import extract_document
 from app.workers.tasks.fetch import fetch_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+async def _latest_valid_artifacts_for_version(version_id: int, db: AsyncSession) -> list[SourceArtifact]:
+    """
+    Для текущей версии: по каждому artifact_type оставляем последний по времени артефакт,
+    байты которого проходят проверку типа (не SPA-shell для html, настоящий PDF для pdf).
+    """
+    result = await db.execute(select(SourceArtifact).where(SourceArtifact.document_version_id == version_id))
+    rows = list(result.scalars().all())
+    by_type: dict[str, list[SourceArtifact]] = {}
+    for a in rows:
+        by_type.setdefault(a.artifact_type, []).append(a)
+
+    out: list[SourceArtifact] = []
+    for atype, group in by_type.items():
+        sorted_rows = sorted(
+            group,
+            key=lambda x: (x.fetched_at.timestamp() if x.fetched_at else 0.0, x.id),
+            reverse=True,
+        )
+        for row in sorted_rows:
+            data = await asyncio.to_thread(download_artifact, row.raw_path)
+            if is_valid_artifact_payload(atype, row.content_type, data):
+                out.append(row)
+                break
+    return out
+
+
+@router.get("/{document_id}/pipeline-events", response_model=PipelineEventListOut)
+async def list_document_pipeline_events(
+    document_id: int,
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(50, ge=1, le=200),
+):
+    """Журнал событий fetch/normalize по документу (для UI)."""
+    result = await db.execute(
+        select(PipelineEventLog)
+        .where(PipelineEventLog.document_registry_id == document_id)
+        .order_by(PipelineEventLog.id.desc())
+        .limit(limit)
+    )
+    rows = list(result.scalars().all())
+    return PipelineEventListOut(
+        document_id=document_id,
+        items=[PipelineEventOut.model_validate(r) for r in rows],
+        total=len(rows),
+    )
 
 
 @router.get("", response_model=PaginatedResponse)
@@ -70,24 +121,18 @@ async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
     )
     doc = result.scalar_one()
 
-    version_ids = [v.id for v in doc.versions]
-    artifacts = []
-    if version_ids:
-        art_result = await db.execute(select(SourceArtifact).where(SourceArtifact.document_version_id.in_(version_ids)))
-        raw_artifacts = list(art_result.scalars().all())
-        # Для каждого (version, artifact_type) оставляем самый свежий артефакт.
-        latest_by_kind: dict[tuple[int, str], SourceArtifact] = {}
-        for art in raw_artifacts:
-            key = (art.document_version_id, art.artifact_type)
-            current = latest_by_kind.get(key)
-            if current is None:
-                latest_by_kind[key] = art
-                continue
-            current_ts = current.fetched_at or current.id
-            new_ts = art.fetched_at or art.id
-            if new_ts >= current_ts:
-                latest_by_kind[key] = art
-        artifacts = [SourceArtifactOut.model_validate(a) for a in latest_by_kind.values()]
+    cv = await db.execute(
+        select(DocumentVersion.id).where(
+            DocumentVersion.registry_id == document_id,
+            DocumentVersion.is_current.is_(True),
+        )
+    )
+    current_version_id = cv.scalar_one_or_none()
+
+    artifacts: list[SourceArtifactOut] = []
+    if current_version_id is not None:
+        valid_rows = await _latest_valid_artifacts_for_version(current_version_id, db)
+        artifacts = [SourceArtifactOut.model_validate(a) for a in valid_rows]
 
     return DocumentDetailOut(
         registry=DocumentRegistryOut.model_validate(doc),
@@ -173,6 +218,11 @@ async def download_source_artifact(document_id: int, artifact_id: int, db: Async
         raise HTTPException(status_code=404, detail="Artifact not found for this document")
 
     data = await asyncio.to_thread(download_artifact, art.raw_path)
+    if not is_valid_artifact_payload(art.artifact_type, art.content_type, data):
+        raise HTTPException(
+            status_code=404,
+            detail="Stale or invalid artifact; use POST /documents/{id}/refetch-normalize to refresh source files.",
+        )
     media = art.content_type or "application/octet-stream"
     ext = "html" if art.artifact_type == "html" else ("pdf" if art.artifact_type == "pdf" else "bin")
     filename = f"doc{document_id}_{art.artifact_type}_{artifact_id}.{ext}"
@@ -216,9 +266,9 @@ async def queue_refetch_normalize_document(document_id: int, db: AsyncSession = 
     if version_id is None:
         raise HTTPException(status_code=404, detail="No current document version")
 
-    async_result = fetch_document.delay(version_id)
+    async_result = fetch_document.delay(version_id, force=True)
     return {
         "task_id": async_result.id,
         "version_id": version_id,
-        "message": "fetch_document queued (normalize will run automatically on success)",
+        "message": "fetch_document(force=True) queued (normalize will run automatically on success)",
     }

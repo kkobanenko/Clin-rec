@@ -30,10 +30,12 @@
 
 ### Где смотреть файлы и почему внешняя ссылка «пустая»
 
-- **Карточка / просмотр на сайте Минздрава** (`document_registry.card_url`, `html_url`, часто `https://cr.minzdrav.gov.ru/clin-rec/view/{CodeVersion}`): это **SPA** (одна HTML-оболочка + JS). В браузере без выполнения скриптов или при блокировках может казаться, что «документа нет» — это не обязательно 404; контент подгружается клиентом.
+- **Карточка / просмотр на сайте Минздрава** (`document_registry.card_url`, `html_url`, часто `https://cr.minzdrav.gov.ru/clin-rec/view/{CodeVersion}`): это **SPA** (одна HTML-оболочка + JS). **Fetch** сначала тянет HTML со страницы **`/view-cr/{external_id}`** (полный контент КР), при неудаче — с `html_url`. В браузере без выполнения скриптов или при блокировках может казаться, что «документа нет» — это не обязательно 404; контент подгружается клиентом.
 - **Наши копии для пайплайна** лежат в **S3-совместимом хранилище**: таблица `source_artifact`, поле `raw_path`; полный URI: `s3://{CRIN_S3_BUCKET}/{raw_path}`. В API `GET /documents/{id}` у каждого артефакта возвращается вычисляемое поле `**storage_uri`** (см. `SourceArtifactOut`).
 - **Текст для поиска и извлечения** — в PostgreSQL после **normalize**: `document_section`, `text_fragment` (эндпоинты `/documents/{id}/content`, `/fragments`).
 - **Скачать сырьё в UI**: Streamlit **Documents** → **Load Document** → блок «Сырьё из MinIO» (HTTP `GET /documents/{document_id}/artifacts/{artifact_id}/download`). Альтернатива: curl/браузер на тот же путь при доступном API.
+- **Список артефактов в API** (`GET /documents/{id}`): для **текущей версии** документа показываются только **последние валидные** записи по типу (`html` / `pdf`): SPA-заглушка и «pdf» с телом HTML отфильтровываются по байтам в MinIO.
+- **Обновить сырьё и нормализацию без полного sync**: `POST /documents/{document_id}/refetch-normalize` — воркер выполняет `fetch_document(..., force=True)` (удаляет старые `source_artifact` версии и заново качает), затем при успехе ставится `normalize`. В Streamlit: кнопка «Обновить сырьё + нормализацию (refetch)».
 - **Повторить только extract** (новые эвристики МНН): `POST /documents/{document_id}/reextract` или кнопка «Переизвлечь МНН / пары» в Streamlit.
 
 ## Итог
@@ -44,3 +46,10 @@
 - **Поиск по подстроке по артефактам KB** — `GET /kb/artifacts?search=...` (ILIKE по title/summary/slug); полнотекст по `search_vector` — задача `**rebuild_indexes`** + запросы к FTS (расширяемо).
 
 См. также `GET /pipeline/storage-stages` (JSON для UI/скриптов).
+### Диагностика refetch (почему «нет изменений»)
+
+- Задача Celery `fetch_document` при **отсутствии валидного html/pdf** завершается с **FAILURE** (раньше была SUCCESS без эффекта). Текст ошибки: `GET /tasks/{task_id}` — поле `error` (опционально `include_result=true` для SUCCESS).
+- История шагов в БД: таблица `pipeline_event_log` (миграция **004**), API `GET /documents/{id}/pipeline-events`. В Streamlit: кнопки «Проверить статус fetch» и «Загрузить журнал pipeline».
+- После деплоя выполните: `alembic upgrade head` (или эквивалент в CI), чтобы журнал писался в PostgreSQL.
+
+- **Поле `pdf_url` в реестре** иногда указывает на URL, который по факту отдаёт **`text/html` (SPA, ~610 байт), а не `application/pdf`**. Такой ответ **не сохраняется как PDF**; затем пробуем **Playwright** на странице **`/preview-cr/{external_id}`** (клик по «Скачать … PDF», ожидание браузерного download). Проверка: `curl -D - -o /tmp/x ...` — смотреть `content-type` и первые байты (`%PDF-`).

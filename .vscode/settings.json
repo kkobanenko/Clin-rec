@@ -1,17 +1,7 @@
 {
     "workbench.browser.enableChatTools": true,
-    "chat.tools.terminal.sandbox.linuxFileSystem": {
-        "allowWrite": [
-            "/home/kobanenkokn/Clin-rec",
-            "/home/kobanenkokn/.local",
-            "/home/kobanenkokn/.cache",
-            "/home/kobanenkokn/.docker",
-            "/tmp",
-            "/run"
-        ],
-        "allowRead": ["/var/run", "/var/lib/docker", "/etc/docker"]
-    },
-    "chat.tools.terminal.sandbox.network.allowedDomains": [
+    "chat.tools.terminal.sandbox.network.allowLocalhost": true,
+    "chat.agent.sandboxNetwork.allowedDomains": [
         "pypi.org",
         "files.pythonhosted.org",
         "registry-1.docker.io",
@@ -26,5 +16,19 @@
         "localhost",
         "127.0.0.1"
     ],
-    "chat.tools.terminal.sandbox.network.allowLocalhost": true
+    "chat.agent.sandboxFileSystem.linux": {
+        "allowWrite": [
+            "/home/kobanenkokn/Clin-rec",
+            "/home/kobanenkokn/.local",
+            "/home/kobanenkokn/.cache",
+            "/home/kobanenkokn/.docker",
+            "/tmp",
+            "/run"
+        ],
+        "allowRead": [
+            "/var/run",
+            "/var/lib/docker",
+            "/etc/docker"
+        ]
+    }
 }

@@ -1,4 +1,4 @@
-from app.services.fetch import FetchService
+from app.services.artifact_validation import is_valid_artifact_payload
 from app.services.probe import ProbeService
 
 
@@ -41,9 +41,9 @@ def test_probe_accepts_pdf_response_for_pdf(monkeypatch):
 
 
 def test_fetch_rejects_invalid_pdf_payload():
-    assert FetchService._is_valid_artifact_payload("pdf", "text/html", b"<!doctype html>") is False
-    assert FetchService._is_valid_artifact_payload("pdf", "application/pdf", b"<!doctype html>") is False
+    assert is_valid_artifact_payload("pdf", "text/html", b"<!doctype html>") is False
+    assert is_valid_artifact_payload("pdf", "application/pdf", b"<!doctype html>") is False
 
 
 def test_fetch_accepts_valid_pdf_payload():
-    assert FetchService._is_valid_artifact_payload("pdf", "application/pdf", b"%PDF-1.7\n") is True
+    assert is_valid_artifact_payload("pdf", "application/pdf", b"%PDF-1.7\n") is True

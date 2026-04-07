@@ -11,6 +11,7 @@ from app.models.knowledge import (
 )
 from app.models.molecule import Molecule, MoleculeSynonym
 from app.models.pipeline import PipelineRun
+from app.models.pipeline_event import PipelineEventLog
 from app.models.reviewer import ReviewAction
 from app.models.scoring import ScoringModelVersion
 from app.models.text import DocumentSection, TextFragment
@@ -32,6 +33,7 @@ __all__ = [
     "PairContextScore",
     "PairEvidence",
     "PipelineRun",
+    "PipelineEventLog",
     "ReviewAction",
     "ScoringModelVersion",
     "SourceArtifact",
