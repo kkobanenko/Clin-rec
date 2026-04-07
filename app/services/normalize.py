@@ -9,7 +9,8 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 
 from app.core.storage import download_artifact
 from app.core.sync_database import get_sync_session
-from app.models.document import DocumentVersion, SourceArtifact
+from app.models.document import DocumentRegistry, DocumentVersion, SourceArtifact
+from app.models.evidence import PairEvidence
 from app.models.text import DocumentSection, TextFragment
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,19 @@ class NormalizeService:
                 logger.error("DocumentVersion %d not found", version_id)
                 return False
 
+            # Удаляем pair_evidence, ссылающиеся на фрагменты этой версии (иначе FK при удалении фрагментов).
+            frag_ids = [
+                fid
+                for (fid,) in session.query(TextFragment.id)
+                .join(DocumentSection, TextFragment.section_id == DocumentSection.id)
+                .filter(DocumentSection.document_version_id == version_id)
+                .all()
+            ]
+            if frag_ids:
+                session.query(PairEvidence).filter(PairEvidence.fragment_id.in_(frag_ids)).delete(
+                    synchronize_session=False
+                )
+
             # Remove old sections/fragments for this version
             old_sections = session.query(DocumentSection).filter_by(document_version_id=version_id).all()
             for sec in old_sections:
@@ -51,7 +65,12 @@ class NormalizeService:
             html_artifact = next((a for a in artifacts if a.artifact_type == "html"), None)
             pdf_artifact = next((a for a in artifacts if a.artifact_type == "pdf"), None)
 
-            sections = self._extract_sections(version, html_artifact, pdf_artifact)
+            doc = session.get(DocumentRegistry, version.registry_id)
+            page_url = None
+            if doc:
+                page_url = doc.html_url or doc.card_url
+
+            sections = self._extract_sections(version, html_artifact, pdf_artifact, page_url)
 
             if not sections:
                 logger.warning("No sections extracted for version %d", version_id)
@@ -98,6 +117,7 @@ class NormalizeService:
         version: DocumentVersion,
         html_artifact: SourceArtifact | None,
         pdf_artifact: SourceArtifact | None,
+        html_page_url: str | None,
     ) -> list[tuple[str, str, list[tuple[str, str]]]]:
         """Extract sections using the preferred source, with PDF fallback for thin HTML shells."""
         preferred_source = version.source_type_primary or ""
@@ -109,8 +129,15 @@ class NormalizeService:
         if html_artifact:
             raw_data = download_artifact(html_artifact.raw_path)
             sections = self._normalize_html(raw_data)
+            if not sections:
+                sections = self._normalize_html_loose(raw_data)
             if sections:
                 return sections
+            # SPA: статический HTML пустой — рендер через Playwright по URL карточки.
+            if html_page_url:
+                sections = self._normalize_html_playwright(html_page_url)
+                if sections:
+                    return sections
             if pdf_artifact:
                 logger.info(
                     "HTML artifact produced no sections for version %d, falling back to PDF",
@@ -192,6 +219,58 @@ class NormalizeService:
             sections.append((current_section_title, current_section_path, current_fragments))
 
         return sections
+
+    def _normalize_html_loose(self, raw_data: bytes) -> list[tuple[str, str, list[tuple[str, str]]]]:
+        """Если структурный разбор не дал секций — собираем абзацы по всему body (обход пустого main в SPA)."""
+        html_text = raw_data.decode("utf-8", errors="replace")
+        soup = BeautifulSoup(html_text, "lxml")
+        body = soup.find("body")
+        if not body:
+            return []
+        fragments: list[tuple[str, str]] = []
+        for tag in body.find_all(["p", "li"]):
+            text = self._clean_text(tag.get_text())
+            if len(text) > 30:
+                fragments.append(("paragraph", text))
+        if not fragments:
+            return []
+        return [("Введение", "0", fragments)]
+
+    def _normalize_html_playwright(self, url: str) -> list[tuple[str, str, list[tuple[str, str]]]]:
+        """Рендер SPA-страницы рубрикатора и извлечение текста из DOM (TZ: полнота текстового слоя)."""
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            logger.warning("playwright not installed — cannot render SPA HTML")
+            return []
+
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+                try:
+                    page = browser.new_context().new_page()
+                    page.goto(url, wait_until="networkidle", timeout=120000)
+                    page.wait_for_timeout(3000)
+                    text = page.evaluate(
+                        "() => (document.body && document.body.innerText) ? document.body.innerText : ''"
+                    )
+                finally:
+                    browser.close()
+        except Exception as e:
+            logger.warning("Playwright render failed for %s: %s", url, e)
+            return []
+
+        if not text or len(text.strip()) < 100:
+            return []
+
+        fragments: list[tuple[str, str]] = []
+        for line in text.split("\n"):
+            line = self._clean_text(line)
+            if len(line) > 40:
+                fragments.append(("paragraph", line))
+        if not fragments:
+            return []
+        return [("Документ", "0", fragments)]
 
     def _normalize_pdf(self, raw_data: bytes) -> list[tuple[str, str, list[tuple[str, str]]]]:
         """Parse PDF content into sections with fragments."""

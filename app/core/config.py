@@ -44,7 +44,13 @@ class Settings(BaseSettings):
     rubricator_api_list_op: str = "GetJsonClinrecsFilterV2"
     rubricator_api_page_size: int = 100
     rubricator_api_request_delay: float = 1.0
-    rubricator_api_user_agent: str = "ClinRecPlatform/1.0 (+https://github.com/kkobanenko/Clin-rec)"
+    # Сервер apicr.minzdrav.gov.ru отвечает 451 на нестандартный UA — нужен браузероподобный.
+    rubricator_api_user_agent: str = (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ClinRecPlatform/1.0"
+    )
+    # Ограничение числа карточек за один прогон (0 = без ограничения). План: 10–20 КР.
+    discovery_max_records: int = 20
     discovery_concurrency: int = 2
     discovery_request_delay: float = 2.0
 

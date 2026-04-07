@@ -8,6 +8,10 @@ from app.models.document import DocumentRegistry, DocumentVersion
 from app.models.text import DocumentSection, TextFragment
 from app.services.knowledge_entity_sync import ensure_molecule_entities
 from app.services.extraction.context_extractor import ContextExtractor
+from app.services.extraction.inn_heuristic import (
+    collect_all_inn_candidates_for_texts,
+    ensure_molecules_for_inn_strings,
+)
 from app.services.extraction.mnn_extractor import MnnExtractor
 from app.services.extraction.relation_extractor import RelationExtractor
 from app.services.extraction.uur_udd_extractor import UurUddExtractor
@@ -35,9 +39,6 @@ class ExtractionPipeline:
                 logger.error("DocumentRegistry %d not found", version.registry_id)
                 return
 
-            # Load MNN dictionary
-            self.mnn_extractor.load_dictionary()
-
             # Get all sections and fragments
             sections = (
                 session.query(DocumentSection)
@@ -45,6 +46,29 @@ class ExtractionPipeline:
                 .order_by(DocumentSection.section_order)
                 .all()
             )
+
+            # Латинские МНН (скобки, «МНН: …», INN) → новые строки molecule, затем перезагрузка словаря.
+            fragment_texts: list[str] = []
+            for section in sections:
+                fragments_prev = (
+                    session.query(TextFragment)
+                    .filter_by(section_id=section.id)
+                    .order_by(TextFragment.fragment_order)
+                    .all()
+                )
+                for frag in fragments_prev:
+                    fragment_texts.append(frag.fragment_text or "")
+            inn_candidates = collect_all_inn_candidates_for_texts(fragment_texts)
+            added = ensure_molecules_for_inn_strings(session, inn_candidates)
+            logger.info(
+                "inn_heuristic: version %s — кандидатов латинских МНН: %d, новых строк molecule: %d",
+                version_id,
+                len(inn_candidates),
+                added,
+            )
+            if added:
+                session.commit()
+            self.mnn_extractor.load_dictionary()
 
             section_data = []
             all_mnn_results = []

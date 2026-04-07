@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, Query
+import asyncio
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.dependencies import get_db
+from app.core.storage import download_artifact
 from app.models.document import DocumentRegistry, DocumentVersion, SourceArtifact
 from app.models.text import DocumentSection, TextFragment
 from app.schemas.documents import (
@@ -17,6 +21,8 @@ from app.schemas.documents import (
     SourceArtifactOut,
 )
 from app.schemas.pipeline import PaginatedResponse
+from app.workers.tasks.extract import extract_document
+from app.workers.tasks.fetch import fetch_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -68,7 +74,20 @@ async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
     artifacts = []
     if version_ids:
         art_result = await db.execute(select(SourceArtifact).where(SourceArtifact.document_version_id.in_(version_ids)))
-        artifacts = [SourceArtifactOut.model_validate(a) for a in art_result.scalars().all()]
+        raw_artifacts = list(art_result.scalars().all())
+        # Для каждого (version, artifact_type) оставляем самый свежий артефакт.
+        latest_by_kind: dict[tuple[int, str], SourceArtifact] = {}
+        for art in raw_artifacts:
+            key = (art.document_version_id, art.artifact_type)
+            current = latest_by_kind.get(key)
+            if current is None:
+                latest_by_kind[key] = art
+                continue
+            current_ts = current.fetched_at or current.id
+            new_ts = art.fetched_at or art.id
+            if new_ts >= current_ts:
+                latest_by_kind[key] = art
+        artifacts = [SourceArtifactOut.model_validate(a) for a in latest_by_kind.values()]
 
     return DocumentDetailOut(
         registry=DocumentRegistryOut.model_validate(doc),
@@ -133,3 +152,73 @@ async def get_document_fragments(
         fragments=fragments,
         total=len(fragments),
     )
+
+
+@router.get("/{document_id}/artifacts/{artifact_id}/download")
+async def download_source_artifact(document_id: int, artifact_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Скачать байты сырья из object storage (MinIO/S3) по записи source_artifact.
+    Удобно для UI и проверки без обхода внешнего SPA-сайта.
+    """
+    result = await db.execute(
+        select(SourceArtifact)
+        .join(DocumentVersion, SourceArtifact.document_version_id == DocumentVersion.id)
+        .where(
+            DocumentVersion.registry_id == document_id,
+            SourceArtifact.id == artifact_id,
+        )
+    )
+    art = result.scalar_one_or_none()
+    if art is None:
+        raise HTTPException(status_code=404, detail="Artifact not found for this document")
+
+    data = await asyncio.to_thread(download_artifact, art.raw_path)
+    media = art.content_type or "application/octet-stream"
+    ext = "html" if art.artifact_type == "html" else ("pdf" if art.artifact_type == "pdf" else "bin")
+    filename = f"doc{document_id}_{art.artifact_type}_{artifact_id}.{ext}"
+    return StreamingResponse(
+        iter([data]),
+        media_type=media,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/{document_id}/reextract", status_code=202)
+async def queue_reextract_document(document_id: int, db: AsyncSession = Depends(get_db)):
+    """Повторный прогон clinical extraction + pair_evidence для текущей версии (после обновления эвристик МНН)."""
+    vr = await db.execute(
+        select(DocumentVersion.id).where(
+            DocumentVersion.registry_id == document_id,
+            DocumentVersion.is_current.is_(True),
+        )
+    )
+    version_id = vr.scalar_one_or_none()
+    if version_id is None:
+        raise HTTPException(status_code=404, detail="No current document version")
+    async_result = extract_document.delay(version_id)
+    return {
+        "task_id": async_result.id,
+        "version_id": version_id,
+        "message": "extract_document queued",
+    }
+
+
+@router.post("/{document_id}/refetch-normalize", status_code=202)
+async def queue_refetch_normalize_document(document_id: int, db: AsyncSession = Depends(get_db)):
+    """Повторный прогон fetch -> normalize для текущей версии документа."""
+    vr = await db.execute(
+        select(DocumentVersion.id).where(
+            DocumentVersion.registry_id == document_id,
+            DocumentVersion.is_current.is_(True),
+        )
+    )
+    version_id = vr.scalar_one_or_none()
+    if version_id is None:
+        raise HTTPException(status_code=404, detail="No current document version")
+
+    async_result = fetch_document.delay(version_id)
+    return {
+        "task_id": async_result.id,
+        "version_id": version_id,
+        "message": "fetch_document queued (normalize will run automatically on success)",
+    }

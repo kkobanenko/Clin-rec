@@ -100,18 +100,86 @@ def page_documents():
     # Document detail
     st.subheader("Document Detail")
     doc_id = st.number_input("Document ID", min_value=1, step=1)
-    if st.button("Load Document"):
-        detail = api_get(f"/documents/{doc_id}")
-        if detail:
-            st.json(detail)
+    bc1, bc2, bc3 = st.columns(3)
+    if bc1.button("Load Document"):
+        st.session_state["doc_detail"] = api_get(f"/documents/{doc_id}")
+        st.session_state["doc_content"] = api_get(f"/documents/{doc_id}/content")
+        st.session_state["doc_fragments"] = api_get(
+            f"/documents/{doc_id}/fragments", {"page_size": 2000}
+        )
+        st.session_state["doc_detail_for_id"] = doc_id
+    if bc2.button("Обновить сырьё + нормализацию (refetch)"):
+        ref = api_post(f"/documents/{doc_id}/refetch-normalize")
+        if ref:
+            st.success(
+                f"Очередь fetch->normalize: task_id={ref.get('task_id')}, version_id={ref.get('version_id')}"
+            )
+    if bc3.button("Переизвлечь МНН / пары (reextract)"):
+        rex = api_post(f"/documents/{doc_id}/reextract")
+        if rex:
+            st.success(f"Очередь extract: task_id={rex.get('task_id')}, version_id={rex.get('version_id')}")
 
-        content = api_get(f"/documents/{doc_id}/content")
-        if content:
-            sections = content.get("sections", [])
+    detail = st.session_state.get("doc_detail")
+    if detail and st.session_state.get("doc_detail_for_id") == doc_id:
+        note = detail.get("external_source_note")
+        if note:
+            st.caption(note)
+        st.json(detail)
+
+        arts = detail.get("artifacts") or []
+        if arts:
+            st.subheader("Сырьё из MinIO — скачать файл")
+            st.caption(
+                "Браузер получает файл через API (не нужен прямой доступ к S3). "
+                "Эндпоинт: GET /documents/{id}/artifacts/{artifact_id}/download"
+            )
+            for art in arts:
+                aid = art.get("id")
+                uri = art.get("storage_uri", "")
+                st.caption(uri)
+                try:
+                    r = httpx.get(
+                        f"{API_BASE}/documents/{doc_id}/artifacts/{aid}/download",
+                        timeout=120,
+                    )
+                    if r.status_code == 200:
+                        ctype = art.get("content_type") or "application/octet-stream"
+                        ext = "html" if art.get("artifact_type") == "html" else (
+                            "pdf" if art.get("artifact_type") == "pdf" else "bin"
+                        )
+                        st.download_button(
+                            label=f"Скачать {art.get('artifact_type', 'file')} (artifact #{aid})",
+                            data=r.content,
+                            file_name=f"doc{doc_id}_{art.get('artifact_type', 'raw')}.{ext}",
+                            mime=ctype,
+                            key=f"dl_{doc_id}_{aid}",
+                        )
+                    else:
+                        st.warning(f"Download {aid}: HTTP {r.status_code}")
+                except httpx.HTTPError as e:
+                    st.error(f"Download error: {e}")
+
+        content_cached = st.session_state.get("doc_content")
+        frags_resp = st.session_state.get("doc_fragments")
+        if content_cached is not None and frags_resp is not None:
+            st.subheader("Нормализованные секции (фрагменты)")
+            by_sec: dict = {}
+            for f in frags_resp.get("fragments", []):
+                sid = f.get("section_id")
+                by_sec.setdefault(sid, []).append(f)
+            sections = content_cached.get("sections", [])
+            if not sections:
+                st.warning(
+                    "Секции пока отсутствуют. Обычно это означает, что нормализация не прошла "
+                    "или в сырье попала SPA-заглушка вместо текста документа."
+                )
             for sec in sections:
+                sid = sec.get("id")
                 with st.expander(sec.get("section_title", "Section")):
-                    fragments = sec.get("fragments", [])
-                    for frag in fragments:
+                    frags = by_sec.get(sid, [])
+                    if not frags:
+                        st.caption("Во входном ответе нет фрагментов для этой секции.")
+                    for frag in frags:
                         st.text(frag.get("fragment_text", "")[:500])
 
 

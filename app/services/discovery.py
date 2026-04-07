@@ -75,17 +75,21 @@ class DiscoveryService:
 
             try:
                 records, discovery_stats = self._discover_documents()
-                discovered, new_count = self._upsert_records(session, records, mode)
-                
+                records = self._deduplicate_records(records)
+                max_n = getattr(settings, "discovery_max_records", 0) or 0
+                if max_n > 0:
+                    records = records[:max_n]
+                processed, new_inserts, skipped_no_id = self._upsert_records(session, records, mode)
+
                 # Calculate quality metrics
-                duplicates_removed = len(records) - discovered
+                duplicates_removed = len(records) - processed
                 wall_time = time.time() - wall_start
-                coverage = round(100.0 * discovered / len(records), 1) if records else 0.0
-                
-                run.discovered_count = discovered
-                run.fetched_count = new_count
-                run.parsed_count = max(0, discovered - (len(records) - discovered))  # Proxy for parsed
-                run.failed_count = max(0, discovered - new_count)
+                coverage = round(100.0 * processed / len(records), 1) if records else 0.0
+
+                run.discovered_count = len(records)
+                run.fetched_count = 0
+                run.parsed_count = processed
+                run.failed_count = skipped_no_id
                 run.status = "completed"
                 run.finished_at = datetime.now(timezone.utc)
                 
@@ -96,23 +100,25 @@ class DiscoveryService:
                     "timestamp": run.finished_at.isoformat(),
                     "run_type": mode,
                     "wall_time_seconds": round(wall_time, 2),
-                    
+
                     # Quality metrics (PRD section 9, Gate A)
                     "total_raw_records": len(records),
-                    "total_discovered": discovered,
+                    "total_discovered": processed,
                     "duplicates_detected": duplicates_removed,
                     "coverage_percent": coverage,
-                    "new_or_updated": new_count,
-                    "failed_count": run.failed_count,
+                    "new_or_updated": new_inserts,
+                    "skipped_no_external_id": skipped_no_id,
+                    "failed_count": skipped_no_id,
                     
                     # Strategy and source metrics
                     **discovery_stats,
                 }
                 session.commit()
                 logger.info(
-                    "Discovery completed: strategy=%s, discovered=%d, coverage=%.1f%%, time=%.1fs",
+                    "Discovery completed: strategy=%s, records=%d, processed=%d, coverage=%.1f%%, time=%.1fs",
                     discovery_stats.get("strategy", "unknown"),
-                    discovered,
+                    len(records),
+                    processed,
                     coverage,
                     wall_time,
                 )
@@ -605,17 +611,25 @@ class DiscoveryService:
 
         return records
 
-    def _upsert_records(self, session, records: list[dict], mode: str) -> tuple[int, int]:
-        """Insert or update document registry records. Returns (total, new_or_updated)."""
-        discovered = len(records)
+    def _upsert_records(
+        self, session, records: list[dict], mode: str
+    ) -> tuple[int, int, int]:
+        """Insert or update document registry records.
+
+        Returns (processed_with_id, new_insert_count, skipped_without_external_id).
+        """
+        processed = 0
         new_count = 0
+        skipped = 0
         now = datetime.now(timezone.utc)
 
         for rec in records:
             ext_id = rec.get("external_id")
             if not ext_id:
+                skipped += 1
                 continue
 
+            processed += 1
             existing = session.query(DocumentRegistry).filter_by(external_id=ext_id).first()
             if existing:
                 existing.last_seen_at = now
@@ -652,7 +666,7 @@ class DiscoveryService:
                 new_count += 1
 
         session.commit()
-        return discovered, new_count
+        return processed, new_count, skipped
 
     def _get_probe_candidates(self, session, mode: str) -> list[int]:
         """Return registry IDs that need probing."""

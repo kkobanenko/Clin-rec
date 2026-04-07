@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
+
+from app.core.config import settings
 
 
 class DocumentRegistryOut(BaseModel):
@@ -43,6 +45,12 @@ class SourceArtifactOut(BaseModel):
     content_type: str | None = None
     fetched_at: datetime
 
+    @computed_field
+    @property
+    def storage_uri(self) -> str:
+        """URI объекта в bucket MinIO/S3 (см. CRIN_S3_BUCKET, CRIN_S3_ENDPOINT_URL)."""
+        return f"s3://{settings.s3_bucket}/{self.raw_path}"
+
     model_config = {"from_attributes": True}
 
 
@@ -50,6 +58,12 @@ class DocumentDetailOut(BaseModel):
     registry: DocumentRegistryOut
     versions: list[DocumentVersionOut] = []
     artifacts: list[SourceArtifactOut] = []
+    # Пояснение для операторов: внешний сайт — SPA; первичный текст у нас после fetch.
+    external_source_note: str = (
+        "Ссылки card_url/html_url/pdf_url ведут на официальный рубрикатор (одностраничное SPA): "
+        "в браузере контент подгружается JavaScript-ом. Скачанные копии документов хранятся в "
+        "объектном хранилище; см. storage_uri у каждого source_artifact и нормализованный текст в API /content."
+    )
 
 
 class SectionOut(BaseModel):

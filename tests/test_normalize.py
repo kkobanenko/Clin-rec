@@ -11,13 +11,15 @@ def test_extract_sections_falls_back_to_pdf_when_html_has_no_sections(monkeypatc
 
     monkeypatch.setattr("app.services.normalize.download_artifact", lambda path: path.encode())
     monkeypatch.setattr(service, "_normalize_html", lambda raw_data: [])
+    monkeypatch.setattr(service, "_normalize_html_loose", lambda raw_data: [])
+    monkeypatch.setattr(service, "_normalize_html_playwright", lambda url: [])
     monkeypatch.setattr(
         service,
         "_normalize_pdf",
         lambda raw_data: [("Документ", "0", [("paragraph", "Normalized from PDF")])],
     )
 
-    sections = service._extract_sections(version, html_artifact, pdf_artifact)
+    sections = service._extract_sections(version, html_artifact, pdf_artifact, None)
 
     assert sections == [("Документ", "0", [("paragraph", "Normalized from PDF")])]
 
