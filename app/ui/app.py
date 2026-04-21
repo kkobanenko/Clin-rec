@@ -195,7 +195,16 @@ def page_reviews():
         col3.metric("Rejected", counts.get("rejected", 0))
 
     st.subheader("Queue")
-    queue = api_get("/review/queue", {"status": "auto", "page_size": 50})
+    queue_document_version_id = st.number_input(
+        "Queue Document Version ID",
+        min_value=0,
+        step=1,
+        help="0 means no document filter",
+    )
+    queue_params = {"status": "auto", "page_size": 50}
+    if queue_document_version_id > 0:
+        queue_params["document_version_id"] = queue_document_version_id
+    queue = api_get("/review/queue", queue_params)
     if isinstance(queue, dict):
         items = queue.get("items", [])
         if items:
@@ -218,6 +227,7 @@ def page_reviews():
     with st.form("bulk_review_form"):
         bulk_ids = st.text_input("Evidence IDs (comma-separated)")
         bulk_author = st.text_input("Bulk Approve Author")
+        st.caption("Use the filtered queue above to identify evidence IDs for bulk approval.")
         if st.form_submit_button("Bulk Approve"):
             evidence_ids = [int(item.strip()) for item in bulk_ids.split(",") if item.strip()]
             if not evidence_ids:
