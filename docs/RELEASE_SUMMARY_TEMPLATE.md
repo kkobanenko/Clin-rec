@@ -9,6 +9,7 @@
 - Commit SHA:
 - Runtime profile: `host-only` / `docker-compose-only`
 - Validation path: `full` / `late-stage rerun` / `composite`
+- If `composite`, briefly state which full rehearsal established the smoke-green baseline and which later rerun closed the remaining regression gates.
 - Artifact bundle(s):
 - Operator:
 
