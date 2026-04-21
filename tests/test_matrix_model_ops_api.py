@@ -31,6 +31,48 @@ async def test_get_model_readiness_returns_service_payload():
 
 
 @pytest.mark.asyncio
+async def test_get_active_model_returns_latest_active_model():
+    class FakeScalarResult:
+        def __init__(self, value):
+            self._value = value
+
+        def scalar_one_or_none(self):
+            return self._value
+
+    class FakeAsyncSession:
+        async def execute(self, _query):
+            from types import SimpleNamespace
+
+            return FakeScalarResult(
+                SimpleNamespace(
+                    id=7,
+                    version_label="v-test",
+                    weights_json={"base": 1.0},
+                    code_commit_hash="abc123",
+                    description="active model",
+                    is_active=True,
+                    created_at="2026-04-21T00:00:00Z",
+                )
+            )
+
+    async def override_get_db():
+        yield FakeAsyncSession()
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/matrix/models/active")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == 7
+        assert data["is_active"] is True
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_activate_model_returns_activation_payload():
     activation = {
         "model_version_id": 7,

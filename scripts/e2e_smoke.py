@@ -238,12 +238,13 @@ def test_pair_evidence(version_id: int) -> dict | None:
 
 
 def get_active_scoring_model() -> dict | None:
-    """Fetch scoring models and return the active one if present."""
+    """Fetch the active scoring model if present."""
     try:
-        resp = retry_request("GET", f"{BASE_URL}/matrix/models")
+        resp = retry_request("GET", f"{BASE_URL}/matrix/models/active")
+        if resp.status_code == 404:
+            return None
         assert resp.status_code == 200
-        items = resp.json()
-        return next((item for item in items if item.get("is_active") is True), None)
+        return resp.json()
     except Exception as e:
         log(f"  ✗ Active scoring model lookup failed: {e}")
         return None

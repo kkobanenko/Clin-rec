@@ -228,6 +228,20 @@ async def list_scoring_models(db: AsyncSession = Depends(get_db)):
     return [ScoringModelVersionOut.model_validate(m) for m in result.scalars().all()]
 
 
+@router.get("/models/active", response_model=ScoringModelVersionOut)
+async def get_active_scoring_model(db: AsyncSession = Depends(get_db)):
+    model = (
+        await db.execute(
+            select(ScoringModelVersion)
+            .where(ScoringModelVersion.is_active.is_(True))
+            .order_by(ScoringModelVersion.created_at.desc())
+        )
+    ).scalar_one_or_none()
+    if model is None:
+        raise HTTPException(status_code=404, detail="Active scoring model not found")
+    return ScoringModelVersionOut.model_validate(model)
+
+
 @router.get("/models/{model_version_id}/readiness", response_model=ScoringModelReadinessOut)
 async def get_scoring_model_readiness(model_version_id: int):
     return ScoringModelReadinessOut.model_validate(ReleaseService().check_readiness(model_version_id))
