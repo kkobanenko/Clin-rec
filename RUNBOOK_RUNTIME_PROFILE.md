@@ -77,7 +77,7 @@ docker logs --tail=200 crin_worker | rg 'Task app.workers.tasks.discovery.run_fu
 
 Recommended modes:
 - `structural`: lifecycle, queue routing, and `stats_json` contract only.
-- `quality`: includes content-layer validation for manual evaluation readiness.
+- `quality`: includes content-layer validation plus downstream pair-evidence and matrix validation for manual evaluation readiness.
 
 Structural pass criteria:
 - `/sync/full` returns `202` with `run_id`
@@ -89,6 +89,9 @@ Structural pass criteria:
 Quality pass criteria for manual document evaluation:
 - structural criteria already pass
 - when `discovered_count > 0`, at least one checked document produces non-empty normalized content via `/documents/{id}/content` and `/documents/{id}/fragments`
+- checked document also produces non-empty downstream pair evidence via `/matrix/pair-evidence`
+- when a scoring model is active or activated by smoke, quality mode also validates `/matrix/cell`
+- `matrix/cell.supporting_evidence_count` must not be smaller than the evidence returned for the checked pair
 - if no document passes the content check, the run must be treated as degraded or failed for quality purposes, not as quality-green
 - degraded or failed cases should be explainable through stage outcome and reason metadata when available
 
