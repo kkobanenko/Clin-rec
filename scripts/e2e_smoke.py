@@ -629,6 +629,19 @@ def main():
         log("❌ E2E Test FAILED: Check logs above")
         sys.exit(1)
 
+    results["smoke_meta"] = {
+        "mode": mode,
+        "status": status,
+        "quality_pass": quality_pass if mode == "quality" else None,
+        "missing_stats_keys": missing_stats_keys,
+        "aux_routes": {
+            "outputs": bool(results.get("outputs")),
+            "kb_master_index": bool(results.get("kb_master_index")),
+            "storage_stages": bool(results.get("storage_stages")),
+            "task_status": bool(results.get("task_status")),
+        },
+    }
+
     # Save results to JSON
     output_file = Path("smoke_test_results.json")
     with open(output_file, "w") as f:
