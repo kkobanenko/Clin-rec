@@ -53,6 +53,15 @@ class ReviewActionOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ReviewStatsOut(BaseModel):
+    counts: dict[str, int]
+    total: int
+
+
+class ReviewHistoryQueryOut(BaseModel):
+    target_type: str | None = None
+
+
 class PaginatedResponse(BaseModel):
     items: list
     total: int

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class ReviewerService:
     def get_review_queue(
-        self, status: str = "pending", limit: int = 50, offset: int = 0
+        self, status: str = "auto", limit: int = 50, offset: int = 0
     ) -> list[PairEvidence]:
         """Get evidence records awaiting review."""
         session = get_sync_session()
@@ -30,11 +30,11 @@ class ReviewerService:
         finally:
             session.close()
 
-    def approve(self, evidence_id: int, author: str, reason: str | None = None) -> bool:
+    def approve(self, evidence_id: int, author: str, reason: str | None = None) -> ReviewAction | None:
         """Approve an evidence record."""
         return self._apply_action(evidence_id, "approve", author, reason)
 
-    def reject(self, evidence_id: int, author: str, reason: str) -> bool:
+    def reject(self, evidence_id: int, author: str, reason: str) -> ReviewAction | None:
         """Reject an evidence record (reason required)."""
         return self._apply_action(evidence_id, "reject", author, reason)
 
@@ -44,13 +44,13 @@ class ReviewerService:
         author: str,
         new_score: float,
         reason: str,
-    ) -> bool:
+    ) -> ReviewAction | None:
         """Override the final fragment score of an evidence record."""
         session = get_sync_session()
         try:
             evidence = session.get(PairEvidence, evidence_id)
             if not evidence:
-                return False
+                return None
 
             old_value = {"final_fragment_score": evidence.final_fragment_score}
             new_value = {"final_fragment_score": new_score}
@@ -69,8 +69,9 @@ class ReviewerService:
             )
             session.add(action)
             session.commit()
+            session.refresh(action)
             logger.info("Score overridden for evidence %d by %s", evidence_id, author)
-            return True
+            return action
         finally:
             session.close()
 
@@ -110,13 +111,13 @@ class ReviewerService:
 
     def _apply_action(
         self, evidence_id: int, action_type: str, author: str, reason: str | None
-    ) -> bool:
+    ) -> ReviewAction | None:
         """Apply a review action to an evidence record."""
         session = get_sync_session()
         try:
             evidence = session.get(PairEvidence, evidence_id)
             if not evidence:
-                return False
+                return None
 
             old_status = evidence.review_status
             new_status = "approved" if action_type == "approve" else "rejected"
@@ -133,7 +134,8 @@ class ReviewerService:
             )
             session.add(action)
             session.commit()
+            session.refresh(action)
             logger.info("Evidence %d %s by %s", evidence_id, action_type, author)
-            return True
+            return action
         finally:
             session.close()

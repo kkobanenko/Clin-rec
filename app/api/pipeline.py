@@ -1,23 +1,14 @@
-import logging
-
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select, update
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
 from app.models.evidence import PairEvidence
 from app.models.pipeline import PipelineRun
 from app.models.reviewer import ReviewAction
-from app.schemas.pipeline import PaginatedResponse, PipelineRunOut, ReviewActionCreate, ReviewActionOut
-
-logger = logging.getLogger(__name__)
-
-# TZ §7.12: маппинг action → review_status для PairEvidence.
-_ACTION_TO_STATUS = {
-    "approve": "approved",
-    "reject": "rejected",
-    "override": "overridden",
-}
+from app.schemas.clinical import PairEvidenceOut
+from app.schemas.pipeline import PaginatedResponse, PipelineRunOut, ReviewActionCreate, ReviewActionOut, ReviewStatsOut
+from app.services.reviewer import ReviewerService
 
 router = APIRouter(tags=["pipeline"])
 
@@ -51,42 +42,84 @@ async def get_run(run_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/review", response_model=ReviewActionOut)
 async def create_review_action(data: ReviewActionCreate, db: AsyncSession = Depends(get_db)):
-    """
-    Создание review action + обновление review_status на целевой записи.
-    При target_type='pair_evidence' меняет PairEvidence.review_status (TZ §7.12).
-    """
-    old_value_json = data.new_value_json
-    # Обновить статус PairEvidence, если действие касается evidence.
-    if data.target_type == "pair_evidence":
-        new_status = _ACTION_TO_STATUS.get(data.action)
-        if new_status:
-            pe_row = (
-                await db.execute(select(PairEvidence).where(PairEvidence.id == data.target_id))
-            ).scalar_one_or_none()
-            if pe_row:
-                old_value_json = {"review_status": pe_row.review_status}
-                await db.execute(
-                    update(PairEvidence)
-                    .where(PairEvidence.id == data.target_id)
-                    .values(review_status=new_status)
-                )
-                logger.info(
-                    "PairEvidence %d review_status: %s -> %s (by %s)",
-                    data.target_id, pe_row.review_status, new_status, data.author,
-                )
-    action = ReviewAction(
-        target_type=data.target_type,
-        target_id=data.target_id,
-        action=data.action,
-        old_value_json=old_value_json,
-        new_value_json=data.new_value_json,
-        reason=data.reason,
-        author=data.author,
-    )
-    db.add(action)
-    await db.flush()
-    await db.refresh(action)
+    del db
+    if data.target_type != "pair_evidence":
+        raise HTTPException(status_code=400, detail="Only pair_evidence review actions are supported")
+
+    service = ReviewerService()
+    action: ReviewAction | None
+    if data.action == "approve":
+        action = service.approve(data.target_id, author=data.author, reason=data.reason)
+    elif data.action == "reject":
+        if not data.reason:
+            raise HTTPException(status_code=400, detail="Reject action requires reason")
+        action = service.reject(data.target_id, author=data.author, reason=data.reason)
+    elif data.action == "override":
+        new_score = None
+        if data.new_value_json:
+            new_score = data.new_value_json.get("final_fragment_score")
+        if new_score is None:
+            raise HTTPException(status_code=400, detail="Override action requires new_value_json.final_fragment_score")
+        action = service.override_score(data.target_id, author=data.author, new_score=float(new_score), reason=data.reason or "manual override")
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported review action")
+
+    if action is None:
+        raise HTTPException(status_code=404, detail="Evidence record not found")
     return ReviewActionOut.model_validate(action)
+
+
+@router.get("/review/queue", response_model=PaginatedResponse)
+async def get_review_queue(
+    db: AsyncSession = Depends(get_db),
+    status: str = Query("auto"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    total = (
+        await db.execute(
+            select(func.count(PairEvidence.id)).where(PairEvidence.review_status == status)
+        )
+    ).scalar_one()
+    items = ReviewerService().get_review_queue(status=status, limit=page_size, offset=(page - 1) * page_size)
+    return PaginatedResponse(
+        items=[PairEvidenceOut.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=(total + page_size - 1) // page_size if page_size else 1,
+    )
+
+
+@router.get("/review/stats", response_model=ReviewStatsOut)
+async def get_review_stats():
+    counts = ReviewerService().get_review_stats()
+    return ReviewStatsOut(counts=counts, total=sum(counts.values()))
+
+
+@router.get("/review/history", response_model=PaginatedResponse)
+async def get_review_history(
+    db: AsyncSession = Depends(get_db),
+    target_type: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    count_query = select(func.count(ReviewAction.id))
+    if target_type:
+        count_query = count_query.where(ReviewAction.target_type == target_type)
+    total = (await db.execute(count_query)).scalar_one()
+    items = ReviewerService().get_review_history(
+        target_type=target_type,
+        limit=page_size,
+        offset=(page - 1) * page_size,
+    )
+    return PaginatedResponse(
+        items=[ReviewActionOut.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=(total + page_size - 1) // page_size if page_size else 1,
+    )
 
 
 @router.get("/reviews", response_model=list[ReviewActionOut])
