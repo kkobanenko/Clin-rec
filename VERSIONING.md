@@ -6,6 +6,24 @@ This document tracks component versions for reproducibility across runs, per PRD
 
 ## Document Versions
 
+### PRD v1.6 (2026-04-21)
+
+**File:** `PRD_CR_Intelligence_Platform_v1_6.md`
+
+**Changelog:**
+- Added product advancement plan for transition from quality-capable implementation to release-ready MVP.
+- Added formal release contract, release gates, and go/no-go semantics.
+- Added scope boundaries between immediate release hardening and post-MVP productization.
+
+### TZ v1.5 (2026-04-21)
+
+**File:** `TZ_CR_Intelligence_Platform_v1_5.md`
+
+**Changelog:**
+- Added execution-ready technical plan for release-hardening tranche.
+- Added work packages for runtime preflight, regression pack, governance completion, downstream verification, and release rehearsal.
+- Added release-ready statuses, required release artifacts, and acceptance criteria.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
