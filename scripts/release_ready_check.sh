@@ -53,6 +53,16 @@ run_step() {
     fi
 }
 
+ensure_log_has_no_skips() {
+    local step_id="$1"
+    local title="$2"
+    local log_file="$OUT_DIR/${step_id}.log"
+    if rg -n "\bskipped\b" "$log_file" >/dev/null 2>&1; then
+        echo "Mandatory step produced skipped tests: ${title}" | tee -a "$log_file" >&2
+        return 1
+    fi
+}
+
 if [[ ! -x "$PYTHON_BIN" ]]; then
     echo "Python executable not found: $PYTHON_BIN" >&2
     echo "Set PYTHON_BIN explicitly or create the project venv first." >&2
@@ -84,6 +94,7 @@ run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test
 run_step outputs_api "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
 run_step aux_routes "Aux routes regression" "$PYTEST_BIN" tests/test_aux_api_mounts.py
 run_step kb_integration "KB integration regression" "$PYTEST_BIN" tests/test_kb_integration_postgres.py
+ensure_log_has_no_skips kb_integration "KB integration regression"
 
 echo
 echo "Release-ready verification pack completed successfully."

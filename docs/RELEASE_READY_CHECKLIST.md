@@ -39,6 +39,7 @@
 - Прогнать `tests/test_kb_integration_postgres.py`.
 - Проверить downstream extract -> candidate -> scoring -> matrix path.
 - Проверить KB/output workflows и task visibility.
+- Mandatory integration suites не должны завершаться как `skipped`; skip для этого gate трактуется как незакрытая проверка.
 
 ## 6. Governance Gate
 
