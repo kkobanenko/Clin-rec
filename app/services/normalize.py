@@ -3,14 +3,14 @@
 import hashlib
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 from app.core.storage import download_artifact
 from app.core.sync_database import get_sync_session
-from app.models.document import DocumentRegistry, DocumentVersion, SourceArtifact
-from app.models.evidence import PairEvidence
+from app.models.document import DocumentVersion, SourceArtifact
 from app.models.text import DocumentSection, TextFragment
 
 logger = logging.getLogger(__name__)
@@ -25,28 +25,33 @@ NOISE_SELECTORS = [
 ]
 
 
+@dataclass(frozen=True, slots=True)
+class NormalizeExtractionResult:
+    sections: list[tuple[str, str, list[tuple[str, str]]]]
+    source_used: str | None = None
+    reason_code: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NormalizeServiceResult:
+    document_registry_id: int | None
+    document_version_id: int
+    status: str
+    sections_count: int = 0
+    fragments_count: int = 0
+    source_used: str | None = None
+    reason_code: str | None = None
+    queued_extract: bool = False
+
+
 class NormalizeService:
-    def normalize(self, version_id: int) -> bool:
-        """Нормализует версию документа. Возвращает True если данные закоммичены."""
+    def normalize(self, version_id: int) -> NormalizeServiceResult:
         session = get_sync_session()
         try:
             version = session.get(DocumentVersion, version_id)
             if not version:
                 logger.error("DocumentVersion %d not found", version_id)
-                return False
-
-            # Удаляем pair_evidence, ссылающиеся на фрагменты этой версии (иначе FK при удалении фрагментов).
-            frag_ids = [
-                fid
-                for (fid,) in session.query(TextFragment.id)
-                .join(DocumentSection, TextFragment.section_id == DocumentSection.id)
-                .filter(DocumentSection.document_version_id == version_id)
-                .all()
-            ]
-            if frag_ids:
-                session.query(PairEvidence).filter(PairEvidence.fragment_id.in_(frag_ids)).delete(
-                    synchronize_session=False
-                )
+                return NormalizeServiceResult(None, version_id, "failed", reason_code="document_version_not_found")
 
             # Remove old sections/fragments for this version
             old_sections = session.query(DocumentSection).filter_by(document_version_id=version_id).all()
@@ -65,19 +70,21 @@ class NormalizeService:
             html_artifact = next((a for a in artifacts if a.artifact_type == "html"), None)
             pdf_artifact = next((a for a in artifacts if a.artifact_type == "pdf"), None)
 
-            doc = session.get(DocumentRegistry, version.registry_id)
-            page_url = None
-            if doc:
-                page_url = doc.html_url or doc.card_url
-
-            sections = self._extract_sections(version, html_artifact, pdf_artifact, page_url)
+            extraction = self._extract_sections_detailed(version, html_artifact, pdf_artifact)
+            sections = extraction.sections
 
             if not sections:
                 logger.warning("No sections extracted for version %d", version_id)
-                session.rollback()
-                return False
+                return NormalizeServiceResult(
+                    version.registry_id,
+                    version_id,
+                    "degraded",
+                    source_used=extraction.source_used,
+                    reason_code=extraction.reason_code,
+                )
 
             # Write to DB
+            fragments_count = 0
             for sec_order, (sec_title, sec_path, fragments) in enumerate(sections):
                 db_section = DocumentSection(
                     document_version_id=version_id,
@@ -99,16 +106,25 @@ class NormalizeService:
                         stable_id=stable_id,
                     )
                     session.add(db_frag)
+                    fragments_count += 1
 
             session.commit()
             logger.info("Normalized version %d: %d sections", version_id, len(sections))
 
-            # Дальнейший pipeline: worker ставит chain compile_kb → extract.
+            # Queue extraction
+            from app.workers.tasks.extract import extract_document
 
-            return True
-        except Exception:
-            session.rollback()
-            raise
+            extract_document.delay(version_id)
+            return NormalizeServiceResult(
+                version.registry_id,
+                version_id,
+                "success",
+                sections_count=len(sections),
+                fragments_count=fragments_count,
+                source_used=extraction.source_used,
+                queued_extract=True,
+            )
+
         finally:
             session.close()
 
@@ -117,38 +133,55 @@ class NormalizeService:
         version: DocumentVersion,
         html_artifact: SourceArtifact | None,
         pdf_artifact: SourceArtifact | None,
-        html_page_url: str | None,
     ) -> list[tuple[str, str, list[tuple[str, str]]]]:
         """Extract sections using the preferred source, with PDF fallback for thin HTML shells."""
+        return self._extract_sections_detailed(version, html_artifact, pdf_artifact).sections
+
+    def _extract_sections_detailed(
+        self,
+        version: DocumentVersion,
+        html_artifact: SourceArtifact | None,
+        pdf_artifact: SourceArtifact | None,
+    ) -> NormalizeExtractionResult:
+        """Extract sections and keep the source/reason metadata for stage outcomes."""
         preferred_source = version.source_type_primary or ""
 
         if preferred_source == "pdf" and pdf_artifact:
             raw_data = download_artifact(pdf_artifact.raw_path)
-            return self._normalize_pdf(raw_data)
+            sections = self._normalize_pdf(raw_data)
+            return NormalizeExtractionResult(
+                sections=sections,
+                source_used="pdf",
+                reason_code=None if sections else "normalize_empty_after_pdf_fallback",
+            )
 
         if html_artifact:
             raw_data = download_artifact(html_artifact.raw_path)
             sections = self._normalize_html(raw_data)
-            if not sections:
-                sections = self._normalize_html_loose(raw_data)
             if sections:
-                return sections
-            # SPA: статический HTML пустой — рендер через Playwright по URL карточки.
-            if html_page_url:
-                sections = self._normalize_html_playwright(html_page_url)
-                if sections:
-                    return sections
+                return NormalizeExtractionResult(sections=sections, source_used="html")
             if pdf_artifact:
                 logger.info(
                     "HTML artifact produced no sections for version %d, falling back to PDF",
                     version.id,
                 )
+            else:
+                return NormalizeExtractionResult(
+                    sections=[],
+                    source_used="html",
+                    reason_code="normalize_empty_after_html",
+                )
 
         if pdf_artifact:
             raw_data = download_artifact(pdf_artifact.raw_path)
-            return self._normalize_pdf(raw_data)
+            sections = self._normalize_pdf(raw_data)
+            return NormalizeExtractionResult(
+                sections=sections,
+                source_used="pdf",
+                reason_code=None if sections else "normalize_empty_after_pdf_fallback",
+            )
 
-        return []
+        return NormalizeExtractionResult(sections=[], reason_code="normalize_missing_artifact")
 
     def _normalize_html(self, raw_data: bytes) -> list[tuple[str, str, list[tuple[str, str]]]]:
         """Parse HTML content into sections with fragments.
@@ -219,58 +252,6 @@ class NormalizeService:
             sections.append((current_section_title, current_section_path, current_fragments))
 
         return sections
-
-    def _normalize_html_loose(self, raw_data: bytes) -> list[tuple[str, str, list[tuple[str, str]]]]:
-        """Если структурный разбор не дал секций — собираем абзацы по всему body (обход пустого main в SPA)."""
-        html_text = raw_data.decode("utf-8", errors="replace")
-        soup = BeautifulSoup(html_text, "lxml")
-        body = soup.find("body")
-        if not body:
-            return []
-        fragments: list[tuple[str, str]] = []
-        for tag in body.find_all(["p", "li"]):
-            text = self._clean_text(tag.get_text())
-            if len(text) > 30:
-                fragments.append(("paragraph", text))
-        if not fragments:
-            return []
-        return [("Введение", "0", fragments)]
-
-    def _normalize_html_playwright(self, url: str) -> list[tuple[str, str, list[tuple[str, str]]]]:
-        """Рендер SPA-страницы рубрикатора и извлечение текста из DOM (TZ: полнота текстового слоя)."""
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError:
-            logger.warning("playwright not installed — cannot render SPA HTML")
-            return []
-
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
-                try:
-                    page = browser.new_context().new_page()
-                    page.goto(url, wait_until="networkidle", timeout=120000)
-                    page.wait_for_timeout(3000)
-                    text = page.evaluate(
-                        "() => (document.body && document.body.innerText) ? document.body.innerText : ''"
-                    )
-                finally:
-                    browser.close()
-        except Exception as e:
-            logger.warning("Playwright render failed for %s: %s", url, e)
-            return []
-
-        if not text or len(text.strip()) < 100:
-            return []
-
-        fragments: list[tuple[str, str]] = []
-        for line in text.split("\n"):
-            line = self._clean_text(line)
-            if len(line) > 40:
-                fragments.append(("paragraph", line))
-        if not fragments:
-            return []
-        return [("Документ", "0", fragments)]
 
     def _normalize_pdf(self, raw_data: bytes) -> list[tuple[str, str, list[tuple[str, str]]]]:
         """Parse PDF content into sections with fragments."""

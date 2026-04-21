@@ -10,16 +10,16 @@ Verifies:
 5. GET /documents/{id}/fragments → checks fragment parsing
 """
 
-import os
 import sys
 import time
 import json
+import argparse
 from pathlib import Path
 
 import httpx
 
-# Docker Compose публикует API на хосте :8000 (см. ISOLATION_POLICY / docker-compose.yml).
-BASE_URL = os.environ.get("CRIN_SMOKE_BASE_URL", "http://127.0.0.1:8000")
+
+BASE_URL = "http://127.0.0.1:8000"
 POLL_INTERVAL = 2
 POLL_TIMEOUT = 120
 MAX_RETRIES = 3
@@ -31,6 +31,8 @@ REQUIRED_STATS_KEYS = {
     "duplicates_detected",
     "coverage_percent",
 }
+
+VALID_MODES = {"structural", "quality"}
 
 
 def log(msg: str):
@@ -80,8 +82,7 @@ def test_health():
         log(f"  ✗ Health check failed: {e}")
         log(f"\n⚠️  API not available at {BASE_URL}")
         log("   Try: docker compose up -d && docker compose logs -f crin_app")
-        log("   Host profile: CRIN_SMOKE_BASE_URL=http://127.0.0.1:8000 uv run python scripts/e2e_smoke.py")
-        log("   Or: uvicorn на хосте на :8000, затем тот же BASE_URL.")
+        log("   Or:  .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000")
         return False
 
 
@@ -163,10 +164,18 @@ def test_document_content(doc_id: int) -> dict | None:
         data = resp.json()
         sections = data.get("sections", [])
         log(f"  ✓ Content retrieved: {len(sections)} sections")
+        pipeline_outcome = data.get("pipeline_outcome") or {}
+        if pipeline_outcome:
+            log(
+                f"    Pipeline outcome: stage={pipeline_outcome.get('stage')} "
+                f"status={pipeline_outcome.get('status')} reason={pipeline_outcome.get('reason_code')}"
+            )
         if sections:
             first_section = sections[0]
-            log(f"    Sample section: title={first_section.get('title', 'N/A')[:50]}, "
-                f"fragments={len(first_section.get('fragments', []))}")
+            log(
+                f"    Sample section: title={first_section.get('section_title', 'N/A')[:50]}, "
+                f"order={first_section.get('section_order')}"
+            )
         return data
     except Exception as e:
         log(f"  ✗ Content fetch failed: {e}")
@@ -180,23 +189,42 @@ def test_document_fragments(doc_id: int) -> dict | None:
         resp = retry_request("GET", f"{BASE_URL}/documents/{doc_id}/fragments?page=1&page_size=10")
         assert resp.status_code == 200
         data = resp.json()
-        items = data.get("items", [])
+        items = data.get("fragments", [])
         total = data.get("total", 0)
         log(f"  ✓ Fragments retrieved: {len(items)} items, {total} total")
+        pipeline_outcome = data.get("pipeline_outcome") or {}
+        if pipeline_outcome:
+            log(
+                f"    Pipeline outcome: stage={pipeline_outcome.get('stage')} "
+                f"status={pipeline_outcome.get('status')} reason={pipeline_outcome.get('reason_code')}"
+            )
         if items:
             first_frag = items[0]
-            log(f"    Sample: type={first_frag.get('type')}, "
-                f"text_len={len(first_frag.get('text', ''))}")
+            log(f"    Sample: type={first_frag.get('fragment_type')}, "
+                f"text_len={len(first_frag.get('fragment_text', ''))}")
         return data
     except Exception as e:
         log(f"  ✗ Fragments fetch failed: {e}")
         return None
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="CR Intelligence Platform E2E smoke")
+    parser.add_argument(
+        "--mode",
+        choices=sorted(VALID_MODES),
+        default="structural",
+        help="Smoke mode: structural validates lifecycle/contracts, quality also requires non-empty content.",
+    )
+    return parser.parse_args()
+
+
 def main():
     """Run full E2E smoke test."""
+    args = parse_args()
+    mode = args.mode
     log("=" * 60)
-    log("START: End-to-End Smoke Test for PRD/TZ")
+    log(f"START: End-to-End Smoke Test for PRD/TZ (mode={mode})")
     log("=" * 60)
 
     results = {}
@@ -267,14 +295,40 @@ def main():
     if results.get("documents"):
         docs_total = 1
 
-    if status == "completed" and not missing_stats_keys:
-        log("✅ E2E Test PASSED: Discovery → Documents → Content flow working")
+    content_sections = len((results.get("content") or {}).get("sections", []))
+    fragments_total = (results.get("fragments") or {}).get("total", 0)
+    content_outcome = (results.get("content") or {}).get("pipeline_outcome") or {}
+    quality_pass = True
+    if mode == "quality" and discovered > 0:
+        quality_pass = bool(content_sections > 0 and fragments_total > 0)
+
+    if status == "completed" and not missing_stats_keys and (mode != "quality" or quality_pass):
+        log("✅ E2E Test PASSED")
+        if mode == "structural":
+            log("ℹ️  Structural smoke validated lifecycle, routing, and observability contract")
+        else:
+            log("ℹ️  Quality smoke validated non-empty content and fragments for checked document")
         if discovered == 0:
             log("ℹ️  Completed run with discovered_count=0 is valid for structural smoke checks")
         if docs_total == 0:
             log("ℹ️  No documents in this run context; content/fragment checks may be skipped")
+            if mode == "quality" and discovered > 0:
+                log("❌ Quality smoke requires at least one checked document when discovered_count > 0")
+                sys.exit(1)
     elif status == "completed":
-        log("❌ E2E Test FAILED: completed run missing required stats_json fields")
+        if missing_stats_keys:
+            log("❌ E2E Test FAILED: completed run missing required stats_json fields")
+        elif mode == "quality":
+            log("❌ E2E Test FAILED: quality gate did not pass")
+            log(
+                "ℹ️  Quality details: "
+                f"sections={content_sections}, fragments={fragments_total}, "
+                f"outcome_stage={content_outcome.get('stage')}, "
+                f"outcome_status={content_outcome.get('status')}, "
+                f"reason={content_outcome.get('reason_code')}"
+            )
+        else:
+            log("❌ E2E Test FAILED: completed run failed structural expectations")
         sys.exit(1)
     else:
         log("❌ E2E Test FAILED: Check logs above")

@@ -7,7 +7,15 @@ SPA-заглушки и «pdf» с HTML-телом.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from bs4 import BeautifulSoup
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactValidationResult:
+    is_valid: bool
+    reason_code: str | None = None
 
 
 def looks_like_spa_shell(data: bytes) -> bool:
@@ -36,18 +44,36 @@ def looks_like_spa_shell(data: bytes) -> bool:
 
 def is_valid_pdf_payload(content_type: str | None, data: bytes) -> bool:
     """PDF: заголовок application/pdf и сигнатура %PDF-."""
+    return validate_artifact_payload("pdf", content_type, data).is_valid
+
+
+def validate_artifact_payload(
+    artifact_type: str,
+    content_type: str | None,
+    data: bytes,
+) -> ArtifactValidationResult:
+    """Возвращает результат проверки и код причины отказа."""
     normalized_ct = (content_type or "").lower()
-    if "application/pdf" not in normalized_ct:
-        return False
-    return data.startswith(b"%PDF-")
+    if artifact_type == "pdf":
+        if "application/pdf" not in normalized_ct:
+            return ArtifactValidationResult(False, "source_invalid_pdf_content_type")
+        if not data.startswith(b"%PDF-"):
+            return ArtifactValidationResult(False, "source_invalid_pdf_signature")
+        return ArtifactValidationResult(True)
+
+    if artifact_type == "html":
+        if not ("text/html" in normalized_ct or "application/xhtml+xml" in normalized_ct):
+            return ArtifactValidationResult(False, "source_invalid_html_content_type")
+        if looks_like_spa_shell(data):
+            return ArtifactValidationResult(False, "source_invalid_html_shell")
+        return ArtifactValidationResult(True)
+
+    return ArtifactValidationResult(True)
 
 
 def is_valid_html_payload(content_type: str | None, data: bytes) -> bool:
     """HTML: ожидаемый content-type и не SPA-shell."""
-    normalized_ct = (content_type or "").lower()
-    if not ("text/html" in normalized_ct or "application/xhtml+xml" in normalized_ct):
-        return False
-    return not looks_like_spa_shell(data)
+    return validate_artifact_payload("html", content_type, data).is_valid
 
 
 def is_valid_artifact_payload(artifact_type: str, content_type: str | None, data: bytes) -> bool:
@@ -55,8 +81,4 @@ def is_valid_artifact_payload(artifact_type: str, content_type: str | None, data
     Проверка соответствия байтов заявленному типу артефакта.
     Используется при fetch и при отдаче/фильтрации в API.
     """
-    if artifact_type == "pdf":
-        return is_valid_pdf_payload(content_type, data)
-    if artifact_type == "html":
-        return is_valid_html_payload(content_type, data)
-    return True
+    return validate_artifact_payload(artifact_type, content_type, data).is_valid

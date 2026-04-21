@@ -1,73 +1,44 @@
-from celery import chain
+from celery import current_task
 
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentVersion
+from app.workers.celery_app import celery_app
 from app.services.normalize import NormalizeService
 from app.services.pipeline_event_log import write_pipeline_event
-from app.workers.celery_app import celery_app
-from app.workers.tasks.extract import extract_document
-from app.workers.tasks.kb import compile_document_version
 
 
-@celery_app.task(name="app.workers.tasks.normalize.normalize_document", bind=True, queue="normalize")
-def normalize_document(self, version_id: int):
-    tid = getattr(self.request, "id", None)
+@celery_app.task(name="app.workers.tasks.normalize.normalize_document", queue="normalize")
+def normalize_document(version_id: int):
+    task_id = getattr(getattr(current_task, "request", None), "id", None)
     session = get_sync_session()
-    try:
-        ver = session.get(DocumentVersion, version_id)
-        reg_id = ver.registry_id if ver else None
-    finally:
-        session.close()
-
-    if reg_id is not None:
+    version = session.get(DocumentVersion, version_id)
+    session.close()
+    registry_id = version.registry_id if version else None
+    if registry_id is not None:
         write_pipeline_event(
-            document_registry_id=reg_id,
+            document_registry_id=registry_id,
             document_version_id=version_id,
-            celery_task_id=tid,
+            celery_task_id=task_id,
             stage="normalize",
-            status="started",
-            message="normalize started",
-            detail_json=None,
+            status="start",
+            message="Started normalize stage",
+            detail_json={"version_id": version_id},
         )
-
     service = NormalizeService()
-    try:
-        ok = service.normalize(version_id=version_id)
-    except Exception as e:
-        if reg_id is not None:
-            write_pipeline_event(
-                document_registry_id=reg_id,
-                document_version_id=version_id,
-                celery_task_id=tid,
-                stage="normalize",
-                status="failure",
-                message=str(e)[:2000],
-                detail_json={"exception_type": type(e).__name__},
-            )
-        raise
-
-    if ok:
-        if reg_id is not None:
-            write_pipeline_event(
-                document_registry_id=reg_id,
-                document_version_id=version_id,
-                celery_task_id=tid,
-                stage="normalize",
-                status="success",
-                message="normalize ok; queued compile_kb chain",
-                detail_json=None,
-            )
-        chain(compile_document_version.s(version_id), extract_document.si(version_id)).apply_async()
-    else:
-        if reg_id is not None:
-            write_pipeline_event(
-                document_registry_id=reg_id,
-                document_version_id=version_id,
-                celery_task_id=tid,
-                stage="normalize",
-                status="failure",
-                message="no sections extracted (normalize returned False)",
-                detail_json=None,
-            )
-
-    return {"ok": ok, "version_id": version_id}
+    result = service.normalize(version_id=version_id)
+    if result.document_registry_id is not None:
+        write_pipeline_event(
+            document_registry_id=result.document_registry_id,
+            document_version_id=version_id,
+            celery_task_id=task_id,
+            stage="normalize",
+            status=result.status,
+            message=f"Normalize stage finished with status={result.status}",
+            detail_json={
+                "sections_count": result.sections_count,
+                "fragments_count": result.fragments_count,
+                "source_used": result.source_used,
+                "reason_code": result.reason_code,
+                "queued_extract": result.queued_extract,
+            },
+        )

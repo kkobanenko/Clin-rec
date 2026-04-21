@@ -6,6 +6,24 @@ This document tracks component versions for reproducibility across runs, per PRD
 
 ## Document Versions
 
+### PRD v1.5 (2026-04-21)
+
+**File:** `PRD_CR_Intelligence_Platform_v1_5.md`
+
+**Changelog:**
+- Added product advancement plan for transition from orchestration-ready to quality-ready pipeline.
+- Added explicit quality contract, content quality gates, and readiness criteria for user evaluation.
+- Added prioritized P0/P1/P2 roadmap aligned with current implementation blockers.
+
+### TZ v1.4 (2026-04-21)
+
+**File:** `TZ_CR_Intelligence_Platform_v1_4.md`
+
+**Changelog:**
+- Added execution-ready technical plan for quality-ready pipeline transition.
+- Added task packages A-H with dependencies, effort estimates, and acceptance semantics.
+- Added stage outcome, reason-code, and quality smoke requirements.
+
 ### PRD v1.2 (2026-04-01)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_2.md`
@@ -142,8 +160,14 @@ Before releasing a matrix version or making config changes:
 - Hardened `scripts/e2e_smoke.py` against intermediate `pending` status and `stats_json = null`.
 - Validated successful E2E run path after runtime profile alignment and worker health checks.
 
+## Release Notes (2026-04-21)
+
+- Added PRD v1.5 and TZ v1.4 to formalize the transition plan from orchestration-ready to quality-ready pipeline.
+- Updated canonical MVP DoD with quality-smoke semantics for manual document evaluation readiness.
+- Updated runtime runbook to distinguish structural smoke from quality smoke and document operator handling of empty-content runs.
+
 ---
 
 **Version:** 1.0  
-**Last Updated:** 2026-04-01  
+**Last Updated:** 2026-04-21  
 **Status:** ✅ Active for MVP

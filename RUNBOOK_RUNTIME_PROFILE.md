@@ -75,30 +75,26 @@ docker logs --tail=200 crin_worker | rg 'Task app.workers.tasks.discovery.run_fu
 /home/kobanenkokn/Clin-rec/.venv/bin/python scripts/e2e_smoke.py
 ```
 
-Pass criteria:
+Recommended modes:
+- `structural`: lifecycle, queue routing, and `stats_json` contract only.
+- `quality`: includes content-layer validation for manual evaluation readiness.
+
+Structural pass criteria:
 - `/sync/full` returns `202` with `run_id`
 - `/runs/{id}` reaches `completed` (after possible `pending/running`)
 - `stats_json` contains minimum required fields: `discovery_service_version`, `run_type`, `wall_time_seconds`, `total_discovered`, `duplicates_detected`, `coverage_percent`
 - `/documents` returns consistent records
 - `completed` with `discovered_count = 0` is valid for smoke when lifecycle and observability checks pass
 
-## KB compile, lint, matrix rebuild, статус Celery
+Quality pass criteria for manual document evaluation:
+- structural criteria already pass
+- when `discovered_count > 0`, at least one checked document produces non-empty normalized content via `/documents/{id}/content` and `/documents/{id}/fragments`
+- if no document passes the content check, the run must be treated as degraded or failed for quality purposes, not as quality-green
+- degraded or failed cases should be explainable through stage outcome and reason metadata when available
 
-| Действие | HTTP | Примечание |
-| --- | --- | --- |
-| Очередь полной перекомпиляции KB | `POST /kb/compile` | В ответе `task_id` (Celery `run_compile_kb`). |
-| Очередь lint KB | `POST /kb/lint` | `task_id` для `lint_kb`. |
-| Пересчёт scores и матрицы | `POST /matrix/rebuild` | Тело JSON: `{"model_version_id": <int>, "scope_type": "global"\|"disease"}`. Цепочка: `score_pairs` → `build_matrix`. Ответ `202` + `task_id`. |
-| Опрос задачи (read-only) | `GET /tasks/{task_id}` | Поля `state`, `ready`; тело результата задачи не отдаётся. Для UI (Streamlit) — после POST сохранить `task_id` и опрашивать этот маршрут. |
-| Список PairEvidence (обзор) | `GET /matrix/pair-evidence` | Query: `page`, `page_size`, опционально `document_version_id`, `molecule_from_id`, `molecule_to_id`, `review_status`. |
-
-**Streamlit — вкладка Outputs (Sprint 7):** список и деталь `GET /outputs`, постановка `POST /outputs/memo` или `/outputs/generate`, filing `POST /outputs/file`, опрос задач `GET /tasks/{task_id}`. В Docker базовый URL API задаётся **`CRIN_STREAMLIT_API_BASE`** (в [docker-compose.yml](docker-compose.yml) для `streamlit`: `http://app:8000`).
-
-**Streamlit — вкладка Matrix (Sprint 8, explorer + release):** блок **Pair evidence** вызывает `GET /matrix/pair-evidence`; блок **Release control** — `GET /matrix/release-check` (проверка готовности) и `POST /matrix/release` (активация модели, деактивирует предыдущую). История ревью — `GET /reviews` (ответ — JSON-массив). `POST /review` при `target_type=pair_evidence` теперь обновляет `PairEvidence.review_status`.
-
-**Pair evidence:** после успешного `extract_document` в worker вызывается `CandidateEngine.generate_pairs(version_id)` — появляются строки `pair_evidence` (см. `docs/STORAGE_STAGES.md`).
-
-**Страницы МНН:** при `compile` для версии документа `KnowledgeCompileService` создаёт недостающие `entity_page` для `entity_registry` с `entity_type=molecule`, чтобы закрыть lint `missing_entity_page_molecule`.
+Operator rule:
+- Use structural smoke for runtime/profile validation.
+- Use quality smoke before asking analysts or reviewers to evaluate pipeline output on real documents.
 
 ## Troubleshooting
 
@@ -132,6 +128,23 @@ ps -ww -p <pid> -o pid,ppid,cmd
 
 Resolution:
 - Stop conflicting process or use a single selected profile.
+
+### Symptom: run is `completed` but content is empty
+Possible causes:
+- Source is an HTML shell or incomplete representation.
+- PDF endpoint returned non-PDF payload.
+- Normalize exhausted HTML/PDF paths without usable text.
+
+Checks:
+```bash
+/home/kobanenkokn/Clin-rec/.venv/bin/python scripts/e2e_smoke.py
+curl -s http://localhost:8000/documents/<id>/content | jq
+curl -s http://localhost:8000/documents/<id>/fragments | jq
+```
+
+Resolution:
+- Treat the run as structural-green but quality-red until content-layer issue is diagnosed.
+- Inspect source validation and normalize-stage diagnostics before manual review.
 
 ## Safety Notes
 

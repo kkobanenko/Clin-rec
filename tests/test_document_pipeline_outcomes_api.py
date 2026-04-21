@@ -1,0 +1,107 @@
+from datetime import datetime, timezone
+from types import SimpleNamespace
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from app.core.dependencies import get_db
+from app.main import app
+
+
+class FakeScalarResult:
+    def __init__(self, value=None, values=None):
+        self._value = value
+        self._values = values or []
+
+    def scalar_one(self):
+        return self._value
+
+    def scalar_one_or_none(self):
+        return self._value
+
+    def scalars(self):
+        return self
+
+    def all(self):
+        return self._values
+
+
+class FakeTupleResult:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def all(self):
+        return self._rows
+
+
+class FakeAsyncSession:
+    def __init__(self, responses):
+        self._responses = list(responses)
+
+    async def execute(self, _query):
+        if not self._responses:
+            raise AssertionError("Unexpected execute call")
+        return self._responses.pop(0)
+
+
+@pytest.mark.asyncio
+async def test_document_endpoints_expose_pipeline_outcome():
+    event = SimpleNamespace(
+        stage="normalize",
+        status="degraded",
+        message="Normalize stage finished with status=degraded",
+        detail_json={"reason_code": "normalize_empty_after_pdf_fallback"},
+        created_at=datetime.now(timezone.utc),
+    )
+    section = SimpleNamespace(id=7, section_path="1", section_title="Intro", section_order=0)
+    fragment = SimpleNamespace(
+        id=13,
+        section_id=7,
+        fragment_order=0,
+        fragment_type="paragraph",
+        fragment_text="Normalized fragment text",
+        stable_id="frag-1",
+    )
+
+    content_db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=SimpleNamespace(id=11)),
+            FakeScalarResult(values=[section]),
+            FakeScalarResult(value=event),
+        ]
+    )
+    fragments_db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=SimpleNamespace(id=11)),
+            FakeTupleResult(rows=[(7,)]),
+            FakeScalarResult(values=[fragment]),
+            FakeScalarResult(value=event),
+        ]
+    )
+    sessions = [content_db, fragments_db]
+
+    async def override_get_db():
+        if not sessions:
+            raise AssertionError("No fake session left")
+        yield sessions.pop(0)
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            content_resp = await client.get("/documents/1/content")
+            assert content_resp.status_code == 200
+            content_data = content_resp.json()
+            assert content_data["pipeline_outcome"]["stage"] == "normalize"
+            assert content_data["pipeline_outcome"]["status"] == "degraded"
+            assert content_data["pipeline_outcome"]["reason_code"] == "normalize_empty_after_pdf_fallback"
+            assert len(content_data["sections"]) == 1
+
+            fragments_resp = await client.get("/documents/1/fragments")
+            assert fragments_resp.status_code == 200
+            fragments_data = fragments_resp.json()
+            assert fragments_data["pipeline_outcome"]["stage"] == "normalize"
+            assert fragments_data["pipeline_outcome"]["reason_code"] == "normalize_empty_after_pdf_fallback"
+            assert fragments_data["total"] == 1
+    finally:
+        app.dependency_overrides.pop(get_db, None)
