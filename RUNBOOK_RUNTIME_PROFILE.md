@@ -125,6 +125,11 @@ Documentation alignment:
 - Operator checklist: `docs/RELEASE_READY_CHECKLIST.md`
 - Baseline acceptance floor: `DOD_MVP.md`
 
+VS Code task entrypoints:
+- `Structural Smoke`
+- `Quality Smoke`
+- `Release Ready Check`
+
 ## Troubleshooting
 
 ### Symptom: run stays `pending`

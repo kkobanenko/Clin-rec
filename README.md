@@ -10,6 +10,12 @@
 - `docs/RELEASE_READY_CHECKLIST.md`: операторский go/no-go checklist для MVP release decision
 - `DOD_MVP.md`: baseline acceptance floor
 
+## VS Code Tasks
+
+- `Structural Smoke`: быстрый entrypoint для runtime/profile validation
+- `Quality Smoke`: entrypoint для content/downstream quality checks
+- `Release Ready Check`: полный release pack через `scripts/release_ready_check.sh`
+
 ## Operator Surface
 
 Проект теперь включает операторский контур для reviewer и scoring model lifecycle.
