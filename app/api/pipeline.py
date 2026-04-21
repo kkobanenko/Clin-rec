@@ -7,7 +7,15 @@ from app.models.evidence import PairEvidence
 from app.models.pipeline import PipelineRun
 from app.models.reviewer import ReviewAction
 from app.schemas.clinical import PairEvidenceOut
-from app.schemas.pipeline import PaginatedResponse, PipelineRunOut, ReviewActionCreate, ReviewActionOut, ReviewStatsOut
+from app.schemas.pipeline import (
+    BulkReviewApproveIn,
+    BulkReviewApproveOut,
+    PaginatedResponse,
+    PipelineRunOut,
+    ReviewActionCreate,
+    ReviewActionOut,
+    ReviewStatsOut,
+)
 from app.services.reviewer import ReviewerService
 
 router = APIRouter(tags=["pipeline"])
@@ -95,6 +103,12 @@ async def get_review_queue(
 async def get_review_stats():
     counts = ReviewerService().get_review_stats()
     return ReviewStatsOut(counts=counts, total=sum(counts.values()))
+
+
+@router.post("/review/bulk-approve", response_model=BulkReviewApproveOut)
+async def bulk_approve_reviews(data: BulkReviewApproveIn):
+    approved_count = ReviewerService().bulk_approve(data.evidence_ids, author=data.author)
+    return BulkReviewApproveOut(approved_count=approved_count)
 
 
 @router.get("/review/history", response_model=PaginatedResponse)

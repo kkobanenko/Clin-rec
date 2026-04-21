@@ -124,6 +124,20 @@ async def test_get_review_stats_returns_aggregated_counts():
 
 
 @pytest.mark.asyncio
+async def test_bulk_approve_reviews_returns_count():
+    with patch("app.api.pipeline.ReviewerService.bulk_approve", return_value=3):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/review/bulk-approve",
+                json={"evidence_ids": [1, 2, 3, 4], "author": "tester"},
+            )
+
+    assert resp.status_code == 200
+    assert resp.json()["approved_count"] == 3
+
+
+@pytest.mark.asyncio
 async def test_get_review_history_returns_paginated_actions():
     async def override_get_db():
         yield FakeAsyncSession([FakeScalarResult(1)])

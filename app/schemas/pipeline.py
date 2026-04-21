@@ -58,8 +58,13 @@ class ReviewStatsOut(BaseModel):
     total: int
 
 
-class ReviewHistoryQueryOut(BaseModel):
-    target_type: str | None = None
+class BulkReviewApproveIn(BaseModel):
+    evidence_ids: list[int]
+    author: str
+
+
+class BulkReviewApproveOut(BaseModel):
+    approved_count: int
 
 
 class PaginatedResponse(BaseModel):
