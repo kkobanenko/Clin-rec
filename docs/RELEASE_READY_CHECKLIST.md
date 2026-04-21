@@ -8,6 +8,7 @@
 - Подтвердить один active runtime profile: `host-only` или `docker-compose-only`.
 - Подтвердить согласованность `CRIN_CELERY_BROKER_URL` и `CRIN_CELERY_RESULT_BACKEND` между API и worker.
 - Подтвердить, что release evaluation не смешивается с unrelated локальными экспериментами.
+- Для полного прогона можно использовать helper: `bash scripts/release_ready_check.sh`.
 
 ## 2. Structural Gate
 
