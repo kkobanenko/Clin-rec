@@ -77,12 +77,12 @@ class ReleaseService:
         finally:
             session.close()
 
-    def create_release(self, model_version_id: int, author: str) -> dict | None:
+    def create_release(self, model_version_id: int, author: str, force: bool = False) -> dict | None:
         """Mark a model version as released (set is_active flag)."""
         session = get_sync_session()
         try:
             readiness = self.check_readiness(model_version_id)
-            if not readiness.get("ready"):
+            if not readiness.get("ready") and not force:
                 logger.warning("Model %d not ready for release: %s", model_version_id, readiness)
                 return None
 
@@ -104,6 +104,7 @@ class ReleaseService:
                 "model_version_id": model_version_id,
                 "version_label": model.version_label,
                 "released_by": author,
+                "forced": force,
                 "readiness": readiness,
             }
         finally:

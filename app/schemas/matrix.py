@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class MatrixCellOut(BaseModel):
@@ -72,22 +72,7 @@ class ScoringModelVersionCreate(BaseModel):
     description: str | None = None
 
 
-class MatrixRebuildBody(BaseModel):
-    """POST /matrix/rebuild: очередь score_pairs → build_matrix."""
-
-    model_version_id: int = Field(..., ge=1)
-    scope_type: str = "global"
-
-
-class MatrixRebuildQueued(BaseModel):
-    task_id: str
-    status: str = "queued"
-    message: str
-
-
-class ReleaseCheckOut(BaseModel):
-    """Результат проверки готовности модели к релизу."""
-
+class ScoringModelReadinessOut(BaseModel):
     ready: bool
     has_matrix_cells: bool | None = None
     sufficient_evidence: bool | None = None
@@ -98,13 +83,14 @@ class ReleaseCheckOut(BaseModel):
     error: str | None = None
 
 
-class ReleaseCreateBody(BaseModel):
-    model_version_id: int = Field(..., ge=1)
-    author: str = Field(..., min_length=1)
+class ScoringModelActivateIn(BaseModel):
+    author: str
+    force: bool = False
 
 
-class ReleaseCreateOut(BaseModel):
+class ScoringModelActivationOut(BaseModel):
     model_version_id: int
     version_label: str
     released_by: str
-    readiness: dict
+    forced: bool = False
+    readiness: ScoringModelReadinessOut

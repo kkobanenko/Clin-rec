@@ -1,7 +1,7 @@
 import csv
 import io
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +11,12 @@ from app.models.clinical import ClinicalContext
 from app.models.evidence import MatrixCell, PairContextScore, PairEvidence
 from app.models.molecule import Molecule
 from app.models.scoring import ScoringModelVersion
+from app.services.release import ReleaseService
 from app.schemas.clinical import PairEvidenceOut
 from app.schemas.matrix import (
+    ScoringModelActivateIn,
+    ScoringModelActivationOut,
+    ScoringModelReadinessOut,
     MatrixCellDetailOut,
     MatrixCellOut,
     ScoringModelVersionCreate,
@@ -218,6 +222,11 @@ async def list_scoring_models(db: AsyncSession = Depends(get_db)):
     return [ScoringModelVersionOut.model_validate(m) for m in result.scalars().all()]
 
 
+@router.get("/models/{model_version_id}/readiness", response_model=ScoringModelReadinessOut)
+async def get_scoring_model_readiness(model_version_id: int):
+    return ScoringModelReadinessOut.model_validate(ReleaseService().check_readiness(model_version_id))
+
+
 @router.post("/models", response_model=ScoringModelVersionOut)
 async def create_scoring_model(data: ScoringModelVersionCreate, db: AsyncSession = Depends(get_db)):
     model = ScoringModelVersion(**data.model_dump())
@@ -225,3 +234,11 @@ async def create_scoring_model(data: ScoringModelVersionCreate, db: AsyncSession
     await db.flush()
     await db.refresh(model)
     return ScoringModelVersionOut.model_validate(model)
+
+
+@router.post("/models/{model_version_id}/activate", response_model=ScoringModelActivationOut)
+async def activate_scoring_model(model_version_id: int, data: ScoringModelActivateIn):
+    result = ReleaseService().create_release(model_version_id, author=data.author, force=data.force)
+    if result is None:
+        raise HTTPException(status_code=409, detail="Model version is not ready for activation")
+    return ScoringModelActivationOut.model_validate(result)
