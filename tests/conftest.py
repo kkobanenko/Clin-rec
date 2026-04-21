@@ -1,6 +1,5 @@
 """Pytest configuration and fixtures for CR Intelligence Platform tests."""
 
-import asyncio
 from collections.abc import AsyncGenerator, Generator
 from unittest.mock import MagicMock
 
@@ -23,14 +22,6 @@ def compile_jsonb_sqlite(_type, _compiler, **_kwargs):
 # Use SQLite for tests
 TEST_DATABASE_URL_ASYNC = "sqlite+aiosqlite:///test.db"
 TEST_DATABASE_URL_SYNC = "sqlite:///test.db"
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an event loop for async tests."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture(scope="session")
