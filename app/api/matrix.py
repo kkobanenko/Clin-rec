@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
+from app.models.clinical import ClinicalContext
 from app.models.evidence import MatrixCell, PairContextScore, PairEvidence
 from app.models.molecule import Molecule
 from app.models.scoring import ScoringModelVersion
@@ -28,6 +29,7 @@ async def list_pair_evidence(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     context_id: int | None = None,
+    document_version_id: int | None = None,
     molecule_from_id: int | None = None,
     molecule_to_id: int | None = None,
 ):
@@ -37,6 +39,13 @@ async def list_pair_evidence(
     if context_id:
         query = query.where(PairEvidence.context_id == context_id)
         count_query = count_query.where(PairEvidence.context_id == context_id)
+    if document_version_id:
+        query = query.join(ClinicalContext, ClinicalContext.id == PairEvidence.context_id).where(
+            ClinicalContext.document_version_id == document_version_id
+        )
+        count_query = count_query.join(ClinicalContext, ClinicalContext.id == PairEvidence.context_id).where(
+            ClinicalContext.document_version_id == document_version_id
+        )
     if molecule_from_id:
         query = query.where(PairEvidence.molecule_from_id == molecule_from_id)
         count_query = count_query.where(PairEvidence.molecule_from_id == molecule_from_id)

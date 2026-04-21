@@ -8,6 +8,7 @@ Verifies:
 3. GET /documents?page=1 → validates documents populated
 4. GET /documents/{id}/content → checks content structure
 5. GET /documents/{id}/fragments → checks fragment parsing
+6. GET /matrix/pair-evidence?document_version_id=... → checks downstream candidate readiness
 """
 
 import sys
@@ -210,6 +211,31 @@ def test_document_fragments(doc_id: int) -> dict | None:
         return None
 
 
+def test_pair_evidence(version_id: int) -> dict | None:
+    """Fetch GET /matrix/pair-evidence for a specific document version."""
+    log(f"7/7: Testing GET /matrix/pair-evidence for version {version_id}")
+    try:
+        resp = retry_request(
+            "GET",
+            f"{BASE_URL}/matrix/pair-evidence?document_version_id={version_id}&page=1&page_size=10",
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        items = data.get("items", [])
+        total = data.get("total", 0)
+        log(f"  ✓ Pair evidence retrieved: {len(items)} items, {total} total")
+        if items:
+            sample = items[0]
+            log(
+                f"    Sample pair evidence: from={sample.get('molecule_from_id')} "
+                f"to={sample.get('molecule_to_id')} relation={sample.get('relation_type')}"
+            )
+        return data
+    except Exception as e:
+        log(f"  ✗ Pair evidence fetch failed: {e}")
+        return None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="CR Intelligence Platform E2E smoke")
     parser.add_argument(
@@ -298,6 +324,12 @@ def main():
         fragments = test_document_fragments(doc_id)
         results["fragments"] = fragments
 
+        pair_evidence = None
+        version_id = (content or {}).get("version_id")
+        if mode == "quality" and version_id:
+            pair_evidence = test_pair_evidence(version_id)
+        results["pair_evidence"] = pair_evidence
+
     # Summary
     log("\n" + "=" * 60)
     log("SUMMARY")
@@ -310,17 +342,18 @@ def main():
 
     content_sections = len((results.get("content") or {}).get("sections", []))
     fragments_total = (results.get("fragments") or {}).get("total", 0)
+    pair_evidence_total = (results.get("pair_evidence") or {}).get("total", 0)
     content_outcome = (results.get("content") or {}).get("pipeline_outcome") or {}
     quality_pass = True
     if mode == "quality" and discovered > 0:
-        quality_pass = bool(content_sections > 0 and fragments_total > 0)
+        quality_pass = bool(content_sections > 0 and fragments_total > 0 and pair_evidence_total > 0)
 
     if status == "completed" and not missing_stats_keys and (mode != "quality" or quality_pass):
         log("✅ E2E Test PASSED")
         if mode == "structural":
             log("ℹ️  Structural smoke validated lifecycle, routing, and observability contract")
         else:
-            log("ℹ️  Quality smoke validated non-empty content and fragments for checked document")
+            log("ℹ️  Quality smoke validated non-empty content, fragments, and downstream pair evidence for checked document")
         if discovered == 0:
             log("ℹ️  Completed run with discovered_count=0 is valid for structural smoke checks")
         if docs_total == 0:
@@ -335,7 +368,7 @@ def main():
             log("❌ E2E Test FAILED: quality gate did not pass")
             log(
                 "ℹ️  Quality details: "
-                f"sections={content_sections}, fragments={fragments_total}, "
+                f"sections={content_sections}, fragments={fragments_total}, pair_evidence={pair_evidence_total}, "
                 f"outcome_stage={content_outcome.get('stage')}, "
                 f"outcome_status={content_outcome.get('status')}, "
                 f"reason={content_outcome.get('reason_code')}"
