@@ -452,6 +452,56 @@ def page_outputs():
                 st.success(f"File-back queued: {result.get('task_id')}")
 
 
+# --- Page: Knowledge Base ---
+
+def page_kb():
+    st.header("Knowledge Base")
+
+    col1, col2 = st.columns(2)
+    if col1.button("Compile KB"):
+        result = api_post("/kb/compile")
+        if result:
+            st.success(f"KB compile queued: {result.get('task_id')}")
+
+    if col2.button("Lint KB"):
+        result = api_post("/kb/lint")
+        if result:
+            st.success(f"KB lint queued: {result.get('task_id')}")
+
+    st.subheader("Artifacts")
+    artifacts = api_get("/kb/artifacts", {"page_size": 50})
+    if isinstance(artifacts, dict):
+        items = artifacts.get("items", [])
+        if items:
+            st.dataframe(pd.DataFrame(items), use_container_width=True)
+        else:
+            st.info("No KB artifacts available")
+
+    st.subheader("Artifact Detail")
+    artifact_id = st.number_input("Artifact ID", min_value=1, step=1, key="artifact_id")
+    if st.button("Load Artifact"):
+        detail = api_get(f"/kb/artifacts/{artifact_id}")
+        if detail:
+            st.json(detail)
+
+    st.subheader("Entities")
+    entities = api_get("/kb/entities", {"page_size": 50})
+    if isinstance(entities, dict):
+        items = entities.get("items", [])
+        if items:
+            st.dataframe(pd.DataFrame(items), use_container_width=True)
+        else:
+            st.info("No KB entities available")
+
+    st.subheader("Conflicts")
+    conflicts = api_get("/kb/conflicts")
+    if isinstance(conflicts, list):
+        if conflicts:
+            st.dataframe(pd.DataFrame(conflicts), use_container_width=True)
+        else:
+            st.info("No KB conflicts detected")
+
+
 # --- Main ---
 
 def main():
@@ -465,6 +515,7 @@ def main():
         "Matrix": page_matrix,
         "Reviews": page_reviews,
         "Scoring Models": page_scoring_models,
+        "Knowledge Base": page_kb,
         "Outputs": page_outputs,
     }
 
