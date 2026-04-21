@@ -135,6 +135,7 @@ VS Code task entrypoints:
 - `Structural Smoke`
 - `Quality Smoke`
 - `Release Ready Check`
+- `Release Late-Stage Rerun`
 
 ## Troubleshooting
 
