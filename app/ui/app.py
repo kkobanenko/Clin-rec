@@ -7,10 +7,16 @@ import streamlit as st
 API_BASE = "http://app:8000"
 
 
-def api_get(path: str, params: dict | None = None) -> dict | list | None:
+def api_get(
+    path: str,
+    params: dict | None = None,
+    allow_statuses: set[int] | None = None,
+) -> dict | list | None:
     """Make GET request to backend API."""
     try:
         resp = httpx.get(f"{API_BASE}{path}", params=params, timeout=30)
+        if allow_statuses and resp.status_code in allow_statuses:
+            return None
         resp.raise_for_status()
         return resp.json()
     except httpx.HTTPError as e:
@@ -303,7 +309,7 @@ def page_scoring_models():
         else:
             st.dataframe(pd.DataFrame(models), use_container_width=True)
 
-        active_model = api_get("/matrix/models/active")
+        active_model = api_get("/matrix/models/active", allow_statuses={404})
         if isinstance(active_model, dict):
             st.success(
                 f"Active model: #{active_model.get('id')} {active_model.get('version_label')}"
