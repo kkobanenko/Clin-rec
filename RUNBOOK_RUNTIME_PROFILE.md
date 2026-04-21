@@ -114,6 +114,12 @@ Use this sequence when evaluating whether the current build is release-ready for
 5. Run downstream verification for evidence/matrix and KB/output workflows.
 6. Record a short go/no-go summary with residual risks and classify the build as `release-ready` or `blocked`.
 
+If quality runs spend a long time in `pending`, increase the release-runner poll window, for example:
+
+```bash
+SMOKE_POLL_TIMEOUT=360 bash scripts/release_ready_check.sh
+```
+
 Interpretation rule:
 - `structural` green means runtime and observability are valid.
 - `quality` green means content-layer and downstream spot-checks are valid.
