@@ -103,6 +103,27 @@ Operator rule:
 - Use `/outputs` and the admin Outputs page to verify queued memo/output workflows are visible after runtime changes.
 - Use the admin Tasks page when you need to inspect task ids returned by KB or output workflows.
 
+## Release Verification Sequence
+
+Use this sequence when evaluating whether the current build is release-ready for MVP purposes.
+
+1. Confirm one active runtime profile and broker/result-backend alignment.
+2. Run structural smoke and stop immediately if it fails.
+3. Run quality smoke and stop immediately if it fails.
+4. Run targeted API regression for operator surfaces: review, matrix model operations, outputs, and auxiliary mounts.
+5. Run downstream verification for evidence/matrix and KB/output workflows.
+6. Record a short go/no-go summary with residual risks and classify the build as `release-ready` or `blocked`.
+
+Interpretation rule:
+- `structural` green means runtime and observability are valid.
+- `quality` green means content-layer and downstream spot-checks are valid.
+- `release-ready` requires structural green, quality green, targeted regression green, downstream verification green, and an explicit go/no-go review.
+
+Documentation alignment:
+- Product release contract: `PRD_CR_Intelligence_Platform_v1_6.md`
+- Technical release-hardening tranche: `TZ_CR_Intelligence_Platform_v1_5.md`
+- Baseline acceptance floor: `DOD_MVP.md`
+
 ## Troubleshooting
 
 ### Symptom: run stays `pending`
