@@ -198,6 +198,21 @@ def test_kb_master_index() -> dict | None:
         return None
 
 
+def test_storage_stages() -> dict | None:
+    """Fetch GET /pipeline/storage-stages and validate mounted pipeline metadata surface."""
+    log("4c/6: Testing GET /pipeline/storage-stages")
+    try:
+        resp = retry_request("GET", f"{BASE_URL}/pipeline/storage-stages")
+        assert resp.status_code == 200
+        data = resp.json()
+        postgresql_stages = data.get("postgresql", [])
+        log(f"  ✓ Storage stages retrieved: {len(postgresql_stages)} postgresql stages")
+        return data
+    except Exception as e:
+        log(f"  ✗ Storage stages fetch failed: {e}")
+        return None
+
+
 def test_document_content(doc_id: int) -> dict | None:
     """Fetch GET /documents/{id}/content and validate structure."""
     log(f"5/6: Testing GET /documents/{doc_id}/content")
@@ -485,6 +500,7 @@ def main():
     # 4. Fetch documents
     results["outputs"] = test_outputs_list()
     results["kb_master_index"] = test_kb_master_index()
+    results["storage_stages"] = test_storage_stages()
     first_doc = test_documents_list()
     if not first_doc:
         log("\n⚠️  No documents found. Skipping content/fragment tests.")
