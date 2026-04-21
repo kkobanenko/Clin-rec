@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Release Ready Check",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"scripts/release_ready_check.sh"
+			],
+			"isBackground": false,
+			"group": "test"
+		}
+	]
+}

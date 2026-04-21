@@ -28,8 +28,8 @@ fi
 
 cd "$ROOT_DIR"
 
-run_step "Structural smoke" "$PYTHON_BIN" scripts/e2e_smoke.py structural
-run_step "Quality smoke" "$PYTHON_BIN" scripts/e2e_smoke.py quality
+run_step "Structural smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode structural
+run_step "Quality smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode quality
 run_step "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
 run_step "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
 run_step "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
