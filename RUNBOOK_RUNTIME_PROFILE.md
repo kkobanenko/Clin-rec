@@ -76,13 +76,15 @@ docker logs --tail=200 crin_worker | rg 'Task app.workers.tasks.discovery.run_fu
 ```
 
 Recommended modes:
-- `structural`: lifecycle, queue routing, and `stats_json` contract only.
+- `structural`: lifecycle, queue routing, `stats_json` contract, and mounted auxiliary operator routes.
 - `quality`: includes content-layer validation plus downstream pair-evidence and matrix validation for manual evaluation readiness.
 
 Structural pass criteria:
 - `/sync/full` returns `202` with `run_id`
 - `/runs/{id}` reaches `completed` (after possible `pending/running`)
 - `stats_json` contains minimum required fields: `discovery_service_version`, `run_type`, `wall_time_seconds`, `total_discovered`, `duplicates_detected`, `coverage_percent`
+- mounted operator routes answer successfully: `/outputs`, `/kb/indexes/master`, `/pipeline/storage-stages`
+- task-status route answers for a freshly queued memo task via `/tasks/{task_id}`
 - `/documents` returns consistent records
 - `completed` with `discovered_count = 0` is valid for smoke when lifecycle and observability checks pass
 
@@ -99,6 +101,7 @@ Operator rule:
 - Use structural smoke for runtime/profile validation.
 - Use quality smoke before asking analysts or reviewers to evaluate pipeline output on real documents.
 - Use `/outputs` and the admin Outputs page to verify queued memo/output workflows are visible after runtime changes.
+- Use the admin Tasks page when you need to inspect task ids returned by KB or output workflows.
 
 ## Troubleshooting
 
