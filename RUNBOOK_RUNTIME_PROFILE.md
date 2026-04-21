@@ -122,6 +122,7 @@ Interpretation rule:
 Documentation alignment:
 - Product release contract: `PRD_CR_Intelligence_Platform_v1_6.md`
 - Technical release-hardening tranche: `TZ_CR_Intelligence_Platform_v1_5.md`
+- Operator checklist: `docs/RELEASE_READY_CHECKLIST.md`
 - Baseline acceptance floor: `DOD_MVP.md`
 
 ## Troubleshooting
