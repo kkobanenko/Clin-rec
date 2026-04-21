@@ -2,6 +2,14 @@
 
 Зависимости фиксируются через [`uv.lock`](uv.lock) (`uv sync`).
 
+## Current Release Docs
+
+- `PRD_CR_Intelligence_Platform_v1_6.md`: текущий продуктовый contract для transition к release-ready MVP
+- `TZ_CR_Intelligence_Platform_v1_5.md`: текущий технический tranche release hardening
+- `RUNBOOK_RUNTIME_PROFILE.md`: runtime profile, smoke semantics и release verification sequence
+- `docs/RELEASE_READY_CHECKLIST.md`: операторский go/no-go checklist для MVP release decision
+- `DOD_MVP.md`: baseline acceptance floor
+
 ## Operator Surface
 
 Проект теперь включает операторский контур для reviewer и scoring model lifecycle.
