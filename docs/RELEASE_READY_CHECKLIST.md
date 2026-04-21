@@ -49,6 +49,7 @@
 - Зафиксировать список blocker-ов, если они есть.
 - Зафиксировать residual risks, допустимые для post-MVP.
 - Зафиксировать, какие ограничения явно остаются вне scope: full matrix governance, full reviewer productization, external distribution.
+- При оформлении summary использовать `docs/RELEASE_SUMMARY_TEMPLATE.md`.
 
 ## 8. Source of Truth
 
