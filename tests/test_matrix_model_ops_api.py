@@ -73,6 +73,30 @@ async def test_get_active_model_returns_latest_active_model():
 
 
 @pytest.mark.asyncio
+async def test_get_active_model_returns_404_when_absent():
+    class FakeScalarResult:
+        def scalar_one_or_none(self):
+            return None
+
+    class FakeAsyncSession:
+        async def execute(self, _query):
+            return FakeScalarResult()
+
+    async def override_get_db():
+        yield FakeAsyncSession()
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/matrix/models/active")
+
+        assert resp.status_code == 404
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_get_model_overview_returns_release_summaries():
     class FakeRowsResult:
         def __init__(self, rows):
@@ -212,6 +236,30 @@ async def test_get_model_summary_returns_model_and_readiness():
         assert data["model_version_id"] == 7
         assert data["is_active"] is True
         assert data["readiness"]["ready"] is True
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_get_model_summary_returns_404_when_model_missing():
+    class FakeScalarResult:
+        def scalar_one_or_none(self):
+            return None
+
+    class FakeAsyncSession:
+        async def execute(self, _query):
+            return FakeScalarResult()
+
+    async def override_get_db():
+        yield FakeAsyncSession()
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/matrix/models/999/summary")
+
+        assert resp.status_code == 404
     finally:
         app.dependency_overrides.pop(get_db, None)
 
