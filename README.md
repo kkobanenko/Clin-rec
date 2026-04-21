@@ -33,10 +33,27 @@
 - `POST /outputs/file`: queue output filing by body payload
 - `POST /outputs/file-back/{id}`: queue output filing alias with output ID in path
 
+### Knowledge Base API
+
+- `GET /kb/indexes/master`: KB master index or stub payload
+- `GET /kb/artifacts`: paginated artifact list
+- `GET /kb/artifacts/{id}`: artifact detail
+- `GET /kb/entities`: paginated entity list
+- `GET /kb/claims`: paginated claim list
+- `GET /kb/conflicts`: grouped KB conflicts
+- `POST /kb/compile`: queue KB compilation
+- `POST /kb/lint`: queue KB lint
+
+### Task Status API
+
+- `GET /tasks/{task_id}`: Celery task state for UI polling, optionally with result payload
+
 ### Admin UI
 
 Streamlit UI в `app/ui/app.py` поддерживает:
 
 - reviewer queue со stats, фильтром по document version, bulk approve и history filter
 - scoring model readiness overview, active model view, refresh, activate и version diff
+- knowledge base page со списком artifacts/entities, conflict view, compile и lint actions
+- task status page для polling queued background jobs
 - outputs page со списком output releases, queue generation и file-back workflow
