@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import func
 
 from app.core.sync_database import get_sync_session
+from app.models.clinical import ClinicalContext
 from app.models.evidence import PairEvidence, PairContextScore
 from app.models.reviewer import ReviewAction
 
@@ -14,18 +15,21 @@ logger = logging.getLogger(__name__)
 
 class ReviewerService:
     def get_review_queue(
-        self, status: str = "auto", limit: int = 50, offset: int = 0
+        self,
+        status: str = "auto",
+        limit: int = 50,
+        offset: int = 0,
+        document_version_id: int | None = None,
     ) -> list[PairEvidence]:
         """Get evidence records awaiting review."""
         session = get_sync_session()
         try:
-            query = (
-                session.query(PairEvidence)
-                .filter_by(review_status=status)
-                .order_by(PairEvidence.created_at.desc())
-                .offset(offset)
-                .limit(limit)
-            )
+            query = session.query(PairEvidence).filter_by(review_status=status)
+            if document_version_id is not None:
+                query = query.join(ClinicalContext, ClinicalContext.id == PairEvidence.context_id).filter(
+                    ClinicalContext.document_version_id == document_version_id
+                )
+            query = query.order_by(PairEvidence.created_at.desc()).offset(offset).limit(limit)
             return query.all()
         finally:
             session.close()

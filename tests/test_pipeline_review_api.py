@@ -111,6 +111,46 @@ async def test_get_review_queue_returns_paginated_evidence():
 
 
 @pytest.mark.asyncio
+async def test_get_review_queue_passes_document_version_filter():
+    async def override_get_db():
+        yield FakeAsyncSession([FakeScalarResult(1)])
+
+    app.dependency_overrides[get_db] = override_get_db
+    evidence = [
+        SimpleNamespace(
+            id=1,
+            context_id=10,
+            molecule_from_id=7,
+            molecule_to_id=5,
+            fragment_id=11,
+            relation_type="no_substitution_signal",
+            uur=None,
+            udd=None,
+            role_score=0.5,
+            text_score=0.5,
+            population_score=0.5,
+            parity_score=0.5,
+            practical_score=0.5,
+            penalty=0.0,
+            final_fragment_score=0.5,
+            review_status="auto",
+            created_at="2026-04-21T00:00:00Z",
+        )
+    ]
+
+    try:
+        with patch("app.api.pipeline.ReviewerService.get_review_queue", return_value=evidence) as mocked_queue:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/review/queue?status=auto&document_version_id=4&page=1&page_size=20")
+
+        assert resp.status_code == 200
+        mocked_queue.assert_called_once_with(status="auto", limit=20, offset=0, document_version_id=4)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_get_review_stats_returns_aggregated_counts():
     with patch("app.api.pipeline.ReviewerService.get_review_stats", return_value={"auto": 3, "approved": 2}):
         transport = ASGITransport(app=app)

@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
+from app.models.clinical import ClinicalContext
 from app.models.evidence import PairEvidence
 from app.models.pipeline import PipelineRun
 from app.models.reviewer import ReviewAction
@@ -81,15 +82,22 @@ async def create_review_action(data: ReviewActionCreate, db: AsyncSession = Depe
 async def get_review_queue(
     db: AsyncSession = Depends(get_db),
     status: str = Query("auto"),
+    document_version_id: int | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    total = (
-        await db.execute(
-            select(func.count(PairEvidence.id)).where(PairEvidence.review_status == status)
+    count_query = select(func.count(PairEvidence.id)).where(PairEvidence.review_status == status)
+    if document_version_id is not None:
+        count_query = count_query.join(ClinicalContext, ClinicalContext.id == PairEvidence.context_id).where(
+            ClinicalContext.document_version_id == document_version_id
         )
-    ).scalar_one()
-    items = ReviewerService().get_review_queue(status=status, limit=page_size, offset=(page - 1) * page_size)
+    total = (await db.execute(count_query)).scalar_one()
+    items = ReviewerService().get_review_queue(
+        status=status,
+        limit=page_size,
+        offset=(page - 1) * page_size,
+        document_version_id=document_version_id,
+    )
     return PaginatedResponse(
         items=[PairEvidenceOut.model_validate(item) for item in items],
         total=total,
