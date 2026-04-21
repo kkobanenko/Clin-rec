@@ -28,7 +28,8 @@
 			"type": "shell",
 			"command": "bash",
 			"args": [
-				"scripts/release_ready_check.sh"
+				"-lc",
+				"RUNTIME_PROFILE=docker-compose-only bash scripts/release_ready_check.sh"
 			],
 			"isBackground": false,
 			"group": "test"
@@ -39,7 +40,7 @@
 			"command": "bash",
 			"args": [
 				"-lc",
-				"SKIP_STRUCTURAL_SMOKE=1 SKIP_QUALITY_SMOKE=1 bash scripts/release_ready_check.sh"
+				"RUNTIME_PROFILE=docker-compose-only SKIP_STRUCTURAL_SMOKE=1 SKIP_QUALITY_SMOKE=1 bash scripts/release_ready_check.sh"
 			],
 			"isBackground": false,
 			"group": "test"
