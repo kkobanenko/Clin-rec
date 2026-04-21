@@ -8,6 +8,8 @@
 - Branch:
 - Commit SHA:
 - Runtime profile: `host-only` / `docker-compose-only`
+- Validation path: `full` / `late-stage rerun` / `composite`
+- Artifact bundle(s):
 - Operator:
 
 ## 2. Gate Results
