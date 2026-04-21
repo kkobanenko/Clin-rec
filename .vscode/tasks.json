@@ -32,6 +32,17 @@
 			],
 			"isBackground": false,
 			"group": "test"
+		},
+		{
+			"label": "Release Late-Stage Rerun",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"SKIP_STRUCTURAL_SMOKE=1 SKIP_QUALITY_SMOKE=1 bash scripts/release_ready_check.sh"
+			],
+			"isBackground": false,
+			"group": "test"
 		}
 	]
 }
