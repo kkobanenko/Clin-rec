@@ -274,8 +274,25 @@ def page_scoring_models():
 
     models = api_get("/matrix/models")
     if isinstance(models, list) and models:
-        df = pd.DataFrame(models)
-        st.dataframe(df, use_container_width=True)
+        overview = api_get("/matrix/models/overview")
+        if isinstance(overview, list) and overview:
+            overview_rows = []
+            for item in overview:
+                readiness = item.get("readiness", {})
+                overview_rows.append(
+                    {
+                        "model_version_id": item.get("model_version_id"),
+                        "version_label": item.get("version_label"),
+                        "is_active": item.get("is_active"),
+                        "ready": readiness.get("ready"),
+                        "cell_count": readiness.get("cell_count"),
+                        "pcs_count": readiness.get("pcs_count"),
+                        "low_confidence_ratio": readiness.get("low_confidence_ratio"),
+                    }
+                )
+            st.dataframe(pd.DataFrame(overview_rows), use_container_width=True)
+        else:
+            st.dataframe(pd.DataFrame(models), use_container_width=True)
 
         active_model = api_get("/matrix/models/active")
         if isinstance(active_model, dict):
