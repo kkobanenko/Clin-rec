@@ -120,6 +120,18 @@ If quality runs spend a long time in `pending`, increase the release-runner poll
 SMOKE_POLL_TIMEOUT=360 bash scripts/release_ready_check.sh
 ```
 
+For `docker-compose-only` runtime, the release runner defaults `CRIN_INTEGRATION_POSTGRES_URL` to:
+
+```bash
+postgresql://crplatform:crplatform@localhost:5433/crplatform
+```
+
+If structural and quality smoke are already green on the same runtime/profile, use a late-stage rerun to repeat only the remaining regression gates:
+
+```bash
+SKIP_STRUCTURAL_SMOKE=1 SKIP_QUALITY_SMOKE=1 bash scripts/release_ready_check.sh
+```
+
 Interpretation rule:
 - `structural` green means runtime and observability are valid.
 - `quality` green means content-layer and downstream spot-checks are valid.
