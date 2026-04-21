@@ -72,8 +72,8 @@ if [[ -f "$SUMMARY_FILE" ]]; then
     echo "Seeded summary template: $SUMMARY_FILE"
 fi
 
-run_step structural_smoke "Structural smoke" "$PYTHON_BIN" "${STRUCTURAL_SMOKE_ARGS[@]}"
-run_step quality_smoke "Quality smoke" "$PYTHON_BIN" "${QUALITY_SMOKE_ARGS[@]}"
+run_step structural_smoke "Structural smoke" "$PYTHON_BIN" -u "${STRUCTURAL_SMOKE_ARGS[@]}"
+run_step quality_smoke "Quality smoke" "$PYTHON_BIN" -u "${QUALITY_SMOKE_ARGS[@]}"
 run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
 run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
 run_step outputs_api "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
