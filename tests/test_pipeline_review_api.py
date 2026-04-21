@@ -69,6 +69,61 @@ async def test_create_review_action_uses_reviewer_service_approve():
 
 
 @pytest.mark.asyncio
+async def test_create_review_action_reject_requires_reason():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/review",
+            json={
+                "target_type": "pair_evidence",
+                "target_id": 7,
+                "action": "reject",
+                "author": "tester",
+            },
+        )
+
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Reject action requires reason"
+
+
+@pytest.mark.asyncio
+async def test_create_review_action_override_requires_score():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/review",
+            json={
+                "target_type": "pair_evidence",
+                "target_id": 7,
+                "action": "override",
+                "author": "tester",
+                "reason": "manual correction",
+            },
+        )
+
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Override action requires new_value_json.final_fragment_score"
+
+
+@pytest.mark.asyncio
+async def test_create_review_action_rejects_unsupported_target_type():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/review",
+            json={
+                "target_type": "matrix_cell",
+                "target_id": 7,
+                "action": "approve",
+                "author": "tester",
+            },
+        )
+
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Only pair_evidence review actions are supported"
+
+
+@pytest.mark.asyncio
 async def test_get_review_queue_returns_paginated_evidence():
     async def override_get_db():
         yield FakeAsyncSession([FakeScalarResult(2)])
