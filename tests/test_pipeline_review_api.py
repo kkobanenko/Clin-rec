@@ -198,14 +198,15 @@ async def test_get_review_history_returns_paginated_actions():
     ]
 
     try:
-        with patch("app.api.pipeline.ReviewerService.get_review_history", return_value=actions):
+        with patch("app.api.pipeline.ReviewerService.get_review_history", return_value=actions) as mocked_history:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                resp = await client.get("/review/history?page=1&page_size=20")
+                resp = await client.get("/review/history?target_id=7&page=1&page_size=20")
 
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
         assert data["items"][0]["action"] == "reject"
+        mocked_history.assert_called_once_with(target_type=None, target_id=7, limit=20, offset=0)
     finally:
         app.dependency_overrides.pop(get_db, None)

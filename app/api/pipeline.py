@@ -123,15 +123,19 @@ async def bulk_approve_reviews(data: BulkReviewApproveIn):
 async def get_review_history(
     db: AsyncSession = Depends(get_db),
     target_type: str | None = None,
+    target_id: int | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
     count_query = select(func.count(ReviewAction.id))
     if target_type:
         count_query = count_query.where(ReviewAction.target_type == target_type)
+    if target_id is not None:
+        count_query = count_query.where(ReviewAction.target_id == target_id)
     total = (await db.execute(count_query)).scalar_one()
     items = ReviewerService().get_review_history(
         target_type=target_type,
+        target_id=target_id,
         limit=page_size,
         offset=(page - 1) * page_size,
     )

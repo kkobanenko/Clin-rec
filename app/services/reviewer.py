@@ -101,7 +101,11 @@ class ReviewerService:
             session.close()
 
     def get_review_history(
-        self, target_type: str | None = None, limit: int = 50, offset: int = 0
+        self,
+        target_type: str | None = None,
+        target_id: int | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[ReviewAction]:
         """Get review action audit trail."""
         session = get_sync_session()
@@ -109,6 +113,8 @@ class ReviewerService:
             query = session.query(ReviewAction).order_by(ReviewAction.created_at.desc())
             if target_type:
                 query = query.filter_by(target_type=target_type)
+            if target_id is not None:
+                query = query.filter_by(target_id=target_id)
             return query.offset(offset).limit(limit).all()
         finally:
             session.close()
