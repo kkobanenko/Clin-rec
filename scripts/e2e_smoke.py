@@ -602,7 +602,10 @@ def main():
                 "and mounted auxiliary routes (outputs, kb, storage-stages, tasks)"
             )
         else:
-            log("ℹ️  Quality smoke validated non-empty content, fragments, and downstream pair evidence for checked document")
+            log(
+                "ℹ️  Quality smoke validated non-empty content, fragments, downstream pair evidence, "
+                "and scoring-model-backed matrix checks for the inspected document"
+            )
         if discovered == 0:
             log("ℹ️  Completed run with discovered_count=0 is valid for structural smoke checks")
         if docs_total == 0:
