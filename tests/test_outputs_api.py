@@ -114,6 +114,23 @@ async def test_get_output_returns_row():
 
 
 @pytest.mark.asyncio
+async def test_get_output_returns_404_when_missing():
+    async def override_get_db():
+        yield FakeAsyncSession([FakeScalarResult(None)])
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/outputs/999")
+
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "Output not found"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_generate_output_queues_task():
     task = SimpleNamespace(id="task-123")
     with patch("app.api.outputs.generate_outputs_task.delay", return_value=task):
@@ -128,6 +145,39 @@ async def test_generate_output_queues_task():
     data = resp.json()
     assert data["task_id"] == "task-123"
     assert data["status"] == "queued"
+
+
+@pytest.mark.asyncio
+async def test_generate_memo_alias_queues_memo_task():
+    task = SimpleNamespace(id="task-234")
+    with patch("app.api.outputs.generate_outputs_task.delay", return_value=task) as mocked_delay:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/outputs/memo",
+                json={"title": "Memo title", "scope_json": None},
+            )
+
+    assert resp.status_code == 202
+    mocked_delay.assert_called_once_with(output_type="memo", title="Memo title", scope_json=None)
+    assert resp.json()["output_type"] == "memo"
+
+
+@pytest.mark.asyncio
+async def test_file_output_queues_task():
+    task = SimpleNamespace(id="task-345")
+    with patch("app.api.outputs.file_outputs_task.delay", return_value=task):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/outputs/file",
+                json={"output_id": 5, "file_back_status": "accepted"},
+            )
+
+    assert resp.status_code == 202
+    data = resp.json()
+    assert data["task_id"] == "task-345"
+    assert data["output_id"] == 5
 
 
 @pytest.mark.asyncio
