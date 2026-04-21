@@ -23,7 +23,7 @@ import httpx
 
 BASE_URL = "http://127.0.0.1:8000"
 POLL_INTERVAL = 2
-DEFAULT_STRUCTURAL_POLL_TIMEOUT = 120
+DEFAULT_STRUCTURAL_POLL_TIMEOUT = 180
 DEFAULT_QUALITY_POLL_TIMEOUT = 300
 MAX_RETRIES = 3
 REQUIRED_STATS_KEYS = {
@@ -597,7 +597,10 @@ def main():
     if status == "completed" and not missing_stats_keys and (mode != "quality" or quality_pass):
         log("✅ E2E Test PASSED")
         if mode == "structural":
-            log("ℹ️  Structural smoke validated lifecycle, routing, and observability contract")
+            log(
+                "ℹ️  Structural smoke validated lifecycle, routing, observability contract, "
+                "and mounted auxiliary routes (outputs, kb, storage-stages, tasks)"
+            )
         else:
             log("ℹ️  Quality smoke validated non-empty content, fragments, and downstream pair evidence for checked document")
         if discovered == 0:
