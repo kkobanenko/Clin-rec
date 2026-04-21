@@ -250,6 +250,19 @@ def get_active_scoring_model() -> dict | None:
         return None
 
 
+def get_scoring_model_overview() -> list[dict] | None:
+    """Fetch the scoring model overview if present."""
+    try:
+        resp = retry_request("GET", f"{BASE_URL}/matrix/models/overview")
+        assert resp.status_code == 200
+        data = resp.json()
+        log(f"  ✓ Scoring model overview retrieved: {len(data)} versions")
+        return data
+    except Exception as e:
+        log(f"  ✗ Scoring model overview lookup failed: {e}")
+        return None
+
+
 def refresh_scoring_model(model_version_id: int) -> dict | None:
     """Refresh pair-context scores and matrix cells for a scoring model."""
     log(f"4/8: Refreshing scoring model {model_version_id}")
@@ -454,6 +467,7 @@ def main():
         version_id = (content or {}).get("version_id")
         if mode == "quality" and version_id:
             pair_evidence = test_pair_evidence(version_id)
+            model_overview = get_scoring_model_overview()
             active_model = get_active_scoring_model()
             evidence_items = (pair_evidence or {}).get("items") or []
             if active_model and evidence_items:
@@ -464,6 +478,7 @@ def main():
                     first_evidence["molecule_to_id"],
                 )
         results["pair_evidence"] = pair_evidence
+        results["model_overview"] = model_overview if mode == "quality" and version_id else None
         results["matrix_cell"] = matrix_cell
 
     # Summary
