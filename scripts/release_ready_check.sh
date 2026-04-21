@@ -5,13 +5,26 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-$ROOT_DIR/.venv/bin/python}"
 PYTEST_BIN="${PYTEST_BIN:-$ROOT_DIR/.venv/bin/pytest}"
+TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
+OUT_DIR="${OUT_DIR:-$ROOT_DIR/.artifacts/release_checks/$TIMESTAMP}"
 
 run_step() {
-    local title="$1"
+    local step_id="$1"
+    local title="$2"
+    local log_file="$OUT_DIR/${step_id}.log"
+    shift
     shift
     echo
     echo "==> ${title}"
-    "$@"
+    echo "Log: ${log_file}"
+    set +e
+    "$@" 2>&1 | tee "$log_file"
+    local status=${PIPESTATUS[0]}
+    set -e
+    if [[ $status -ne 0 ]]; then
+        echo "Step failed: ${title}" | tee -a "$log_file" >&2
+        return "$status"
+    fi
 }
 
 if [[ ! -x "$PYTHON_BIN" ]]; then
@@ -27,14 +40,18 @@ if [[ ! -x "$PYTEST_BIN" ]]; then
 fi
 
 cd "$ROOT_DIR"
+mkdir -p "$OUT_DIR"
 
-run_step "Structural smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode structural
-run_step "Quality smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode quality
-run_step "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
-run_step "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
-run_step "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
-run_step "Aux routes regression" "$PYTEST_BIN" tests/test_aux_api_mounts.py
-run_step "KB integration regression" "$PYTEST_BIN" tests/test_kb_integration_postgres.py
+echo "Release artifacts directory: $OUT_DIR"
+
+run_step structural_smoke "Structural smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode structural
+run_step quality_smoke "Quality smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode quality
+run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
+run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
+run_step outputs_api "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
+run_step aux_routes "Aux routes regression" "$PYTEST_BIN" tests/test_aux_api_mounts.py
+run_step kb_integration "KB integration regression" "$PYTEST_BIN" tests/test_kb_integration_postgres.py
 
 echo
 echo "Release-ready verification pack completed successfully."
+echo "Artifacts saved to: $OUT_DIR"

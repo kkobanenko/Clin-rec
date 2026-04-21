@@ -9,6 +9,7 @@
 - Подтвердить согласованность `CRIN_CELERY_BROKER_URL` и `CRIN_CELERY_RESULT_BACKEND` между API и worker.
 - Подтвердить, что release evaluation не смешивается с unrelated локальными экспериментами.
 - Для полного прогона можно использовать helper: `bash scripts/release_ready_check.sh`.
+- По умолчанию helper сохраняет логи в `.artifacts/release_checks/<timestamp>`; этот каталог использовать как evidence bundle для summary.
 
 ## 2. Structural Gate
 

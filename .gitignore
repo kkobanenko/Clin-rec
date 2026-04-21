@@ -14,12 +14,10 @@ venv/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
-.playwright-mcp/
 htmlcov/
 .coverage
 *.log
 data/
 artifacts/
-var/
+.artifacts/
 .DS_Store
-smoke_test_results.json
