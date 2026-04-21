@@ -181,6 +181,23 @@ def test_outputs_list() -> dict | None:
         return None
 
 
+def test_kb_master_index() -> dict | None:
+    """Fetch GET /kb/indexes/master and validate mounted KB surface."""
+    log("4b/6: Testing GET /kb/indexes/master")
+    try:
+        resp = retry_request("GET", f"{BASE_URL}/kb/indexes/master")
+        assert resp.status_code == 200
+        data = resp.json()
+        log(
+            f"  ✓ KB master index retrieved: artifact_id={data.get('artifact_id')} "
+            f"format={data.get('format')}"
+        )
+        return data
+    except Exception as e:
+        log(f"  ✗ KB master index fetch failed: {e}")
+        return None
+
+
 def test_document_content(doc_id: int) -> dict | None:
     """Fetch GET /documents/{id}/content and validate structure."""
     log(f"5/6: Testing GET /documents/{doc_id}/content")
@@ -467,6 +484,7 @@ def main():
 
     # 4. Fetch documents
     results["outputs"] = test_outputs_list()
+    results["kb_master_index"] = test_kb_master_index()
     first_doc = test_documents_list()
     if not first_doc:
         log("\n⚠️  No documents found. Skipping content/fragment tests.")
