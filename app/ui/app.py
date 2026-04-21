@@ -420,6 +420,13 @@ def page_outputs():
         else:
             st.info("No outputs available")
 
+    st.subheader("Output Detail")
+    detail_output_id = st.number_input("Detail Output ID", min_value=1, step=1, key="detail_output_id")
+    if st.button("Load Output Detail"):
+        detail = api_get(f"/outputs/{detail_output_id}")
+        if detail:
+            st.json(detail)
+
     st.subheader("Generate Output")
     with st.form("output_generate_form"):
         output_type = st.selectbox("Output Type", ["memo"])
