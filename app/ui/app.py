@@ -263,12 +263,75 @@ def page_scoring_models():
     st.header("Scoring Models")
 
     models = api_get("/matrix/models")
-    if models:
-        if models:
-            df = pd.DataFrame(models)
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.info("No scoring models defined")
+    if isinstance(models, list) and models:
+        df = pd.DataFrame(models)
+        st.dataframe(df, use_container_width=True)
+
+        active_model = api_get("/matrix/models/active")
+        if isinstance(active_model, dict):
+            st.success(
+                f"Active model: #{active_model.get('id')} {active_model.get('version_label')}"
+            )
+
+        model_options = {
+            f"#{model['id']} {model['version_label']}": model["id"] for model in models
+        }
+        selected_label = st.selectbox("Selected Model", list(model_options.keys()))
+        selected_model_id = model_options[selected_label]
+
+        summary = api_get(f"/matrix/models/{selected_model_id}/summary")
+        if isinstance(summary, dict):
+            readiness = summary.get("readiness", {})
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Ready", "yes" if readiness.get("ready") else "no")
+            col2.metric("Cells", readiness.get("cell_count", 0))
+            col3.metric("Pair Scores", readiness.get("pcs_count", 0))
+
+        st.subheader("Model Actions")
+        with st.form("model_refresh_form"):
+            refresh_scope_type = st.selectbox("Refresh Scope Type", ["global"], key="refresh_scope_type")
+            refresh_scope_id = st.text_input("Refresh Scope ID", value="", key="refresh_scope_id")
+            if st.form_submit_button("Refresh Model"):
+                payload = {
+                    "scope_type": refresh_scope_type,
+                    "scope_id": refresh_scope_id or None,
+                }
+                result = api_post(f"/matrix/models/{selected_model_id}/refresh", payload)
+                if result:
+                    st.success(
+                        f"Refreshed: {result.get('pair_context_scores', 0)} pair scores, "
+                        f"{result.get('matrix_cells', 0)} matrix cells"
+                    )
+
+        with st.form("model_activate_form"):
+            activate_author = st.text_input("Activation Author", key="activate_author")
+            activate_force = st.checkbox("Force Activate", value=False)
+            if st.form_submit_button("Activate Model"):
+                result = api_post(
+                    f"/matrix/models/{selected_model_id}/activate",
+                    {"author": activate_author, "force": activate_force},
+                )
+                if result:
+                    st.success(f"Activated model {result.get('version_label')}")
+
+        st.subheader("Model Diff")
+        diff_options = {
+            f"#{model['id']} {model['version_label']}": model["id"] for model in models
+        }
+        diff_left = st.selectbox("Old Version", list(diff_options.keys()), key="diff_left")
+        diff_right = st.selectbox("New Version", list(diff_options.keys()), key="diff_right")
+        if st.button("Load Diff"):
+            diff = api_get(
+                "/matrix/models/diff",
+                {
+                    "old_version_id": diff_options[diff_left],
+                    "new_version_id": diff_options[diff_right],
+                },
+            )
+            if isinstance(diff, dict):
+                st.json(diff)
+    else:
+        st.info("No scoring models defined")
 
     # Create new model
     st.subheader("Create Scoring Model Version")
