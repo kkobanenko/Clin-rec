@@ -9,6 +9,7 @@ Verifies:
 4. GET /documents/{id}/content → checks content structure
 5. GET /documents/{id}/fragments → checks fragment parsing
 6. GET /matrix/pair-evidence?document_version_id=... → checks downstream candidate readiness
+7. GET /matrix/cell → checks matrix consistency when an active scoring model exists
 """
 
 import sys
@@ -236,6 +237,43 @@ def test_pair_evidence(version_id: int) -> dict | None:
         return None
 
 
+def get_active_scoring_model() -> dict | None:
+    """Fetch scoring models and return the active one if present."""
+    try:
+        resp = retry_request("GET", f"{BASE_URL}/matrix/models")
+        assert resp.status_code == 200
+        items = resp.json()
+        return next((item for item in items if item.get("is_active") is True), None)
+    except Exception as e:
+        log(f"  ✗ Active scoring model lookup failed: {e}")
+        return None
+
+
+def test_matrix_cell(model_version_id: int, molecule_from_id: int, molecule_to_id: int) -> dict | None:
+    """Fetch GET /matrix/cell for a specific scored pair."""
+    log(
+        f"8/8: Testing GET /matrix/cell for pair {molecule_from_id}->{molecule_to_id} "
+        f"under model {model_version_id}"
+    )
+    try:
+        resp = retry_request(
+            "GET",
+            f"{BASE_URL}/matrix/cell?molecule_from_id={molecule_from_id}&molecule_to_id={molecule_to_id}&model_version_id={model_version_id}",
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        cell = data.get("cell") or {}
+        evidence = data.get("evidence") or []
+        log(
+            f"  ✓ Matrix cell retrieved: score={cell.get('substitution_score')} "
+            f"confidence={cell.get('confidence_score')} evidence={len(evidence)}"
+        )
+        return data
+    except Exception as e:
+        log(f"  ✗ Matrix cell fetch failed: {e}")
+        return None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="CR Intelligence Platform E2E smoke")
     parser.add_argument(
@@ -325,10 +363,21 @@ def main():
         results["fragments"] = fragments
 
         pair_evidence = None
+        matrix_cell = None
         version_id = (content or {}).get("version_id")
         if mode == "quality" and version_id:
             pair_evidence = test_pair_evidence(version_id)
+            active_model = get_active_scoring_model()
+            evidence_items = (pair_evidence or {}).get("items") or []
+            if active_model and evidence_items:
+                first_evidence = evidence_items[0]
+                matrix_cell = test_matrix_cell(
+                    active_model["id"],
+                    first_evidence["molecule_from_id"],
+                    first_evidence["molecule_to_id"],
+                )
         results["pair_evidence"] = pair_evidence
+        results["matrix_cell"] = matrix_cell
 
     # Summary
     log("\n" + "=" * 60)
@@ -343,10 +392,13 @@ def main():
     content_sections = len((results.get("content") or {}).get("sections", []))
     fragments_total = (results.get("fragments") or {}).get("total", 0)
     pair_evidence_total = (results.get("pair_evidence") or {}).get("total", 0)
+    matrix_cell_present = bool((results.get("matrix_cell") or {}).get("cell"))
     content_outcome = (results.get("content") or {}).get("pipeline_outcome") or {}
     quality_pass = True
     if mode == "quality" and discovered > 0:
-        quality_pass = bool(content_sections > 0 and fragments_total > 0 and pair_evidence_total > 0)
+        active_model = get_active_scoring_model()
+        matrix_ok = True if active_model is None else matrix_cell_present
+        quality_pass = bool(content_sections > 0 and fragments_total > 0 and pair_evidence_total > 0 and matrix_ok)
 
     if status == "completed" and not missing_stats_keys and (mode != "quality" or quality_pass):
         log("✅ E2E Test PASSED")
@@ -368,7 +420,7 @@ def main():
             log("❌ E2E Test FAILED: quality gate did not pass")
             log(
                 "ℹ️  Quality details: "
-                f"sections={content_sections}, fragments={fragments_total}, pair_evidence={pair_evidence_total}, "
+                f"sections={content_sections}, fragments={fragments_total}, pair_evidence={pair_evidence_total}, matrix_cell={matrix_cell_present}, "
                 f"outcome_stage={content_outcome.get('stage')}, "
                 f"outcome_status={content_outcome.get('status')}, "
                 f"reason={content_outcome.get('reason_code')}"
