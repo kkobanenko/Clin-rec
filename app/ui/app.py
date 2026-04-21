@@ -40,7 +40,7 @@ def api_post(path: str, json: dict | None = None) -> dict | None:
 def page_dashboard():
     st.header("Dashboard")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     # Documents stats
     docs = api_get("/documents", {"page_size": 1})
@@ -61,6 +61,11 @@ def page_dashboard():
     outputs = api_get("/outputs", {"page_size": 1})
     if outputs:
         col4.metric("Outputs", outputs.get("total", 0))
+
+    # Knowledge artifacts
+    kb_artifacts = api_get("/kb/artifacts", {"page_size": 1})
+    if kb_artifacts:
+        col5.metric("KB Artifacts", kb_artifacts.get("total", 0))
 
     # Health check
     st.subheader("System Health")
