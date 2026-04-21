@@ -6,11 +6,18 @@ from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.database import Base
+
+
+@compiles(JSONB, "sqlite")
+def compile_jsonb_sqlite(_type, _compiler, **_kwargs):
+    return "JSON"
 
 
 # Use SQLite for tests

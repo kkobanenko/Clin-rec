@@ -22,21 +22,60 @@ from app.schemas.pipeline import PaginatedResponse
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+TERMINAL_PIPELINE_STATUSES = ["success", "degraded", "failed", "failure"]
+CONTENT_PRESENT_PIPELINE_STATUSES = ["success"]
+
 
 async def _get_latest_pipeline_outcome(
     db: AsyncSession,
     version_id: int,
+    *,
+    prefer_success: bool = False,
 ) -> PipelineOutcomeOut | None:
-    result = await db.execute(
+    if prefer_success:
+        success_result = await db.execute(
+            select(PipelineEventLog)
+            .where(
+                PipelineEventLog.document_version_id == version_id,
+                PipelineEventLog.stage.in_(["normalize", "fetch", "probe", "extract"]),
+                PipelineEventLog.status.in_(CONTENT_PRESENT_PIPELINE_STATUSES),
+            )
+            .order_by(PipelineEventLog.created_at.desc(), PipelineEventLog.id.desc())
+            .limit(1)
+        )
+        event = success_result.scalar_one_or_none()
+        if event is not None:
+            detail_json = event.detail_json or {}
+            return PipelineOutcomeOut(
+                stage=event.stage,
+                status=event.status,
+                message=event.message,
+                reason_code=detail_json.get("reason_code"),
+                created_at=event.created_at,
+            )
+
+    terminal_result = await db.execute(
         select(PipelineEventLog)
         .where(
             PipelineEventLog.document_version_id == version_id,
             PipelineEventLog.stage.in_(["normalize", "fetch", "probe", "extract"]),
+            PipelineEventLog.status.in_(TERMINAL_PIPELINE_STATUSES),
         )
         .order_by(PipelineEventLog.created_at.desc(), PipelineEventLog.id.desc())
         .limit(1)
     )
-    event = result.scalar_one_or_none()
+    event = terminal_result.scalar_one_or_none()
+    if event is None:
+        fallback_result = await db.execute(
+            select(PipelineEventLog)
+            .where(
+                PipelineEventLog.document_version_id == version_id,
+                PipelineEventLog.stage.in_(["normalize", "fetch", "probe", "extract"]),
+            )
+            .order_by(PipelineEventLog.created_at.desc(), PipelineEventLog.id.desc())
+            .limit(1)
+        )
+        event = fallback_result.scalar_one_or_none()
     if event is None:
         return None
     detail_json = event.detail_json or {}
@@ -121,7 +160,7 @@ async def get_document_content(document_id: int, db: AsyncSession = Depends(get_
         .order_by(DocumentSection.section_order)
     )
     sections = [SectionOut.model_validate(s) for s in sections_result.scalars().all()]
-    pipeline_outcome = await _get_latest_pipeline_outcome(db, version.id)
+    pipeline_outcome = await _get_latest_pipeline_outcome(db, version.id, prefer_success=bool(sections))
 
     return NormalizedDocumentOut(
         document_id=document_id,
@@ -160,7 +199,7 @@ async def get_document_fragments(
     )
     frag_result = await db.execute(fragments_query)
     fragments = [FragmentOut.model_validate(f) for f in frag_result.scalars().all()]
-    pipeline_outcome = await _get_latest_pipeline_outcome(db, version.id)
+    pipeline_outcome = await _get_latest_pipeline_outcome(db, version.id, prefer_success=bool(fragments))
 
     return FragmentListOut(
         document_id=document_id,

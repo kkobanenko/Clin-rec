@@ -105,3 +105,65 @@ async def test_document_endpoints_expose_pipeline_outcome():
             assert fragments_data["total"] == 1
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_document_endpoints_prefer_success_outcome_when_content_exists():
+    success_event = SimpleNamespace(
+        stage="fetch",
+        status="success",
+        message="Fetch stage finished with status=success",
+        detail_json={"queued_normalize": True},
+        created_at=datetime.now(timezone.utc),
+    )
+    section = SimpleNamespace(id=7, section_path="1", section_title="Intro", section_order=0)
+    fragment = SimpleNamespace(
+        id=13,
+        section_id=7,
+        fragment_order=0,
+        fragment_type="paragraph",
+        fragment_text="Normalized fragment text",
+        stable_id="frag-1",
+    )
+
+    content_db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=SimpleNamespace(id=11)),
+            FakeScalarResult(values=[section]),
+            FakeScalarResult(value=success_event),
+        ]
+    )
+    fragments_db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=SimpleNamespace(id=11)),
+            FakeTupleResult(rows=[(7,)]),
+            FakeScalarResult(values=[fragment]),
+            FakeScalarResult(value=success_event),
+        ]
+    )
+    sessions = [content_db, fragments_db]
+
+    async def override_get_db():
+        if not sessions:
+            raise AssertionError("No fake session left")
+        yield sessions.pop(0)
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            content_resp = await client.get("/documents/1/content")
+            assert content_resp.status_code == 200
+            content_data = content_resp.json()
+            assert content_data["pipeline_outcome"]["stage"] == "fetch"
+            assert content_data["pipeline_outcome"]["status"] == "success"
+            assert len(content_data["sections"]) == 1
+
+            fragments_resp = await client.get("/documents/1/fragments")
+            assert fragments_resp.status_code == 200
+            fragments_data = fragments_resp.json()
+            assert fragments_data["pipeline_outcome"]["stage"] == "fetch"
+            assert fragments_data["pipeline_outcome"]["status"] == "success"
+            assert fragments_data["total"] == 1
+    finally:
+        app.dependency_overrides.pop(get_db, None)

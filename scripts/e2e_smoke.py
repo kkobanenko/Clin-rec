@@ -21,7 +21,8 @@ import httpx
 
 BASE_URL = "http://127.0.0.1:8000"
 POLL_INTERVAL = 2
-POLL_TIMEOUT = 120
+DEFAULT_STRUCTURAL_POLL_TIMEOUT = 120
+DEFAULT_QUALITY_POLL_TIMEOUT = 300
 MAX_RETRIES = 3
 REQUIRED_STATS_KEYS = {
     "discovery_service_version",
@@ -44,7 +45,7 @@ def retry_request(method: str, url: str, **kwargs) -> httpx.Response:
     """Retry HTTP request up to MAX_RETRIES times."""
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            with httpx.Client(timeout=30) as client:
+            with httpx.Client(timeout=30, trust_env=False) as client:
                 if method.upper() == "GET":
                     resp = client.get(url, **kwargs)
                 elif method.upper() == "POST":
@@ -102,12 +103,12 @@ def test_sync_full() -> dict | None:
         return None
 
 
-def poll_run_completion(run_id: int) -> dict | None:
+def poll_run_completion(run_id: int, poll_timeout: int) -> dict | None:
     """Poll GET /runs/{run_id} until completion."""
-    log(f"3/6: Polling run {run_id} for completion (timeout={POLL_TIMEOUT}s)")
+    log(f"3/6: Polling run {run_id} for completion (timeout={poll_timeout}s)")
     start_time = time.time()
 
-    while time.time() - start_time < POLL_TIMEOUT:
+    while time.time() - start_time < poll_timeout:
         try:
             resp = retry_request("GET", f"{BASE_URL}/runs/{run_id}")
             assert resp.status_code == 200
@@ -131,7 +132,8 @@ def poll_run_completion(run_id: int) -> dict | None:
             log(f"  ✗ Poll failed: {e}")
             time.sleep(POLL_INTERVAL)
 
-    log(f"  ✗ Timeout exceeded after {POLL_TIMEOUT}s")
+    log(f"  ✗ Timeout exceeded after {poll_timeout}s")
+    log("  [HINT] Queue may be busy with long-running fetch/normalize tasks; retry with a higher --poll-timeout.")
     return None
 
 
@@ -216,6 +218,12 @@ def parse_args() -> argparse.Namespace:
         default="structural",
         help="Smoke mode: structural validates lifecycle/contracts, quality also requires non-empty content.",
     )
+    parser.add_argument(
+        "--poll-timeout",
+        type=int,
+        default=None,
+        help="Override polling timeout in seconds. Defaults to 120 for structural and 300 for quality.",
+    )
     return parser.parse_args()
 
 
@@ -223,6 +231,11 @@ def main():
     """Run full E2E smoke test."""
     args = parse_args()
     mode = args.mode
+    poll_timeout = args.poll_timeout
+    if poll_timeout is None:
+        poll_timeout = (
+            DEFAULT_QUALITY_POLL_TIMEOUT if mode == "quality" else DEFAULT_STRUCTURAL_POLL_TIMEOUT
+        )
     log("=" * 60)
     log(f"START: End-to-End Smoke Test for PRD/TZ (mode={mode})")
     log("=" * 60)
@@ -243,7 +256,7 @@ def main():
 
     # 3. Poll for completion
     run_id = sync_result["run_id"]
-    run_details = poll_run_completion(run_id)
+    run_details = poll_run_completion(run_id, poll_timeout)
     if not run_details:
         log("\n❌ Run polling timeout. Aborting.")
         sys.exit(1)
