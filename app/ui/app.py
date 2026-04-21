@@ -397,6 +397,49 @@ def page_scoring_models():
                 st.success(f"Model created: ID {result.get('id')}")
 
 
+# --- Page: Outputs ---
+
+def page_outputs():
+    st.header("Outputs")
+
+    output_type_filter = st.selectbox("Output Type Filter", ["", "memo"], index=0)
+    params = {"page_size": 50}
+    if output_type_filter:
+        params["output_type"] = output_type_filter
+
+    outputs = api_get("/outputs", params)
+    if isinstance(outputs, dict):
+        items = outputs.get("items", [])
+        if items:
+            st.dataframe(pd.DataFrame(items), use_container_width=True)
+        else:
+            st.info("No outputs available")
+
+    st.subheader("Generate Output")
+    with st.form("output_generate_form"):
+        output_type = st.selectbox("Output Type", ["memo"])
+        title = st.text_input("Title")
+        if st.form_submit_button("Queue Generation"):
+            result = api_post(
+                "/outputs/generate",
+                {"output_type": output_type, "title": title or None, "scope_json": None},
+            )
+            if result:
+                st.success(f"Generation queued: {result.get('task_id')}")
+
+    st.subheader("File Back Output")
+    with st.form("output_file_back_form"):
+        output_id = st.number_input("Output ID", min_value=1, step=1)
+        file_back_status = st.selectbox("File Back Status", ["accepted", "rejected", "needs_review"])
+        if st.form_submit_button("Queue File Back"):
+            result = api_post(
+                f"/outputs/file-back/{output_id}",
+                {"file_back_status": file_back_status},
+            )
+            if result:
+                st.success(f"File-back queued: {result.get('task_id')}")
+
+
 # --- Main ---
 
 def main():
@@ -410,6 +453,7 @@ def main():
         "Matrix": page_matrix,
         "Reviews": page_reviews,
         "Scoring Models": page_scoring_models,
+        "Outputs": page_outputs,
     }
 
     page = st.sidebar.radio("Navigation", list(pages.keys()))
