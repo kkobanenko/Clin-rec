@@ -2,6 +2,28 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Structural Smoke",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				".venv/bin/python scripts/e2e_smoke.py --mode structural"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Quality Smoke",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				".venv/bin/python scripts/e2e_smoke.py --mode quality"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
 			"label": "Release Ready Check",
 			"type": "shell",
 			"command": "bash",
