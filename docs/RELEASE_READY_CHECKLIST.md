@@ -11,7 +11,7 @@
 - Для полного прогона можно использовать helper: `bash scripts/release_ready_check.sh`.
 - По умолчанию helper сохраняет логи в `.artifacts/release_checks/<timestamp>`; этот каталог использовать как evidence bundle для summary.
 - Helper также копирует `docs/RELEASE_SUMMARY_TEMPLATE.md` в bundle как стартовую заготовку `release_summary.md`.
-- При необходимости operator может передать `SMOKE_POLL_TIMEOUT`, `SMOKE_ACTIVATE_MODEL_ID`, `SMOKE_ACTIVATE_MODEL_AUTHOR` и `SMOKE_FORCE_ACTIVATE_MODEL=1` без редактирования скрипта.
+- При необходимости operator может передать `SMOKE_POLL_TIMEOUT` как общий fallback или отдельно `STRUCTURAL_SMOKE_POLL_TIMEOUT` / `QUALITY_SMOKE_POLL_TIMEOUT`, а также `SMOKE_ACTIVATE_MODEL_ID`, `SMOKE_ACTIVATE_MODEL_AUTHOR` и `SMOKE_FORCE_ACTIVATE_MODEL=1`.
 
 ## 2. Structural Gate
 
