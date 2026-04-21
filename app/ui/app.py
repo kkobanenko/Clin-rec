@@ -214,7 +214,16 @@ def page_reviews():
 
     # Review history
     st.subheader("Recent Review Actions")
-    reviews = api_get("/review/history", {"page_size": 50})
+    history_target_id = st.number_input(
+        "History Target ID",
+        min_value=0,
+        step=1,
+        help="0 means no target filter",
+    )
+    history_params = {"page_size": 50}
+    if history_target_id > 0:
+        history_params["target_id"] = history_target_id
+    reviews = api_get("/review/history", history_params)
     if isinstance(reviews, dict):
         items = reviews.get("items", [])
         if items:
