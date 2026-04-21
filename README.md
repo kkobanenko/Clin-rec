@@ -24,9 +24,19 @@
 - `POST /matrix/models/{id}/activate`: активация model version
 - `GET /matrix/models/diff`: diff между двумя model versions
 
+### Outputs API
+
+- `GET /outputs`: paginated list of output releases
+- `GET /outputs/{id}`: detail for a single output release
+- `POST /outputs/generate`: queue output generation
+- `POST /outputs/memo`: queue memo generation alias
+- `POST /outputs/file`: queue output filing by body payload
+- `POST /outputs/file-back/{id}`: queue output filing alias with output ID in path
+
 ### Admin UI
 
 Streamlit UI в `app/ui/app.py` поддерживает:
 
 - reviewer queue со stats, фильтром по document version, bulk approve и history filter
 - scoring model readiness overview, active model view, refresh, activate и version diff
+- outputs page со списком output releases, queue generation и file-back workflow

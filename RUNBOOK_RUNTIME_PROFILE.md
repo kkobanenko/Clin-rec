@@ -98,6 +98,7 @@ Quality pass criteria for manual document evaluation:
 Operator rule:
 - Use structural smoke for runtime/profile validation.
 - Use quality smoke before asking analysts or reviewers to evaluate pipeline output on real documents.
+- Use `/outputs` and the admin Outputs page to verify queued memo/output workflows are visible after runtime changes.
 
 ## Troubleshooting
 
