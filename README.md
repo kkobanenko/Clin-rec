@@ -18,6 +18,7 @@
 - `Quality Smoke`: entrypoint для content/downstream quality checks
 - `Release Ready Check`: полный release pack через `scripts/release_ready_check.sh`
 - `Release Late-Stage Rerun`: быстрый rerun regression-only path после уже зафиксированного smoke-green
+- Release-related tasks по умолчанию маркируют `RUNTIME_PROFILE=docker-compose-only` для seeded summary metadata.
 - Для длинных queue delays используйте `SMOKE_POLL_TIMEOUT=360 bash scripts/release_ready_check.sh`.
 
 ## Operator Surface
