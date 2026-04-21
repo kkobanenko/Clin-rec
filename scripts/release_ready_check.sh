@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-$ROOT_DIR/.venv/bin/python}"
 PYTEST_BIN="${PYTEST_BIN:-$ROOT_DIR/.venv/bin/pytest}"
+INTEGRATION_POSTGRES_URL="${CRIN_INTEGRATION_POSTGRES_URL:-postgresql://crplatform:crplatform@localhost:5433/crplatform}"
 TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 OUT_DIR="${OUT_DIR:-$ROOT_DIR/.artifacts/release_checks/$TIMESTAMP}"
 SUMMARY_TEMPLATE="$ROOT_DIR/docs/RELEASE_SUMMARY_TEMPLATE.md"
@@ -88,6 +89,7 @@ echo "Release artifacts directory: $OUT_DIR"
 if [[ -f "$SUMMARY_FILE" ]]; then
     echo "Seeded summary template: $SUMMARY_FILE"
 fi
+echo "Integration Postgres URL: $INTEGRATION_POSTGRES_URL"
 
 if [[ "$SKIP_STRUCTURAL_SMOKE" != "1" ]]; then
     run_step structural_smoke "Structural smoke" "$PYTHON_BIN" -u "${STRUCTURAL_SMOKE_ARGS[@]}"
@@ -105,7 +107,7 @@ run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pi
 run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
 run_step outputs_api "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
 run_step aux_routes "Aux routes regression" "$PYTEST_BIN" tests/test_aux_api_mounts.py
-run_step kb_integration "KB integration regression" "$PYTEST_BIN" tests/test_kb_integration_postgres.py
+run_step kb_integration "KB integration regression" env CRIN_INTEGRATION_POSTGRES_URL="$INTEGRATION_POSTGRES_URL" "$PYTEST_BIN" tests/test_kb_integration_postgres.py
 ensure_log_has_no_skips kb_integration "KB integration regression"
 
 echo
