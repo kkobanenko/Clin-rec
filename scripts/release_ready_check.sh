@@ -10,6 +10,8 @@ TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 OUT_DIR="${OUT_DIR:-$ROOT_DIR/.artifacts/release_checks/$TIMESTAMP}"
 SUMMARY_TEMPLATE="$ROOT_DIR/docs/RELEASE_SUMMARY_TEMPLATE.md"
 SUMMARY_FILE="$OUT_DIR/release_summary.md"
+RUNTIME_PROFILE="${RUNTIME_PROFILE:-unknown}"
+OPERATOR_NAME="${OPERATOR_NAME:-${USER:-unknown}}"
 STRUCTURAL_SMOKE_ARGS=(scripts/e2e_smoke.py --mode structural)
 QUALITY_SMOKE_ARGS=(scripts/e2e_smoke.py --mode quality)
 STRUCTURAL_POLL_TIMEOUT="${STRUCTURAL_SMOKE_POLL_TIMEOUT:-${SMOKE_POLL_TIMEOUT:-}}"
@@ -66,6 +68,33 @@ ensure_log_has_no_skips() {
     fi
 }
 
+seed_summary_metadata() {
+    local current_branch current_commit validation_path branch_md commit_md runtime_md validation_md operator_md
+    current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+    current_commit="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+    validation_path="full"
+    if [[ "$SKIP_STRUCTURAL_SMOKE" == "1" && "$SKIP_QUALITY_SMOKE" == "1" ]]; then
+        validation_path="late-stage rerun"
+    elif [[ "$SKIP_STRUCTURAL_SMOKE" == "1" || "$SKIP_QUALITY_SMOKE" == "1" ]]; then
+        validation_path="composite"
+    fi
+
+    printf -v branch_md '`%s`' "$current_branch"
+    printf -v commit_md '`%s`' "$current_commit"
+    printf -v runtime_md '`%s`' "$RUNTIME_PROFILE"
+    printf -v validation_md '`%s`' "$validation_path"
+    printf -v operator_md '`%s`' "$OPERATOR_NAME"
+
+    sed -i \
+        -e "s|^- Branch:$|- Branch: $branch_md|" \
+        -e "s|^- Commit SHA:$|- Commit SHA: $commit_md|" \
+        -e "s|^- Runtime profile:.*$|- Runtime profile: $runtime_md|" \
+        -e "s|^- Validation path:.*$|- Validation path: $validation_md|" \
+        -e "s|^- Operator:$|- Operator: $operator_md|" \
+        "$SUMMARY_FILE"
+    sed -i "/^- Artifact bundle(s):$/a\  - \`$OUT_DIR\`" "$SUMMARY_FILE"
+}
+
 if [[ ! -x "$PYTHON_BIN" ]]; then
     echo "Python executable not found: $PYTHON_BIN" >&2
     echo "Set PYTHON_BIN explicitly or create the project venv first." >&2
@@ -83,6 +112,7 @@ mkdir -p "$OUT_DIR"
 
 if [[ -f "$SUMMARY_TEMPLATE" ]]; then
     cp "$SUMMARY_TEMPLATE" "$SUMMARY_FILE"
+    seed_summary_metadata
 fi
 
 echo "Release artifacts directory: $OUT_DIR"
