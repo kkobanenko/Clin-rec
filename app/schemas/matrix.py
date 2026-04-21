@@ -94,3 +94,16 @@ class ScoringModelActivationOut(BaseModel):
     released_by: str
     forced: bool = False
     readiness: ScoringModelReadinessOut
+
+
+class ScoringModelRefreshIn(BaseModel):
+    scope_type: str = "global"
+    scope_id: str | None = None
+
+
+class ScoringModelRefreshOut(BaseModel):
+    model_version_id: int
+    scope_type: str
+    scope_id: str | None = None
+    pair_context_scores: int
+    matrix_cells: int

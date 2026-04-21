@@ -66,3 +66,23 @@ async def test_activate_model_returns_conflict_when_not_ready():
             resp = await client.post("/matrix/models/7/activate", json={"author": "tester", "force": False})
 
     assert resp.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_refresh_model_returns_score_and_matrix_counts():
+    with (
+        patch("app.api.matrix.ScoringEngine.score_all", return_value=9),
+        patch("app.api.matrix.MatrixBuilder.build", return_value=5),
+    ):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/matrix/models/7/refresh",
+                json={"scope_type": "global", "scope_id": None},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["model_version_id"] == 7
+    assert data["pair_context_scores"] == 9
+    assert data["matrix_cells"] == 5

@@ -11,11 +11,15 @@ from app.models.clinical import ClinicalContext
 from app.models.evidence import MatrixCell, PairContextScore, PairEvidence
 from app.models.molecule import Molecule
 from app.models.scoring import ScoringModelVersion
+from app.services.matrix_builder import MatrixBuilder
 from app.services.release import ReleaseService
+from app.services.scoring.engine import ScoringEngine
 from app.schemas.clinical import PairEvidenceOut
 from app.schemas.matrix import (
     ScoringModelActivateIn,
     ScoringModelActivationOut,
+    ScoringModelRefreshIn,
+    ScoringModelRefreshOut,
     ScoringModelReadinessOut,
     MatrixCellDetailOut,
     MatrixCellOut,
@@ -242,3 +246,20 @@ async def activate_scoring_model(model_version_id: int, data: ScoringModelActiva
     if result is None:
         raise HTTPException(status_code=409, detail="Model version is not ready for activation")
     return ScoringModelActivationOut.model_validate(result)
+
+
+@router.post("/models/{model_version_id}/refresh", response_model=ScoringModelRefreshOut)
+async def refresh_scoring_model(model_version_id: int, data: ScoringModelRefreshIn):
+    pair_context_scores = ScoringEngine().score_all(model_version_id=model_version_id)
+    matrix_cells = MatrixBuilder().build(
+        model_version_id=model_version_id,
+        scope_type=data.scope_type,
+        scope_id=data.scope_id,
+    )
+    return ScoringModelRefreshOut(
+        model_version_id=model_version_id,
+        scope_type=data.scope_type,
+        scope_id=data.scope_id,
+        pair_context_scores=pair_context_scores,
+        matrix_cells=matrix_cells,
+    )
