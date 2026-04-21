@@ -18,9 +18,11 @@ from app.schemas.clinical import PairEvidenceOut
 from app.schemas.matrix import (
     ScoringModelActivateIn,
     ScoringModelActivationOut,
+    ScoringModelDiffOut,
     ScoringModelRefreshIn,
     ScoringModelRefreshOut,
     ScoringModelReadinessOut,
+    ScoringModelReleaseSummaryOut,
     MatrixCellDetailOut,
     MatrixCellOut,
     ScoringModelVersionCreate,
@@ -231,6 +233,20 @@ async def get_scoring_model_readiness(model_version_id: int):
     return ScoringModelReadinessOut.model_validate(ReleaseService().check_readiness(model_version_id))
 
 
+@router.get("/models/{model_version_id}/summary", response_model=ScoringModelReleaseSummaryOut)
+async def get_scoring_model_summary(model_version_id: int, db: AsyncSession = Depends(get_db)):
+    model = (await db.execute(select(ScoringModelVersion).where(ScoringModelVersion.id == model_version_id))).scalar_one_or_none()
+    if model is None:
+        raise HTTPException(status_code=404, detail="Model version not found")
+    readiness = ReleaseService().check_readiness(model_version_id)
+    return ScoringModelReleaseSummaryOut(
+        model_version_id=model.id,
+        version_label=model.version_label,
+        is_active=model.is_active,
+        readiness=ScoringModelReadinessOut.model_validate(readiness),
+    )
+
+
 @router.post("/models", response_model=ScoringModelVersionOut)
 async def create_scoring_model(data: ScoringModelVersionCreate, db: AsyncSession = Depends(get_db)):
     model = ScoringModelVersion(**data.model_dump())
@@ -263,3 +279,19 @@ async def refresh_scoring_model(model_version_id: int, data: ScoringModelRefresh
         pair_context_scores=pair_context_scores,
         matrix_cells=matrix_cells,
     )
+
+
+@router.get("/models/diff", response_model=ScoringModelDiffOut)
+async def diff_scoring_models(old_version_id: int, new_version_id: int):
+    diff = ReleaseService().diff_versions(old_version_id, new_version_id)
+    normalized = {
+        **diff,
+        "details": {
+            key: [
+                {**item, "from_": item.pop("from")}
+                for item in [dict(entry) for entry in diff["details"][key]]
+            ]
+            for key in ("added", "removed", "changed")
+        },
+    }
+    return ScoringModelDiffOut.model_validate(normalized)

@@ -107,3 +107,36 @@ class ScoringModelRefreshOut(BaseModel):
     scope_id: str | None = None
     pair_context_scores: int
     matrix_cells: int
+
+
+class ScoringModelReleaseSummaryOut(BaseModel):
+    model_version_id: int
+    version_label: str
+    is_active: bool
+    readiness: ScoringModelReadinessOut
+
+
+class ScoringModelDiffItemOut(BaseModel):
+    from_: int = 0
+    to: int
+    scope_type: str
+    scope_id: str | None = None
+    score: float | None = None
+    old_score: float | None = None
+    new_score: float | None = None
+    delta: float | None = None
+
+
+class ScoringModelDiffDetailsOut(BaseModel):
+    added: list[ScoringModelDiffItemOut]
+    removed: list[ScoringModelDiffItemOut]
+    changed: list[ScoringModelDiffItemOut]
+
+
+class ScoringModelDiffOut(BaseModel):
+    old_version_id: int
+    new_version_id: int
+    added: int
+    removed: int
+    changed: int
+    details: ScoringModelDiffDetailsOut

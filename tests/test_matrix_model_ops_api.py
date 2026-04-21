@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.core.dependencies import get_db
 from app.main import app
 
 
@@ -86,3 +87,66 @@ async def test_refresh_model_returns_score_and_matrix_counts():
     assert data["model_version_id"] == 7
     assert data["pair_context_scores"] == 9
     assert data["matrix_cells"] == 5
+
+
+@pytest.mark.asyncio
+async def test_get_model_summary_returns_model_and_readiness():
+    class FakeScalarResult:
+        def __init__(self, value):
+            self._value = value
+
+        def scalar_one_or_none(self):
+            return self._value
+
+    class FakeAsyncSession:
+        async def execute(self, _query):
+            from types import SimpleNamespace
+
+            return FakeScalarResult(SimpleNamespace(id=7, version_label="v-test", is_active=True))
+
+    async def override_get_db():
+        yield FakeAsyncSession()
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with patch(
+            "app.api.matrix.ReleaseService.check_readiness",
+            return_value={"ready": True, "cell_count": 12, "pcs_count": 14},
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/matrix/models/7/summary")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["model_version_id"] == 7
+        assert data["is_active"] is True
+        assert data["readiness"]["ready"] is True
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_diff_models_returns_service_payload():
+    diff = {
+        "old_version_id": 1,
+        "new_version_id": 2,
+        "added": 1,
+        "removed": 0,
+        "changed": 1,
+        "details": {
+            "added": [{"from": 1, "to": 2, "scope_type": "global", "scope_id": None, "score": 0.7}],
+            "removed": [],
+            "changed": [{"from": 1, "to": 3, "scope_type": "global", "scope_id": None, "old_score": 0.4, "new_score": 0.8, "delta": 0.4}],
+        },
+    }
+
+    with patch("app.api.matrix.ReleaseService.diff_versions", return_value=diff):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/matrix/models/diff?old_version_id=1&new_version_id=2")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["added"] == 1
+    assert data["details"]["added"][0]["from_"] == 1

@@ -307,9 +307,16 @@ def test_matrix_cell(model_version_id: int, molecule_from_id: int, molecule_to_i
         data = resp.json()
         cell = data.get("cell") or {}
         evidence = data.get("evidence") or []
+        supporting_evidence_count = cell.get("supporting_evidence_count")
+        if supporting_evidence_count is not None and supporting_evidence_count < len(evidence):
+            raise AssertionError(
+                "matrix cell supporting_evidence_count is smaller than returned evidence count: "
+                f"{supporting_evidence_count} < {len(evidence)}"
+            )
         log(
             f"  ✓ Matrix cell retrieved: score={cell.get('substitution_score')} "
-            f"confidence={cell.get('confidence_score')} evidence={len(evidence)}"
+            f"confidence={cell.get('confidence_score')} evidence={len(evidence)} "
+            f"supporting={supporting_evidence_count}"
         )
         return data
     except Exception as e:
