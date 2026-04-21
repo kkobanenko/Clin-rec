@@ -249,6 +249,49 @@ def get_active_scoring_model() -> dict | None:
         return None
 
 
+def refresh_scoring_model(model_version_id: int) -> dict | None:
+    """Refresh pair-context scores and matrix cells for a scoring model."""
+    log(f"4/8: Refreshing scoring model {model_version_id}")
+    try:
+        resp = retry_request(
+            "POST",
+            f"{BASE_URL}/matrix/models/{model_version_id}/refresh",
+            json={"scope_type": "global", "scope_id": None},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        log(
+            f"  ✓ Refreshed scoring model: pair_context_scores={data.get('pair_context_scores')} "
+            f"matrix_cells={data.get('matrix_cells')}"
+        )
+        return data
+    except Exception as e:
+        log(f"  ✗ Scoring model refresh failed: {e}")
+        return None
+
+
+def activate_scoring_model(model_version_id: int, author: str, force: bool) -> dict | None:
+    """Activate a scoring model through the operational API."""
+    log(f"5/8: Activating scoring model {model_version_id} (force={force})")
+    try:
+        resp = retry_request(
+            "POST",
+            f"{BASE_URL}/matrix/models/{model_version_id}/activate",
+            json={"author": author, "force": force},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        readiness = data.get("readiness") or {}
+        log(
+            f"  ✓ Activated scoring model: version={data.get('version_label')} "
+            f"ready={readiness.get('ready')} forced={data.get('forced')}"
+        )
+        return data
+    except Exception as e:
+        log(f"  ✗ Scoring model activation failed: {e}")
+        return None
+
+
 def test_matrix_cell(model_version_id: int, molecule_from_id: int, molecule_to_id: int) -> dict | None:
     """Fetch GET /matrix/cell for a specific scored pair."""
     log(
@@ -288,6 +331,22 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Override polling timeout in seconds. Defaults to 120 for structural and 300 for quality.",
     )
+    parser.add_argument(
+        "--activate-model-id",
+        type=int,
+        default=None,
+        help="Refresh and activate this scoring model before matrix validation.",
+    )
+    parser.add_argument(
+        "--activate-model-author",
+        default="copilot-runtime-smoke",
+        help="Author string used when activating a scoring model through the API.",
+    )
+    parser.add_argument(
+        "--force-activate-model",
+        action="store_true",
+        help="Force model activation even if readiness checks fail.",
+    )
     return parser.parse_args()
 
 
@@ -296,6 +355,9 @@ def main():
     args = parse_args()
     mode = args.mode
     poll_timeout = args.poll_timeout
+    activate_model_id = args.activate_model_id
+    activate_model_author = args.activate_model_author
+    force_activate_model = args.force_activate_model
     if poll_timeout is None:
         poll_timeout = (
             DEFAULT_QUALITY_POLL_TIMEOUT if mode == "quality" else DEFAULT_STRUCTURAL_POLL_TIMEOUT
@@ -325,6 +387,23 @@ def main():
         log("\n❌ Run polling timeout. Aborting.")
         sys.exit(1)
     results["run"] = run_details
+
+    prepared_model = None
+    if mode == "quality" and activate_model_id is not None:
+        refreshed_model = refresh_scoring_model(activate_model_id)
+        if not refreshed_model:
+            log("\n❌ Scoring model refresh failed. Aborting.")
+            sys.exit(1)
+        activated_model = activate_scoring_model(
+            activate_model_id,
+            author=activate_model_author,
+            force=force_activate_model,
+        )
+        if not activated_model:
+            log("\n❌ Scoring model activation failed. Aborting.")
+            sys.exit(1)
+        prepared_model = activated_model
+    results["prepared_model"] = prepared_model
 
     # Print stats_json
     stats = run_details.get("stats_json") or {}
