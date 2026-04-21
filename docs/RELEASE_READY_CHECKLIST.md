@@ -56,10 +56,13 @@
 - Зафиксировать residual risks, допустимые для post-MVP.
 - Зафиксировать, какие ограничения явно остаются вне scope: full matrix governance, full reviewer productization, external distribution.
 - При оформлении summary использовать `docs/RELEASE_SUMMARY_TEMPLATE.md`.
+- Если текущий цикл уже оформлен, ссылаться на фактические артефакты `docs/RELEASE_REHEARSAL_2026-04-21.md` и `docs/RELEASE_SUMMARY_2026-04-21.md`.
 
 ## 8. Source of Truth
 
 - Product contract: `PRD_CR_Intelligence_Platform_v1_6.md`
 - Technical tranche: `TZ_CR_Intelligence_Platform_v1_5.md`
 - Runtime procedure: `RUNBOOK_RUNTIME_PROFILE.md`
+- Live rehearsal record: `docs/RELEASE_REHEARSAL_2026-04-21.md`
+- Final release summary: `docs/RELEASE_SUMMARY_2026-04-21.md`
 - Baseline acceptance floor: `DOD_MVP.md`
