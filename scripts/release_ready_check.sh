@@ -9,6 +9,25 @@ TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 OUT_DIR="${OUT_DIR:-$ROOT_DIR/.artifacts/release_checks/$TIMESTAMP}"
 SUMMARY_TEMPLATE="$ROOT_DIR/docs/RELEASE_SUMMARY_TEMPLATE.md"
 SUMMARY_FILE="$OUT_DIR/release_summary.md"
+STRUCTURAL_SMOKE_ARGS=(scripts/e2e_smoke.py --mode structural)
+QUALITY_SMOKE_ARGS=(scripts/e2e_smoke.py --mode quality)
+
+if [[ -n "${SMOKE_POLL_TIMEOUT:-}" ]]; then
+    STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$SMOKE_POLL_TIMEOUT")
+    QUALITY_SMOKE_ARGS+=(--poll-timeout "$SMOKE_POLL_TIMEOUT")
+fi
+
+if [[ -n "${SMOKE_ACTIVATE_MODEL_ID:-}" ]]; then
+    QUALITY_SMOKE_ARGS+=(--activate-model-id "$SMOKE_ACTIVATE_MODEL_ID")
+fi
+
+if [[ -n "${SMOKE_ACTIVATE_MODEL_AUTHOR:-}" ]]; then
+    QUALITY_SMOKE_ARGS+=(--activate-model-author "$SMOKE_ACTIVATE_MODEL_AUTHOR")
+fi
+
+if [[ "${SMOKE_FORCE_ACTIVATE_MODEL:-0}" == "1" ]]; then
+    QUALITY_SMOKE_ARGS+=(--force-activate-model)
+fi
 
 run_step() {
     local step_id="$1"
@@ -53,8 +72,8 @@ if [[ -f "$SUMMARY_FILE" ]]; then
     echo "Seeded summary template: $SUMMARY_FILE"
 fi
 
-run_step structural_smoke "Structural smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode structural
-run_step quality_smoke "Quality smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode quality
+run_step structural_smoke "Structural smoke" "$PYTHON_BIN" "${STRUCTURAL_SMOKE_ARGS[@]}"
+run_step quality_smoke "Quality smoke" "$PYTHON_BIN" "${QUALITY_SMOKE_ARGS[@]}"
 run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
 run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
 run_step outputs_api "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
