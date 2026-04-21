@@ -159,6 +159,28 @@ def test_documents_list() -> dict | None:
         return None
 
 
+def test_outputs_list() -> dict | None:
+    """Fetch GET /outputs?page=1 and validate mounted outputs surface."""
+    log("4a/6: Testing GET /outputs?page=1")
+    try:
+        resp = retry_request("GET", f"{BASE_URL}/outputs?page=1&page_size=10")
+        assert resp.status_code == 200
+        data = resp.json()
+        items = data.get("items", [])
+        total = data.get("total", 0)
+        log(f"  ✓ Outputs retrieved: {len(items)} items, {total} total")
+        if items:
+            first_output = items[0]
+            log(
+                f"    Sample output: ID={first_output.get('id')}, "
+                f"type={first_output.get('output_type')}, title={first_output.get('title', 'N/A')[:50]}"
+            )
+        return data
+    except Exception as e:
+        log(f"  ✗ Outputs fetch failed: {e}")
+        return None
+
+
 def test_document_content(doc_id: int) -> dict | None:
     """Fetch GET /documents/{id}/content and validate structure."""
     log(f"5/6: Testing GET /documents/{doc_id}/content")
@@ -444,6 +466,7 @@ def main():
         log("  [HINT] Check worker logs and API reachability to apicr.minzdrav.gov.ru.")
 
     # 4. Fetch documents
+    results["outputs"] = test_outputs_list()
     first_doc = test_documents_list()
     if not first_doc:
         log("\n⚠️  No documents found. Skipping content/fragment tests.")
