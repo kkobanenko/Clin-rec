@@ -1,22 +1,28 @@
 """Extraction pipeline — orchestrates all extractors for a normalized document."""
 
 import logging
+from dataclasses import dataclass
 
 from app.core.sync_database import get_sync_session
 from app.models.clinical import ClinicalContext
 from app.models.document import DocumentRegistry, DocumentVersion
 from app.models.text import DocumentSection, TextFragment
-from app.services.knowledge_entity_sync import ensure_molecule_entities
 from app.services.extraction.context_extractor import ContextExtractor
-from app.services.extraction.inn_heuristic import (
-    collect_all_inn_candidates_for_texts,
-    ensure_molecules_for_inn_strings,
-)
 from app.services.extraction.mnn_extractor import MnnExtractor
 from app.services.extraction.relation_extractor import RelationExtractor
 from app.services.extraction.uur_udd_extractor import UurUddExtractor
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class ExtractionPipelineResult:
+    version_id: int
+    mnn_count: int = 0
+    uur_udd_count: int = 0
+    relation_count: int = 0
+    context_count: int = 0
+    mnn_molecule_ids: tuple[int, ...] = ()
 
 
 class ExtractionPipeline:
@@ -26,18 +32,21 @@ class ExtractionPipeline:
         self.uur_udd_extractor = UurUddExtractor()
         self.relation_extractor = RelationExtractor()
 
-    def extract(self, version_id: int) -> None:
+    def extract(self, version_id: int) -> ExtractionPipelineResult:
         session = get_sync_session()
         try:
             version = session.get(DocumentVersion, version_id)
             if not version:
                 logger.error("DocumentVersion %d not found", version_id)
-                return
+                return ExtractionPipelineResult(version_id=version_id)
 
             doc = session.get(DocumentRegistry, version.registry_id)
             if not doc:
                 logger.error("DocumentRegistry %d not found", version.registry_id)
-                return
+                return ExtractionPipelineResult(version_id=version_id)
+
+            # Load MNN dictionary
+            self.mnn_extractor.load_dictionary()
 
             # Get all sections and fragments
             sections = (
@@ -46,29 +55,6 @@ class ExtractionPipeline:
                 .order_by(DocumentSection.section_order)
                 .all()
             )
-
-            # Латинские МНН (скобки, «МНН: …», INN) → новые строки molecule, затем перезагрузка словаря.
-            fragment_texts: list[str] = []
-            for section in sections:
-                fragments_prev = (
-                    session.query(TextFragment)
-                    .filter_by(section_id=section.id)
-                    .order_by(TextFragment.fragment_order)
-                    .all()
-                )
-                for frag in fragments_prev:
-                    fragment_texts.append(frag.fragment_text or "")
-            inn_candidates = collect_all_inn_candidates_for_texts(fragment_texts)
-            added = ensure_molecules_for_inn_strings(session, inn_candidates)
-            logger.info(
-                "inn_heuristic: version %s — кандидатов латинских МНН: %d, новых строк molecule: %d",
-                version_id,
-                len(inn_candidates),
-                added,
-            )
-            if added:
-                session.commit()
-            self.mnn_extractor.load_dictionary()
 
             section_data = []
             all_mnn_results = []
@@ -109,10 +95,6 @@ class ExtractionPipeline:
                     "title": section.section_title or "",
                     "fragments": frag_data,
                 })
-
-            # Извлечённые МНН → entity_registry (канонические сущности для KB/scoring).
-            mol_ids = {h["molecule_id"] for h in all_mnn_results if h.get("molecule_id") is not None}
-            ensure_molecule_entities(session, mol_ids)
 
             # Extract clinical contexts
             contexts = self.context_extractor.extract_from_document(
@@ -158,6 +140,14 @@ class ExtractionPipeline:
                 "mnn_molecules": list({h["molecule_id"] for h in all_mnn_results}),
             }
             logger.info("Extraction stats for version %d: %s", version_id, stats)
+            return ExtractionPipelineResult(
+                version_id=version_id,
+                mnn_count=stats["mnn_count"],
+                uur_udd_count=stats["uur_udd_count"],
+                relation_count=stats["relation_count"],
+                context_count=stats["context_count"],
+                mnn_molecule_ids=tuple(stats["mnn_molecules"]),
+            )
 
         finally:
             session.close()

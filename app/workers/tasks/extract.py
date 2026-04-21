@@ -2,6 +2,7 @@ from celery import current_task
 
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentVersion
+from app.services.candidate_engine import CandidateEngine
 from app.workers.celery_app import celery_app
 from app.services.extraction.pipeline import ExtractionPipeline
 from app.services.pipeline_event_log import write_pipeline_event
@@ -26,7 +27,8 @@ def extract_document(version_id: int):
         )
     pipeline = ExtractionPipeline()
     try:
-        pipeline.extract(version_id=version_id)
+        extraction_result = pipeline.extract(version_id=version_id)
+        candidate_pairs_count = CandidateEngine().generate_pairs(version_id=version_id)
         if registry_id is not None:
             write_pipeline_event(
                 document_registry_id=registry_id,
@@ -35,7 +37,15 @@ def extract_document(version_id: int):
                 stage="extract",
                 status="success",
                 message="Extract stage finished successfully",
-                detail_json={"version_id": version_id},
+                detail_json={
+                    "version_id": version_id,
+                    "mnn_count": extraction_result.mnn_count,
+                    "uur_udd_count": extraction_result.uur_udd_count,
+                    "relation_count": extraction_result.relation_count,
+                    "context_count": extraction_result.context_count,
+                    "mnn_molecule_ids": list(extraction_result.mnn_molecule_ids),
+                    "candidate_pairs_count": candidate_pairs_count,
+                },
             )
     except Exception as exc:
         if registry_id is not None:
