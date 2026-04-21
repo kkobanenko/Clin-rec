@@ -12,6 +12,7 @@
 - По умолчанию helper сохраняет логи в `.artifacts/release_checks/<timestamp>`; этот каталог использовать как evidence bundle для summary.
 - Helper также копирует `docs/RELEASE_SUMMARY_TEMPLATE.md` в bundle как стартовую заготовку `release_summary.md`.
 - При необходимости operator может передать `SMOKE_POLL_TIMEOUT` как общий fallback или отдельно `STRUCTURAL_SMOKE_POLL_TIMEOUT` / `QUALITY_SMOKE_POLL_TIMEOUT`, а также `SMOKE_ACTIVATE_MODEL_ID`, `SMOKE_ACTIVATE_MODEL_AUTHOR` и `SMOKE_FORCE_ACTIVATE_MODEL=1`.
+- Для быстрых late-stage rerun доступны `SKIP_STRUCTURAL_SMOKE=1` и `SKIP_QUALITY_SMOKE=1`, но использовать их можно только после уже зафиксированного smoke-green на том же runtime/profile.
 
 ## 2. Structural Gate
 

@@ -13,6 +13,8 @@ STRUCTURAL_SMOKE_ARGS=(scripts/e2e_smoke.py --mode structural)
 QUALITY_SMOKE_ARGS=(scripts/e2e_smoke.py --mode quality)
 STRUCTURAL_POLL_TIMEOUT="${STRUCTURAL_SMOKE_POLL_TIMEOUT:-${SMOKE_POLL_TIMEOUT:-}}"
 QUALITY_POLL_TIMEOUT="${QUALITY_SMOKE_POLL_TIMEOUT:-${SMOKE_POLL_TIMEOUT:-}}"
+SKIP_STRUCTURAL_SMOKE="${SKIP_STRUCTURAL_SMOKE:-0}"
+SKIP_QUALITY_SMOKE="${SKIP_QUALITY_SMOKE:-0}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -87,8 +89,18 @@ if [[ -f "$SUMMARY_FILE" ]]; then
     echo "Seeded summary template: $SUMMARY_FILE"
 fi
 
-run_step structural_smoke "Structural smoke" "$PYTHON_BIN" -u "${STRUCTURAL_SMOKE_ARGS[@]}"
-run_step quality_smoke "Quality smoke" "$PYTHON_BIN" -u "${QUALITY_SMOKE_ARGS[@]}"
+if [[ "$SKIP_STRUCTURAL_SMOKE" != "1" ]]; then
+    run_step structural_smoke "Structural smoke" "$PYTHON_BIN" -u "${STRUCTURAL_SMOKE_ARGS[@]}"
+else
+    echo "Skipping structural smoke because SKIP_STRUCTURAL_SMOKE=1"
+fi
+
+if [[ "$SKIP_QUALITY_SMOKE" != "1" ]]; then
+    run_step quality_smoke "Quality smoke" "$PYTHON_BIN" -u "${QUALITY_SMOKE_ARGS[@]}"
+else
+    echo "Skipping quality smoke because SKIP_QUALITY_SMOKE=1"
+fi
+
 run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
 run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
 run_step outputs_api "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
