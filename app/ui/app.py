@@ -502,6 +502,22 @@ def page_kb():
             st.info("No KB conflicts detected")
 
 
+# --- Page: Tasks ---
+
+def page_tasks():
+    st.header("Tasks")
+
+    task_id = st.text_input("Task ID")
+    include_result = st.checkbox("Include Result", value=True)
+    if st.button("Load Task Status"):
+        if not task_id.strip():
+            st.warning("Enter a task ID")
+        else:
+            status = api_get(f"/tasks/{task_id.strip()}", {"include_result": include_result})
+            if status:
+                st.json(status)
+
+
 # --- Main ---
 
 def main():
@@ -516,6 +532,7 @@ def main():
         "Reviews": page_reviews,
         "Scoring Models": page_scoring_models,
         "Knowledge Base": page_kb,
+        "Tasks": page_tasks,
         "Outputs": page_outputs,
     }
 
