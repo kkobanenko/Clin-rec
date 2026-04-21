@@ -213,6 +213,38 @@ def test_storage_stages() -> dict | None:
         return None
 
 
+def queue_output_memo() -> dict | None:
+    """Queue a memo output to obtain a live task id for task-status validation."""
+    log("4d/6: Queueing POST /outputs/memo")
+    try:
+        resp = retry_request(
+            "POST",
+            f"{BASE_URL}/outputs/memo",
+            json={"title": "runtime smoke memo", "scope_json": None},
+        )
+        assert resp.status_code == 202
+        data = resp.json()
+        log(f"  ✓ Memo output queued: task_id={data.get('task_id')}")
+        return data
+    except Exception as e:
+        log(f"  ✗ Memo output queue failed: {e}")
+        return None
+
+
+def test_task_status(task_id: str) -> dict | None:
+    """Fetch GET /tasks/{task_id} and validate mounted task-status surface."""
+    log(f"4e/6: Testing GET /tasks/{task_id}")
+    try:
+        resp = retry_request("GET", f"{BASE_URL}/tasks/{task_id}?include_result=true")
+        assert resp.status_code == 200
+        data = resp.json()
+        log(f"  ✓ Task status retrieved: state={data.get('state')} ready={data.get('ready')}")
+        return data
+    except Exception as e:
+        log(f"  ✗ Task status fetch failed: {e}")
+        return None
+
+
 def test_document_content(doc_id: int) -> dict | None:
     """Fetch GET /documents/{id}/content and validate structure."""
     log(f"5/6: Testing GET /documents/{doc_id}/content")
@@ -501,6 +533,9 @@ def main():
     results["outputs"] = test_outputs_list()
     results["kb_master_index"] = test_kb_master_index()
     results["storage_stages"] = test_storage_stages()
+    queued_output = queue_output_memo()
+    results["queued_output"] = queued_output
+    results["task_status"] = test_task_status(queued_output["task_id"]) if queued_output else None
     first_doc = test_documents_list()
     if not first_doc:
         log("\n⚠️  No documents found. Skipping content/fragment tests.")
