@@ -6,6 +6,7 @@
 - Branch: `main`
 - Commit SHA: `18074ee`
 - Runtime profile: `docker-compose-only`
+- Validation path: full live rehearsal plus fast late-stage rerun on the same runtime/profile after the `CRIN_INTEGRATION_POSTGRES_URL` runner fix
 - Primary artifact bundles:
   - `.artifacts/release_checks/runtime_rehearsal_final_20260421_233024`
   - `.artifacts/release_checks/skip_fast_after_pg_url`
