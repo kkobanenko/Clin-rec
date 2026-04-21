@@ -7,6 +7,8 @@ PYTHON_BIN="${PYTHON_BIN:-$ROOT_DIR/.venv/bin/python}"
 PYTEST_BIN="${PYTEST_BIN:-$ROOT_DIR/.venv/bin/pytest}"
 TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 OUT_DIR="${OUT_DIR:-$ROOT_DIR/.artifacts/release_checks/$TIMESTAMP}"
+SUMMARY_TEMPLATE="$ROOT_DIR/docs/RELEASE_SUMMARY_TEMPLATE.md"
+SUMMARY_FILE="$OUT_DIR/release_summary.md"
 
 run_step() {
     local step_id="$1"
@@ -42,7 +44,14 @@ fi
 cd "$ROOT_DIR"
 mkdir -p "$OUT_DIR"
 
+if [[ -f "$SUMMARY_TEMPLATE" ]]; then
+    cp "$SUMMARY_TEMPLATE" "$SUMMARY_FILE"
+fi
+
 echo "Release artifacts directory: $OUT_DIR"
+if [[ -f "$SUMMARY_FILE" ]]; then
+    echo "Seeded summary template: $SUMMARY_FILE"
+fi
 
 run_step structural_smoke "Structural smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode structural
 run_step quality_smoke "Quality smoke" "$PYTHON_BIN" scripts/e2e_smoke.py --mode quality
