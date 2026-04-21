@@ -73,6 +73,54 @@ async def test_get_active_model_returns_latest_active_model():
 
 
 @pytest.mark.asyncio
+async def test_get_model_overview_returns_release_summaries():
+    class FakeRowsResult:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def scalars(self):
+            return self
+
+        def all(self):
+            return self._rows
+
+    class FakeAsyncSession:
+        async def execute(self, _query):
+            from types import SimpleNamespace
+
+            return FakeRowsResult(
+                [
+                    SimpleNamespace(id=7, version_label="v-test", is_active=True),
+                    SimpleNamespace(id=6, version_label="v-prev", is_active=False),
+                ]
+            )
+
+    async def override_get_db():
+        yield FakeAsyncSession()
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with patch(
+            "app.api.matrix.ReleaseService.check_readiness",
+            side_effect=[
+                {"ready": True, "cell_count": 12, "pcs_count": 14},
+                {"ready": False, "cell_count": 0, "pcs_count": 0},
+            ],
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/matrix/models/overview")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 2
+        assert data[0]["model_version_id"] == 7
+        assert data[0]["readiness"]["ready"] is True
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_activate_model_returns_activation_payload():
     activation = {
         "model_version_id": 7,

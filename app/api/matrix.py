@@ -242,6 +242,22 @@ async def get_active_scoring_model(db: AsyncSession = Depends(get_db)):
     return ScoringModelVersionOut.model_validate(model)
 
 
+@router.get("/models/overview", response_model=list[ScoringModelReleaseSummaryOut])
+async def list_scoring_model_overview(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ScoringModelVersion).order_by(ScoringModelVersion.created_at.desc()))
+    models = result.scalars().all()
+    release_service = ReleaseService()
+    return [
+        ScoringModelReleaseSummaryOut(
+            model_version_id=model.id,
+            version_label=model.version_label,
+            is_active=model.is_active,
+            readiness=ScoringModelReadinessOut.model_validate(release_service.check_readiness(model.id)),
+        )
+        for model in models
+    ]
+
+
 @router.get("/models/{model_version_id}/readiness", response_model=ScoringModelReadinessOut)
 async def get_scoring_model_readiness(model_version_id: int):
     return ScoringModelReadinessOut.model_validate(ReleaseService().check_readiness(model_version_id))
