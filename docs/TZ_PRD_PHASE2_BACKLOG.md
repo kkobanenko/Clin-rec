@@ -20,7 +20,6 @@
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `document_version.normalizer_version` / `compiler_version` | В TZ указаны; в схеме частично покрыто полем `normalizer_version` на секциях. |
 | `text_fragment.fragment_hash`                              | Используется `stable_id` (MD5).                                               |
-| `knowledge_artifact.search_vector` в ORM                   | Колонка есть в миграции 003; при необходимости добавить в модель.             |
 | `pair_evidence` vs TZ `component_scores_json`              | В коде — отдельные числовые колонки.                                          |
 
 
@@ -64,8 +63,8 @@
 
 ## Версионирование документов
 
-- Обновить [VERSIONING.md](../VERSIONING.md): добавить записи для PRD kb / TZ kb v1.3+ и согласовать ссылки на разделы PRD (нумерация изменилась).
+- [VERSIONING.md](../VERSIONING.md) синхронизирован с текущими release evidence и release-hardening tranche; KB-specific historical entries и cross-links можно расширять дальше как doc-polish, но это больше не blocker-gap.
 
 ---
 
-*Последнее обновление: 2026-04-06 — после прогона наполнения корпуса и исправлений pipeline.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap и синхронизации versioning/release evidence.*
