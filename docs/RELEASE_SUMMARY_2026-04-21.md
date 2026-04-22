@@ -40,7 +40,7 @@
   - `tests/test_outputs_api.py`: `7 passed`
   - `tests/test_aux_api_mounts.py`: `2 passed`
 - KB integration:
-  - `tests/test_kb_integration_postgres.py`: `2 passed, 1 warning`
+  - `tests/test_kb_integration_postgres.py`: `2 passed`
 
 ## 4. Blockers
 
@@ -48,7 +48,6 @@
 
 ## 5. Residual Risks
 
-- Alembic emitted a deprecation warning about missing `path_separator` in config; this did not block the run, but should be cleaned up later.
 - The final green verdict combines one full live rehearsal bundle with one fast late-stage rerun on the same runtime/profile after the runner fix for `CRIN_INTEGRATION_POSTGRES_URL`.
 - Runtime queue latency for quality smoke was materially longer than structural smoke, so operator guidance continues to recommend explicit timeout overrides when needed.
 
@@ -56,7 +55,7 @@
 
 - Explicitly out of scope for this release: full matrix governance, full reviewer productization, external distribution.
 - Deferred to post-MVP: deeper release governance, broader UI productization, extended KB automation beyond current operator workflows.
-- Follow-up items for next tranche: clean Alembic warning, keep runtime rehearsal artifacts organized, and decide whether to add stricter treatment for warnings in the release pack.
+- Follow-up items for next tranche: keep runtime rehearsal artifacts organized and decide whether to add stricter treatment for warnings in the release pack.
 
 ## 7. Decision
 
