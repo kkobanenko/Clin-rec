@@ -160,6 +160,8 @@ Local UI/API surface after `UI Stack Up`:
 - UI: `http://localhost:8501`
 - API: `http://localhost:8000`
 - API docs: `http://localhost:8000/docs`
+- MinIO S3 API: `http://localhost:9010`
+- MinIO console: `http://localhost:9011`
 
 ## Troubleshooting
 
