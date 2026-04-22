@@ -105,6 +105,17 @@ def test_kb_compile_lint_fts(pg_engine, monkeypatch):
     assert fts_out.get("fts_skipped") is False, fts_out
     assert fts_out.get("fts_rows_updated", 0) >= 1
 
+    verify = Session()
+    try:
+        populated_vectors = list(
+            verify.execute(
+                select(KnowledgeArtifact.search_vector).where(KnowledgeArtifact.search_vector.is_not(None)).limit(1)
+            ).scalars()
+        )
+        assert populated_vectors
+    finally:
+        verify.close()
+
 
 def _cleanup_pair_evidence_fixture(session, external_id: str) -> None:
     """Удаляем pair_evidence и документ с цепочкой, чтобы тест был идемпотентным."""
