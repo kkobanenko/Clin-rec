@@ -7,10 +7,12 @@
 - Commit SHAs observed:
   - `49fb4aa` for the full `runtime_rehearsal_final_*` pack
   - `3b5d815` for the fast late-stage rerun with smoke skips and mandatory KB skip guard
+  - `8117d35` for the follow-up Alembic warning fix validated by a clean full release pack
 - Runtime profile: `docker-compose-only`
 - Artifact bundles:
   - `.artifacts/release_checks/runtime_rehearsal_final_20260421_233024`
   - `.artifacts/release_checks/skip_fast`
+  - `.artifacts/release_checks/20260422_154108`
 
 ## 2. Observed Gate Results
 
@@ -20,7 +22,7 @@
 | Structural smoke | pass | Final rehearsal run `53`; lifecycle, outputs, KB, storage stages, task polling, documents/content/fragments all green. |
 | Quality smoke | pass | Final rehearsal run `54`; pair evidence and matrix cell checks passed after a long `pending` phase. |
 | API regression | pass | Review, matrix model ops, outputs and auxiliary mounts suites all passed in the late-stage part of the final rehearsal. |
-| Downstream verification | blocked | `tests/test_kb_integration_postgres.py` completed as `2 skipped`; the runner now treats that as a failed mandatory gate. |
+| Downstream verification | pass | The original skipped KB gate was fixed first via `CRIN_INTEGRATION_POSTGRES_URL`, then revalidated in the clean full pack `20260422_154108`; `tests/test_kb_integration_postgres.py` completed as `2 passed` without warnings. |
 
 ## 3. Key Evidence
 
@@ -42,20 +44,22 @@
   - `tests/test_outputs_api.py`: `7 passed`
   - `tests/test_aux_api_mounts.py`: `2 passed`
 - KB integration highlight:
-  - `tests/test_kb_integration_postgres.py`: `2 skipped`
+  - original blocker state: `2 skipped`
+  - final clean full-pack state: `2 passed`
 
 ## 4. Blocking Issue Observed
 
 - The original runner issue after quality smoke was resolved: a later full rehearsal reached the pytest stages successfully.
-- The current blocker is narrower and explicit: the mandatory KB integration gate currently skips, and the runner now fails the pack when that happens.
+- The narrower KB integration blocker was then resolved by wiring the compose-backed integration Postgres URL into the runner.
+- A later config cleanup added `path_separator = os` to `alembic.ini`, and the subsequent full release pack completed without the earlier Alembic warning.
 
 ## 5. Interim Decision
 
-- Current status: `blocked`
-- Reason: release-ready decision cannot be declared while the mandatory KB integration gate remains unexecuted and reports `skipped` instead of a real pass/fail outcome.
+- Current status: `pass`
+- Reason: the previously blocked mandatory KB integration gate now executes cleanly in both targeted and full-pack validation, so the rehearsal record no longer carries an open blocker.
 
 ## 6. Immediate Next Actions
 
-1. Make `tests/test_kb_integration_postgres.py` runnable in the active release environment instead of skipping.
-2. Rerun the release pack or the late-stage `skip_fast` path and confirm KB integration turns green instead of skipped.
-3. When the KB gate passes, generate a final go/no-go summary from `docs/RELEASE_SUMMARY_TEMPLATE.md`.
+1. Preserve the clean full-pack artifact `20260422_154108` as the latest warning-free reference bundle.
+2. Keep using the release runner/checklist pair for subsequent rehearsals on the same `docker-compose-only` profile.
+3. If warning policy becomes stricter later, fail the pack on unexpected warnings rather than documenting them post hoc.
