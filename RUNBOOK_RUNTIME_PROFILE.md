@@ -132,7 +132,7 @@ If structural and quality smoke are already green on the same runtime/profile, u
 SKIP_STRUCTURAL_SMOKE=1 SKIP_QUALITY_SMOKE=1 bash scripts/release_ready_check.sh
 ```
 
-Each runner invocation also seeds `release_summary.md` with branch, commit, validation path and artifact-bundle metadata to speed up the final go/no-go writeup.
+Each runner invocation also seeds `release_summary.md` with date, branch, commit, validation path and artifact-bundle metadata to speed up the final go/no-go writeup.
 
 Interpretation rule:
 - `structural` green means runtime and observability are valid, and worker-backed memo/output generation completed successfully.

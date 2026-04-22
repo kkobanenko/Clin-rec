@@ -69,9 +69,10 @@ ensure_log_has_no_skips() {
 }
 
 seed_summary_metadata() {
-    local current_branch current_commit validation_path branch_md commit_md runtime_md validation_md operator_md
+    local current_branch current_commit current_date validation_path branch_md commit_md runtime_md validation_md operator_md
     current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
     current_commit="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+    current_date="$(date '+%Y-%m-%d %H:%M:%S %Z')"
     validation_path="full"
     if [[ "$SKIP_STRUCTURAL_SMOKE" == "1" && "$SKIP_QUALITY_SMOKE" == "1" ]]; then
         validation_path="late-stage rerun"
@@ -86,6 +87,7 @@ seed_summary_metadata() {
     printf -v operator_md '`%s`' "$OPERATOR_NAME"
 
     sed -i \
+        -e "s|^- Date:$|- Date: $current_date|" \
         -e "s|^- Branch:$|- Branch: $branch_md|" \
         -e "s|^- Commit SHA:$|- Commit SHA: $commit_md|" \
         -e "s|^- Runtime profile:.*$|- Runtime profile: $runtime_md|" \
