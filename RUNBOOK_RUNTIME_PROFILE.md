@@ -84,7 +84,7 @@ Structural pass criteria:
 - `/runs/{id}` reaches `completed` (after possible `pending/running`)
 - `stats_json` contains minimum required fields: `discovery_service_version`, `run_type`, `wall_time_seconds`, `total_discovered`, `duplicates_detected`, `coverage_percent`
 - mounted operator routes answer successfully: `/outputs`, `/kb/indexes/master`, `/pipeline/storage-stages`
-- task-status route answers for a freshly queued memo task via `/tasks/{task_id}`
+- task-status route reaches `SUCCESS` for a freshly queued memo task via `/tasks/{task_id}` and the created output is readable via `/outputs/{output_id}`
 - `/documents` returns consistent records
 - `completed` with `discovered_count = 0` is valid for smoke when lifecycle and observability checks pass
 
@@ -98,7 +98,7 @@ Quality pass criteria for manual document evaluation:
 - degraded or failed cases should be explainable through stage outcome and reason metadata when available
 
 Operator rule:
-- Use structural smoke for runtime/profile validation.
+- Use structural smoke for runtime/profile validation, including worker-backed memo/output completion.
 - Use quality smoke before asking analysts or reviewers to evaluate pipeline output on real documents.
 - Use `/outputs` and the admin Outputs page to verify queued memo/output workflows are visible after runtime changes.
 - Use the admin Tasks page when you need to inspect task ids returned by KB or output workflows.
@@ -135,7 +135,7 @@ SKIP_STRUCTURAL_SMOKE=1 SKIP_QUALITY_SMOKE=1 bash scripts/release_ready_check.sh
 Each runner invocation also seeds `release_summary.md` with branch, commit, validation path and artifact-bundle metadata to speed up the final go/no-go writeup.
 
 Interpretation rule:
-- `structural` green means runtime and observability are valid.
+- `structural` green means runtime and observability are valid, and worker-backed memo/output generation completed successfully.
 - `quality` green means content-layer and downstream spot-checks are valid.
 - `release-ready` requires structural green, quality green, targeted regression green, downstream verification green, and an explicit go/no-go review.
 

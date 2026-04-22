@@ -2,13 +2,13 @@
 
 ## 1. Build Identification
 
-- Date: 2026-04-22 16:17:07 MSK
+- Date: 2026-04-22 17:50:23 MSK
 - Branch: `main`
-- Commit SHA: `1391f95`
+- Commit SHA: `805137e`
 - Runtime profile: `docker-compose-only`
 - Validation path: `full`
 - Artifact bundle(s):
-  - `.artifacts/release_checks/20260422_161707`
+  - `.artifacts/release_checks/20260422_175023`
 - Operator: `GitHub Copilot`
 
 ## 2. Gate Results
@@ -16,20 +16,24 @@
 | Gate | Result | Notes |
 | --- | --- | --- |
 | Runtime preflight | pass | Compose-backed runtime stayed healthy for the full pack. |
-| Structural smoke | pass | Run `59` completed successfully. |
-| Quality smoke | pass | Run `60` completed successfully with downstream pair-evidence and matrix checks green. |
+| Structural smoke | pass | Run `64` completed successfully, including worker-backed memo-task completion and generated output retrieval. |
+| Quality smoke | pass | Run `65` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
 | API regression | pass | Review API, matrix model ops, outputs API and auxiliary mounts suites all passed. |
 | Downstream verification | pass | `tests/test_kb_integration_postgres.py` completed as `2 passed`. |
 
 ## 3. Key Evidence
 
 - Structural smoke:
-  - run `59`
+  - run `64`
   - status `completed`
   - discovered `5`
+  - queued memo task `SUCCESS`
+  - generated output `23` retrievable via `/outputs/23`
 - Quality smoke:
-  - run `60`
+  - run `65`
   - status `completed`
+  - queued memo task `SUCCESS`
+  - generated output `24` retrievable via `/outputs/24`
   - pair evidence `10 items` on inspected page, `60 total`
   - matrix cell score `0.13`, confidence `0.575`, supporting evidence `2`
 - API regression:
@@ -48,6 +52,7 @@
 
 - This summary covers only the `docker-compose-only` runtime profile; any other runtime path should be validated separately.
 - Structural smoke still discovered only `5` records on this rehearsal because the discovery strategy remained `playwright_fallback`; this is acceptable for runtime verification but not a completeness claim.
+- Output generation is now part of the smoke contract, so future regressions in worker queue routing should fail the pack earlier instead of surfacing only during manual UI checks.
 
 ## 6. Scope Boundaries
 

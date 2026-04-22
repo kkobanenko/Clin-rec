@@ -22,6 +22,7 @@
 - Убедиться, что lifecycle проходит до terminal state.
 - Убедиться, что `stats_json` содержит обязательный минимум.
 - Убедиться, что auxiliary routes `/outputs`, `/kb/indexes/master`, `/pipeline/storage-stages`, `/tasks/{task_id}` отвечают корректно.
+- Убедиться, что freshly queued memo/output task доходит до `SUCCESS` и созданный output читается через `/outputs/{output_id}`.
 
 ## 3. Quality Gate
 
@@ -41,14 +42,14 @@
 
 - Прогнать `tests/test_kb_integration_postgres.py`.
 - Проверить downstream extract -> candidate -> scoring -> matrix path.
-- Проверить KB/output workflows и task visibility.
+- Проверить KB/output workflows через terminal task state и чтение созданного output, а не только через task visibility.
 - Mandatory integration suites не должны завершаться как `skipped`; skip для этого gate трактуется как незакрытая проверка.
 
 ## 6. Governance Gate
 
 - Подтвердить, что review queue/history/actions доступны и интерпретируемы.
 - Подтвердить, что scoring model readiness/activation path контролируем и диагностируем.
-- Подтвердить, что output/KB background workflows видимы через tasks/operator surfaces.
+- Подтвердить, что output/KB background workflows не только видимы через tasks/operator surfaces, но и реально завершаются с доступным результатом.
 
 ## 7. Go/No-Go Summary
 

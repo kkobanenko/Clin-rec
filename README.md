@@ -21,7 +21,7 @@
 - `UI Stack Status`: показывает статус контейнеров и проброшенные порты текущего docker-compose runtime
 - `UI Stack Health`: быстро проверяет `GET /health` и доступность Streamlit UI после старта стека
 - `UI Stack Logs`: печатает последние логи `app`, `streamlit` и `worker` для быстрого UI/runtime debug
-- `Structural Smoke`: быстрый entrypoint для runtime/profile validation
+- `Structural Smoke`: быстрый entrypoint для runtime/profile validation, включая worker-backed memo/output completion
 - `Quality Smoke`: entrypoint для content/downstream quality checks
 - `Release Ready Check`: полный release pack через `scripts/release_ready_check.sh`
 - `Release Late-Stage Rerun`: быстрый rerun regression-only path после уже зафиксированного green structural+quality smoke на том же runtime/profile
