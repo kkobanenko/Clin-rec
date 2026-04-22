@@ -634,13 +634,22 @@ def main():
     pair_evidence_total = (results.get("pair_evidence") or {}).get("total", 0)
     matrix_cell_present = bool((results.get("matrix_cell") or {}).get("cell"))
     content_outcome = (results.get("content") or {}).get("pipeline_outcome") or {}
+    structural_aux_checks = {
+        "outputs": bool(results.get("outputs")),
+        "kb_master_index": bool(results.get("kb_master_index")),
+        "storage_stages": bool(results.get("storage_stages")),
+        "task_status": bool(results.get("task_status")),
+        "generated_output": bool(results.get("generated_output")),
+    }
+    structural_aux_ok = all(structural_aux_checks.values())
+    missing_aux_checks = [name for name, ok in structural_aux_checks.items() if not ok]
     quality_pass = True
     if mode == "quality" and discovered > 0:
         active_model = get_active_scoring_model()
         matrix_ok = True if active_model is None else matrix_cell_present
         quality_pass = bool(content_sections > 0 and fragments_total > 0 and pair_evidence_total > 0 and matrix_ok)
 
-    if status == "completed" and not missing_stats_keys and (mode != "quality" or quality_pass):
+    if status == "completed" and not missing_stats_keys and structural_aux_ok and (mode != "quality" or quality_pass):
         log("✅ E2E Test PASSED")
         if mode == "structural":
             log(
@@ -662,6 +671,9 @@ def main():
     elif status == "completed":
         if missing_stats_keys:
             log("❌ E2E Test FAILED: completed run missing required stats_json fields")
+        elif not structural_aux_ok:
+            log("❌ E2E Test FAILED: required structural route/task checks did not pass")
+            log(f"ℹ️  Missing structural checks: {', '.join(missing_aux_checks)}")
         elif mode == "quality":
             log("❌ E2E Test FAILED: quality gate did not pass")
             log(
@@ -684,11 +696,7 @@ def main():
         "quality_pass": quality_pass if mode == "quality" else None,
         "missing_stats_keys": missing_stats_keys,
         "aux_routes": {
-            "outputs": bool(results.get("outputs")),
-            "kb_master_index": bool(results.get("kb_master_index")),
-            "storage_stages": bool(results.get("storage_stages")),
-            "task_status": bool(results.get("task_status")),
-            "generated_output": bool(results.get("generated_output")),
+            **structural_aux_checks,
         },
     }
 
