@@ -155,6 +155,11 @@ VS Code task entrypoints:
 - `Release Ready Check`
 - `Release Late-Stage Rerun` (only after green structural+quality smoke on the same runtime/profile)
 
+Local UI/API surface after `UI Stack Up`:
+- UI: `http://localhost:8501`
+- API: `http://localhost:8000`
+- API docs: `http://localhost:8000/docs`
+
 ## Troubleshooting
 
 ### Symptom: run stays `pending`
