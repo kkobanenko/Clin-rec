@@ -153,6 +153,7 @@ VS Code task entrypoints:
 - `UI Stack Down`
 - `Structural Smoke`
 - `Quality Smoke`
+- `Document Outcomes Regression`
 - `Release Ready Check`
 - `Release Late-Stage Rerun` (only after green structural+quality smoke on the same runtime/profile)
 

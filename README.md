@@ -25,6 +25,7 @@
 - `UI Stack Logs`: печатает последние логи `app`, `streamlit` и `worker` для быстрого UI/runtime debug
 - `Structural Smoke`: быстрый entrypoint для runtime/profile validation, включая worker-backed memo/output completion
 - `Quality Smoke`: entrypoint для content/downstream quality checks
+- `Document Outcomes Regression`: targeted regression for document content/fragments and raw-artifact access surfaces
 - `Release Ready Check`: полный release pack через `scripts/release_ready_check.sh`
 - `Release Late-Stage Rerun`: быстрый rerun regression-only path после уже зафиксированного green structural+quality smoke на том же runtime/profile
 - Release-related tasks по умолчанию маркируют `RUNTIME_PROFILE=docker-compose-only` для seeded summary metadata.
