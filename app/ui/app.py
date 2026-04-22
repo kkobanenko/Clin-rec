@@ -107,7 +107,7 @@ def page_documents():
     df = pd.DataFrame(items)
     display_cols = ["id", "title", "specialty", "status", "external_id"]
     display_cols = [c for c in display_cols if c in df.columns]
-    st.dataframe(df[display_cols], use_container_width=True)
+    st.dataframe(df[display_cols], width="stretch")
 
     # Document detail
     st.subheader("Document Detail")
@@ -150,7 +150,7 @@ def page_pipeline():
         items = runs.get("items", [])
         if items:
             df = pd.DataFrame(items)
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
         else:
             st.info("No pipeline runs yet")
 
@@ -178,7 +178,7 @@ def page_matrix():
         return
 
     df = pd.DataFrame(items)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, width="stretch")
 
     # Export
     st.subheader("Export Matrix")
@@ -224,7 +224,7 @@ def page_reviews():
     if isinstance(queue, dict):
         items = queue.get("items", [])
         if items:
-            st.dataframe(pd.DataFrame(items), use_container_width=True)
+            st.dataframe(pd.DataFrame(items), width="stretch")
         else:
             st.info("No evidence awaiting review")
 
@@ -244,7 +244,7 @@ def page_reviews():
         items = reviews.get("items", [])
         if items:
             df = pd.DataFrame(items)
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
         else:
             st.info("No review actions yet")
 
@@ -315,9 +315,9 @@ def page_scoring_models():
                         "low_confidence_ratio": readiness.get("low_confidence_ratio"),
                     }
                 )
-            st.dataframe(pd.DataFrame(overview_rows), use_container_width=True)
+            st.dataframe(pd.DataFrame(overview_rows), width="stretch")
         else:
-            st.dataframe(pd.DataFrame(models), use_container_width=True)
+            st.dataframe(pd.DataFrame(models), width="stretch")
 
         active_model = api_get("/matrix/models/active", allow_statuses={404})
         if isinstance(active_model, dict):
@@ -421,7 +421,7 @@ def page_outputs():
     if isinstance(outputs, dict):
         items = outputs.get("items", [])
         if items:
-            st.dataframe(pd.DataFrame(items), use_container_width=True)
+            st.dataframe(pd.DataFrame(items), width="stretch")
         else:
             st.info("No outputs available")
 
@@ -478,7 +478,7 @@ def page_kb():
     if isinstance(artifacts, dict):
         items = artifacts.get("items", [])
         if items:
-            st.dataframe(pd.DataFrame(items), use_container_width=True)
+            st.dataframe(pd.DataFrame(items), width="stretch")
         else:
             st.info("No KB artifacts available")
 
@@ -494,7 +494,7 @@ def page_kb():
     if isinstance(entities, dict):
         items = entities.get("items", [])
         if items:
-            st.dataframe(pd.DataFrame(items), use_container_width=True)
+            st.dataframe(pd.DataFrame(items), width="stretch")
         else:
             st.info("No KB entities available")
 
@@ -502,7 +502,7 @@ def page_kb():
     conflicts = api_get("/kb/conflicts")
     if isinstance(conflicts, list):
         if conflicts:
-            st.dataframe(pd.DataFrame(conflicts), use_container_width=True)
+            st.dataframe(pd.DataFrame(conflicts), width="stretch")
         else:
             st.info("No KB conflicts detected")
 
