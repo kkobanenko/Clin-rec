@@ -146,6 +146,10 @@ Documentation alignment:
 - Baseline acceptance floor: `DOD_MVP.md`
 
 VS Code task entrypoints:
+- `UI Stack Up`
+- `UI Stack Status`
+- `UI Stack Logs`
+- `UI Stack Down`
 - `Structural Smoke`
 - `Quality Smoke`
 - `Release Ready Check`
