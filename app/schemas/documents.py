@@ -56,6 +56,11 @@ class SourceArtifactOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SourceArtifactAccessOut(SourceArtifactOut):
+    download_url: str
+    preview_url: str
+
+
 class DocumentDetailOut(BaseModel):
     registry: DocumentRegistryOut
     versions: list[DocumentVersionOut] = []
@@ -95,3 +100,10 @@ class FragmentListOut(BaseModel):
     fragments: list[FragmentOut] = []
     total: int
     pipeline_outcome: PipelineOutcomeOut | None = None
+
+
+class DocumentArtifactListOut(BaseModel):
+    document_id: int
+    version_id: int
+    artifacts: list[SourceArtifactAccessOut] = []
+    total: int

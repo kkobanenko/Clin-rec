@@ -1,15 +1,20 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.dependencies import get_db
+from app.core.storage import download_artifact
 from app.models.document import DocumentRegistry, DocumentVersion, SourceArtifact
 from app.models.pipeline_event import PipelineEventLog
+from app.schemas.documents import DocumentArtifactListOut
 from app.models.text import DocumentSection, TextFragment
+from app.services.artifact_validation import validate_artifact_payload
 from app.schemas.documents import (
     DocumentDetailOut,
+    SourceArtifactAccessOut,
     DocumentRegistryOut,
     DocumentVersionOut,
     FragmentListOut,
@@ -51,6 +56,62 @@ def _build_public_registry_out(doc: DocumentRegistry) -> DocumentRegistryOut:
         updates["pdf_url"] = None
 
     return registry.model_copy(update=updates) if updates else registry
+
+
+async def _get_current_version(db: AsyncSession, document_id: int) -> DocumentVersion:
+    version_result = await db.execute(
+        select(DocumentVersion)
+        .where(DocumentVersion.registry_id == document_id, DocumentVersion.is_current.is_(True))
+        .order_by(DocumentVersion.detected_at.desc())
+        .limit(1)
+    )
+    version = version_result.scalar_one_or_none()
+    if version is None:
+        raise HTTPException(status_code=404, detail="Current document version not found")
+    return version
+
+
+def _artifact_access_out(document_id: int, artifact: SourceArtifact) -> SourceArtifactAccessOut:
+    base_path = f"/documents/{document_id}/artifacts/{artifact.id}/download"
+    return SourceArtifactAccessOut(
+        id=artifact.id,
+        document_version_id=artifact.document_version_id,
+        artifact_type=artifact.artifact_type,
+        raw_path=artifact.raw_path,
+        content_hash=artifact.content_hash,
+        content_type=artifact.content_type,
+        fetched_at=artifact.fetched_at,
+        download_url=base_path,
+        preview_url=f"{base_path}?disposition=inline",
+    )
+
+
+def _artifact_filename(artifact: SourceArtifact) -> str:
+    extension = "bin"
+    if artifact.artifact_type == "html":
+        extension = "html"
+    elif artifact.artifact_type == "pdf":
+        extension = "pdf"
+    return f"document_artifact_{artifact.id}.{extension}"
+
+
+async def _get_current_valid_artifacts(db: AsyncSession, document_id: int) -> tuple[DocumentVersion, list[SourceArtifact]]:
+    version = await _get_current_version(db, document_id)
+    artifact_result = await db.execute(
+        select(SourceArtifact)
+        .where(SourceArtifact.document_version_id == version.id)
+        .order_by(SourceArtifact.fetched_at.desc(), SourceArtifact.id.desc())
+    )
+    artifacts = artifact_result.scalars().all()
+
+    valid_artifacts: list[SourceArtifact] = []
+    for artifact in artifacts:
+        raw_data = download_artifact(artifact.raw_path)
+        validation = validate_artifact_payload(artifact.artifact_type, artifact.content_type, raw_data)
+        if validation.is_valid:
+            valid_artifacts.append(artifact)
+
+    return version, valid_artifacts
 
 
 async def _get_latest_pipeline_outcome(
@@ -171,15 +232,39 @@ async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
     )
 
 
+@router.get("/{document_id}/artifacts", response_model=DocumentArtifactListOut)
+async def list_document_artifacts(document_id: int, db: AsyncSession = Depends(get_db)):
+    version, artifacts = await _get_current_valid_artifacts(db, document_id)
+    return DocumentArtifactListOut(
+        document_id=document_id,
+        version_id=version.id,
+        artifacts=[_artifact_access_out(document_id, artifact) for artifact in artifacts],
+        total=len(artifacts),
+    )
+
+
+@router.get("/{document_id}/artifacts/{artifact_id}/download")
+async def download_document_artifact(
+    document_id: int,
+    artifact_id: int,
+    disposition: str = Query("attachment", pattern="^(attachment|inline)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    version, artifacts = await _get_current_valid_artifacts(db, document_id)
+    artifact = next((item for item in artifacts if item.id == artifact_id), None)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+
+    raw_data = download_artifact(artifact.raw_path)
+    filename = _artifact_filename(artifact)
+    media_type = artifact.content_type or "application/octet-stream"
+    headers = {"Content-Disposition": f'{disposition}; filename="{filename}"'}
+    return StreamingResponse(iter([raw_data]), media_type=media_type, headers=headers)
+
+
 @router.get("/{document_id}/content", response_model=NormalizedDocumentOut)
 async def get_document_content(document_id: int, db: AsyncSession = Depends(get_db)):
-    version_result = await db.execute(
-        select(DocumentVersion)
-        .where(DocumentVersion.registry_id == document_id, DocumentVersion.is_current.is_(True))
-        .order_by(DocumentVersion.detected_at.desc())
-        .limit(1)
-    )
-    version = version_result.scalar_one()
+    version = await _get_current_version(db, document_id)
 
     sections_result = await db.execute(
         select(DocumentSection)
@@ -203,13 +288,7 @@ async def get_document_fragments(
     db: AsyncSession = Depends(get_db),
     section_id: int | None = None,
 ):
-    version_result = await db.execute(
-        select(DocumentVersion)
-        .where(DocumentVersion.registry_id == document_id, DocumentVersion.is_current.is_(True))
-        .order_by(DocumentVersion.detected_at.desc())
-        .limit(1)
-    )
-    version = version_result.scalar_one()
+    version = await _get_current_version(db, document_id)
 
     sections_result = await db.execute(
         select(DocumentSection.id).where(DocumentSection.document_version_id == version.id)

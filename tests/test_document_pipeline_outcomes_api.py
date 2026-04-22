@@ -229,3 +229,100 @@ async def test_document_endpoints_hide_synthetic_dom_fallback_urls():
             assert registry_data["pdf_url"] is None
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_document_artifacts_endpoint_lists_only_current_valid_artifacts(monkeypatch):
+    version = SimpleNamespace(id=11)
+    valid_html = SimpleNamespace(
+        id=7,
+        document_version_id=11,
+        artifact_type="html",
+        raw_path="documents/1/versions/11/html.html",
+        content_hash="hash-html",
+        content_type="text/html",
+        fetched_at=datetime.now(timezone.utc),
+    )
+    invalid_pdf = SimpleNamespace(
+        id=8,
+        document_version_id=11,
+        artifact_type="pdf",
+        raw_path="documents/1/versions/11/pdf.pdf",
+        content_hash="hash-pdf",
+        content_type="text/html",
+        fetched_at=datetime.now(timezone.utc),
+    )
+
+    db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=version),
+            FakeScalarResult(values=[valid_html, invalid_pdf]),
+        ]
+    )
+
+    async def override_get_db():
+        yield db
+
+    monkeypatch.setattr(
+        "app.api.documents.download_artifact",
+        lambda path: b"<html><body>clinical recommendation text</body></html>"
+        if path.endswith("html.html")
+        else b"<!doctype html><html lang='ru'></html>",
+    )
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/documents/1/artifacts")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["document_id"] == 1
+        assert data["version_id"] == 11
+        assert data["total"] == 1
+        assert data["artifacts"][0]["id"] == 7
+        assert data["artifacts"][0]["download_url"] == "/documents/1/artifacts/7/download"
+        assert data["artifacts"][0]["preview_url"] == "/documents/1/artifacts/7/download?disposition=inline"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_document_artifact_download_endpoint_streams_valid_current_artifact(monkeypatch):
+    version = SimpleNamespace(id=11)
+    valid_pdf = SimpleNamespace(
+        id=9,
+        document_version_id=11,
+        artifact_type="pdf",
+        raw_path="documents/1/versions/11/pdf.pdf",
+        content_hash="hash-pdf",
+        content_type="application/pdf",
+        fetched_at=datetime.now(timezone.utc),
+    )
+    pdf_bytes = b"%PDF-1.7\nraw pdf bytes"
+
+    db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=version),
+            FakeScalarResult(values=[valid_pdf]),
+        ]
+    )
+
+    async def override_get_db():
+        yield db
+
+    monkeypatch.setattr("app.api.documents.download_artifact", lambda _path: pdf_bytes)
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/documents/1/artifacts/9/download?disposition=inline")
+
+        assert resp.status_code == 200
+        assert resp.content == pdf_bytes
+        assert resp.headers["content-type"].startswith("application/pdf")
+        assert resp.headers["content-disposition"] == 'inline; filename="document_artifact_9.pdf"'
+    finally:
+        app.dependency_overrides.pop(get_db, None)

@@ -29,6 +29,7 @@ CR Intelligence Platform должна обеспечивать не только
 - Runtime pipeline и queue routing работают в согласованном приложении и worker-контуре.
 - Основные operator surfaces уже реализованы: pipeline, matrix, outputs, KB, tasks, review/scoring endpoints.
 - Admin UI покрывает ключевые operator сценарии.
+- Для документов доступен user-facing path к valid raw artifacts текущей версии: download primary, preview secondary.
 - Structural и quality smoke уже существуют и отделены друг от друга.
 - После extract уже доступны candidate generation, scoring и matrix build path.
 
@@ -73,7 +74,7 @@ CR Intelligence Platform должна обеспечивать не только
 | Operator / data engineer | Есть рабочие контуры, но нет жесткого release barrier | Явный preflight, smoke и regression contract перед выпуском |
 | QA / reviewer | Сложно отделить quality-capable implementation от release-ready состояния | Единый go/no-go набор и прозрачные acceptance gates |
 | Product owner | Ширина реализации не превращается автоматически в управляемый MVP release | Формализованная стадия release-ready и границы post-MVP |
-| Analyst | Нужен предсказуемый путь от run к output/KB verification | Понятный operator workflow и диагностируемые downstream results |
+| Analyst | Нужен предсказуемый путь от run к output/KB verification и исходному сырью документа | Понятный operator workflow, диагностируемые downstream results и доступ к valid raw artifacts текущей версии |
 
 # 7. Product scope этой версии
 
@@ -86,6 +87,7 @@ CR Intelligence Platform должна обеспечивать не только
 | Regression hardening | Structural smoke, quality smoke, targeted API regression, downstream integration checks |
 | Governance completion | Минимально достаточный reviewer/scoring/release discipline для MVP |
 | KB/output workflow closure | Связка KB/output endpoints с фактическим release workflow |
+| Raw document access | Download-first, preview-secondary доступ к valid raw artifacts текущей версии без показа synthetic или invalid source URLs |
 | Release rehearsal | Контролируемый rehearsal и документируемое решение о готовности версии |
 
 ## 7.2 Out of scope
@@ -108,7 +110,9 @@ CR Intelligence Platform должна обеспечивать не только
 
 5. Downstream evidence/matrix/KB/output results должны подтверждаться фактическими данными и task visibility.
 
-6. Каждое решение stop/go должно быть объяснимо через API, smoke summary и documented criteria.
+6. Operator должен иметь возможность скачать valid raw artifacts текущей версии документа через additive UI/API path, не полагаясь на misleading external rubricator URLs.
+
+7. Каждое решение stop/go должно быть объяснимо через API, smoke summary и documented criteria.
 
 # 9. Release contract версии
 
@@ -127,7 +131,7 @@ CR Intelligence Platform должна обеспечивать не только
 | Gate 2 — Structural smoke | Lifecycle, routing, observability contract и auxiliary routes подтверждены. |
 | Gate 3 — Quality smoke | Для валидного сценария подтверждены content-layer и downstream pair/matrix checks. |
 | Gate 4 — API/operator regression | Ключевые operator endpoints на pipeline/review/matrix/outputs/kb/tasks проходят targeted regression. |
-| Gate 5 — Downstream workflow verification | Evidence, matrix, KB/output workflows проверены на фактических данных и task visibility. |
+| Gate 5 — Downstream workflow verification | Evidence, matrix, KB/output workflows и valid raw document access проверены на фактических данных и task visibility. |
 | Gate 6 — Release review | Есть явное go/no-go решение с зафиксированными причинами и оставшимися рисками. |
 
 # 10. План продвижения
@@ -167,7 +171,7 @@ MVP release считается допустимым, когда одноврем
 
 4. Targeted API regression на operator surfaces проходит.
 
-5. Downstream integration checks для evidence/matrix и KB/output workflows проходят.
+5. Downstream integration checks для evidence/matrix, KB/output workflows и valid raw current-version artifacts проходят.
 
 6. Остающиеся риски зафиксированы и явно отнесены к post-MVP scope, а не к скрытым блокерам текущего release.
 

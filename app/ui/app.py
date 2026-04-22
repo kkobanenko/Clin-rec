@@ -117,6 +117,20 @@ def page_documents():
         if detail:
             st.json(detail)
 
+        artifacts = api_get(f"/documents/{doc_id}/artifacts")
+        st.subheader("Raw Source Artifacts")
+        if isinstance(artifacts, dict) and artifacts.get("artifacts"):
+            for artifact in artifacts.get("artifacts", []):
+                col1, col2, col3 = st.columns([2, 1, 1])
+                col1.write(
+                    f"#{artifact.get('id')} {artifact.get('artifact_type')} "
+                    f"({artifact.get('content_type') or 'application/octet-stream'})"
+                )
+                col2.link_button("Download", f"{API_BASE}{artifact.get('download_url')}")
+                col3.link_button("Preview", f"{API_BASE}{artifact.get('preview_url')}")
+        else:
+            st.info("No valid raw artifacts available for current version")
+
         content = api_get(f"/documents/{doc_id}/content")
         if content:
             sections = content.get("sections", [])
