@@ -17,6 +17,7 @@
 - `UI Stack Up`: поднимает docker-compose runtime для локального UI/API тестирования
 - `UI Stack Down`: останавливает локальный docker-compose runtime после тестирования
 - `UI Stack Status`: показывает статус контейнеров и проброшенные порты текущего docker-compose runtime
+- `UI Stack Health`: быстро проверяет `GET /health` и доступность Streamlit UI после старта стека
 - `UI Stack Logs`: печатает последние логи `app`, `streamlit` и `worker` для быстрого UI/runtime debug
 - `Structural Smoke`: быстрый entrypoint для runtime/profile validation
 - `Quality Smoke`: entrypoint для content/downstream quality checks

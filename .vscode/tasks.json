@@ -35,6 +35,17 @@
 			"group": "build"
 		},
 		{
+			"label": "UI Stack Health",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"curl -fsS http://127.0.0.1:8000/health && echo && curl -I http://127.0.0.1:8501"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
 			"label": "UI Stack Logs",
 			"type": "shell",
 			"command": "bash",

@@ -148,6 +148,7 @@ Documentation alignment:
 VS Code task entrypoints:
 - `UI Stack Up`
 - `UI Stack Status`
+- `UI Stack Health`
 - `UI Stack Logs`
 - `UI Stack Down`
 - `Structural Smoke`
