@@ -18,20 +18,20 @@
 | Gate | Result | Notes |
 | --- | --- | --- |
 | Runtime preflight | pass / fail |  |
-| Structural smoke | pass / fail |  |
-| Quality smoke | pass / fail |  |
+| Structural smoke | pass / fail | Record whether a freshly queued memo/output task reached `SUCCESS` and the generated output was retrievable. |
+| Quality smoke | pass / fail | Record downstream pair-evidence and matrix checks, plus memo/output task completion if this mode queued output generation. |
 | API regression | pass / fail |  |
 | Downstream verification | pass / fail |  |
 
 ## 3. Key Evidence
 
-- Structural smoke reference:
-- Quality smoke reference:
+- Structural smoke reference: include run id, terminal state, and memo/output completion evidence (`/tasks/{task_id}`, `/outputs/{output_id}`)
+- Quality smoke reference: include run id, terminal state, downstream evidence, and memo/output completion evidence when applicable
 - Review API regression reference:
 - Matrix model ops reference:
 - Outputs API reference:
 - Auxiliary mounts reference:
-- KB/output verification reference:
+- KB/output verification reference: state whether verification was limited to visibility or confirmed terminal completion plus readable result
 
 ## 4. Blockers
 
