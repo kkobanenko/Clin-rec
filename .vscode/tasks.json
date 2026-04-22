@@ -2,6 +2,28 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "UI Stack Up",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"docker compose up -d"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "UI Stack Down",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"docker compose down"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
 			"label": "Structural Smoke",
 			"type": "shell",
 			"command": "bash",

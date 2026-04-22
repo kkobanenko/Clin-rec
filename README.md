@@ -14,6 +14,8 @@
 
 ## VS Code Tasks
 
+- `UI Stack Up`: поднимает docker-compose runtime для локального UI/API тестирования
+- `UI Stack Down`: останавливает локальный docker-compose runtime после тестирования
 - `Structural Smoke`: быстрый entrypoint для runtime/profile validation
 - `Quality Smoke`: entrypoint для content/downstream quality checks
 - `Release Ready Check`: полный release pack через `scripts/release_ready_check.sh`
