@@ -25,6 +25,7 @@ BASE_URL = "http://127.0.0.1:8000"
 POLL_INTERVAL = 2
 DEFAULT_STRUCTURAL_POLL_TIMEOUT = 180
 DEFAULT_QUALITY_POLL_TIMEOUT = 300
+DEFAULT_TASK_POLL_TIMEOUT = 45
 MAX_RETRIES = 3
 REQUIRED_STATS_KEYS = {
     "discovery_service_version",
@@ -232,16 +233,58 @@ def queue_output_memo() -> dict | None:
 
 
 def test_task_status(task_id: str) -> dict | None:
-    """Fetch GET /tasks/{task_id} and validate mounted task-status surface."""
+    """Poll GET /tasks/{task_id} until terminal state and validate worker-backed task execution."""
     log(f"4e/6: Testing GET /tasks/{task_id}")
+    start_time = time.time()
+
+    while time.time() - start_time < DEFAULT_TASK_POLL_TIMEOUT:
+        try:
+            resp = retry_request("GET", f"{BASE_URL}/tasks/{task_id}?include_result=true")
+            assert resp.status_code == 200
+            data = resp.json()
+            state = str(data.get("state"))
+            ready = bool(data.get("ready"))
+
+            if ready:
+                if state != "SUCCESS":
+                    log(
+                        f"  ✗ Task reached terminal state={state} "
+                        f"error={data.get('error') or 'unknown'}"
+                    )
+                    return None
+
+                result = data.get("result") or {}
+                log(
+                    f"  ✓ Task completed: state={state} ready={ready} "
+                    f"output_id={result.get('output_id', 'n/a')}"
+                )
+                return data
+
+            elapsed = int(time.time() - start_time)
+            log(f"  ⏳ Task state: {state} ({elapsed}s elapsed)")
+            time.sleep(POLL_INTERVAL)
+        except Exception as e:
+            log(f"  ✗ Task status fetch failed: {e}")
+            time.sleep(POLL_INTERVAL)
+
+    log(f"  ✗ Task status poll timeout exceeded after {DEFAULT_TASK_POLL_TIMEOUT}s")
+    return None
+
+
+def test_generated_output(output_id: int) -> dict | None:
+    """Fetch GET /outputs/{output_id} to validate that the queued output was actually created."""
+    log(f"4f/6: Testing GET /outputs/{output_id}")
     try:
-        resp = retry_request("GET", f"{BASE_URL}/tasks/{task_id}?include_result=true")
+        resp = retry_request("GET", f"{BASE_URL}/outputs/{output_id}")
         assert resp.status_code == 200
         data = resp.json()
-        log(f"  ✓ Task status retrieved: state={data.get('state')} ready={data.get('ready')}")
+        log(
+            f"  ✓ Generated output retrieved: ID={data.get('id')} "
+            f"type={data.get('output_type')} status={data.get('file_back_status')}"
+        )
         return data
     except Exception as e:
-        log(f"  ✗ Task status fetch failed: {e}")
+        log(f"  ✗ Generated output fetch failed: {e}")
         return None
 
 
@@ -536,6 +579,9 @@ def main():
     queued_output = queue_output_memo()
     results["queued_output"] = queued_output
     results["task_status"] = test_task_status(queued_output["task_id"]) if queued_output else None
+    task_result = (results.get("task_status") or {}).get("result") or {}
+    output_id = task_result.get("output_id")
+    results["generated_output"] = test_generated_output(output_id) if output_id else None
     first_doc = test_documents_list()
     if not first_doc:
         log("\n⚠️  No documents found. Skipping content/fragment tests.")
@@ -642,6 +688,7 @@ def main():
             "kb_master_index": bool(results.get("kb_master_index")),
             "storage_stages": bool(results.get("storage_stages")),
             "task_status": bool(results.get("task_status")),
+            "generated_output": bool(results.get("generated_output")),
         },
     }
 
