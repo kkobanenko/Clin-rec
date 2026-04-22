@@ -40,20 +40,11 @@ class Settings(BaseSettings):
     rubricator_list_fallback_path: str = "clin_recomend"
     rubricator_view_path: str = "clin-rec/view"
     rubricator_pdf_path: str = "clin-rec/pdf"
-    # Страницы с полным контентом КР и кнопкой «Скачать PDF» (не путать с clin-rec/view SPA).
-    rubricator_view_cr_path: str = "view-cr"
-    rubricator_preview_cr_path: str = "preview-cr"
     rubricator_api_base_url: str = "https://apicr.minzdrav.gov.ru/api.ashx"
     rubricator_api_list_op: str = "GetJsonClinrecsFilterV2"
     rubricator_api_page_size: int = 100
     rubricator_api_request_delay: float = 1.0
-    # Сервер apicr.minzdrav.gov.ru отвечает 451 на нестандартный UA — нужен браузероподобный.
-    rubricator_api_user_agent: str = (
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ClinRecPlatform/1.0"
-    )
-    # Ограничение числа карточек за один прогон (0 = без ограничения). План: 10–20 КР.
-    discovery_max_records: int = 20
+    rubricator_api_user_agent: str = "ClinRecPlatform/1.0 (+https://github.com/kkobanenko/Clin-rec)"
     discovery_concurrency: int = 2
     discovery_request_delay: float = 2.0
 
@@ -63,7 +54,7 @@ class Settings(BaseSettings):
     # Streamlit
     streamlit_port: int = 8501
 
-    # Сгенерированные output-файлы (memo и др.) на локальном диске (TZ §16).
+    # Generated output files (memo and filing artifacts) on the local filesystem.
     output_files_dir: str = "var/crin_outputs"
 
 
