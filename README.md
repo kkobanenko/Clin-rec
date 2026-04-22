@@ -9,6 +9,7 @@
 - `RUNBOOK_RUNTIME_PROFILE.md`: runtime profile, smoke semantics и release verification sequence
 - `docs/RELEASE_READY_CHECKLIST.md`: операторский go/no-go checklist для MVP release decision
 - `docs/RELEASE_REHEARSAL_2026-04-21.md`: живой rehearsal record с поэтапными gate results
+- `docs/RELEASE_REHEARSAL_2026-04-22.md`: clean full-pack rehearsal record для текущего compose-backed runtime
 - `docs/RELEASE_SUMMARY_2026-04-21.md`: финальное go/no-go summary по текущему release cycle
 - `DOD_MVP.md`: baseline acceptance floor
 
