@@ -2,13 +2,13 @@
 
 ## 1. Build Identification
 
-- Date: 2026-04-22 17:50:23 MSK
+- Date: 2026-04-22 18:50:40 MSK
 - Branch: `main`
-- Commit SHA: `805137e`
+- Commit SHA: `831fa58`
 - Runtime profile: `docker-compose-only`
 - Validation path: `full`
 - Artifact bundle(s):
-  - `.artifacts/release_checks/20260422_175023`
+  - `.artifacts/release_checks/20260422_185040`
 - Operator: `GitHub Copilot`
 
 ## 2. Gate Results
@@ -16,24 +16,25 @@
 | Gate | Result | Notes |
 | --- | --- | --- |
 | Runtime preflight | pass | Compose-backed runtime stayed healthy for the full pack. |
-| Structural smoke | pass | Run `64` completed successfully, including worker-backed memo-task completion and generated output retrieval. |
-| Quality smoke | pass | Run `65` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
+| Structural smoke | pass | Run `67` completed successfully, including worker-backed memo-task completion, generated output retrieval, and enforced auxiliary-route checks inside the pass/fail gate. |
+| Quality smoke | pass | Run `68` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
 | API regression | pass | Review API, matrix model ops, outputs API and auxiliary mounts suites all passed. |
 | Downstream verification | pass | `tests/test_kb_integration_postgres.py` completed as `2 passed`. |
 
 ## 3. Key Evidence
 
 - Structural smoke:
-  - run `64`
+  - run `67`
   - status `completed`
   - discovered `5`
   - queued memo task `SUCCESS`
-  - generated output `23` retrievable via `/outputs/23`
+  - generated output `26` retrievable via `/outputs/26`
+  - auxiliary route/task checks were enforced in the terminal pass/fail decision
 - Quality smoke:
-  - run `65`
+  - run `68`
   - status `completed`
   - queued memo task `SUCCESS`
-  - generated output `24` retrievable via `/outputs/24`
+  - generated output `27` retrievable via `/outputs/27`
   - pair evidence `10 items` on inspected page, `60 total`
   - matrix cell score `0.13`, confidence `0.575`, supporting evidence `2`
 - API regression:
