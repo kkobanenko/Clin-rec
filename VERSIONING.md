@@ -14,6 +14,7 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Added product advancement plan for transition from quality-capable implementation to release-ready MVP.
 - Added formal release contract, release gates, and go/no-go semantics.
 - Added scope boundaries between immediate release hardening and post-MVP productization.
+- Synced release-ready contract with additive raw document artifact access semantics and current-version validation rules.
 
 ### TZ v1.5 (2026-04-21)
 
@@ -23,6 +24,16 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Added execution-ready technical plan for release-hardening tranche.
 - Added work packages for runtime preflight, regression pack, governance completion, downstream verification, and release rehearsal.
 - Added release-ready statuses, required release artifacts, and acceptance criteria.
+- Synced technical tranche with additive raw-artifact API/UI access, valid-artifact filtering, and regression coverage expectations.
+
+### Release Evidence Sync (2026-04-23)
+
+**Files:** `docs/RELEASE_REHEARSAL_2026-04-23.md`, `docs/RELEASE_SUMMARY_2026-04-23.md`, `README.md`, `docs/RELEASE_READY_CHECKLIST.md`
+
+**Changelog:**
+- Added fresh compose-backed full-pack release evidence for commit `61eb4e7`.
+- Promoted 2026-04-23 rehearsal/summary as current clean reference docs in README and checklist examples.
+- Captured current gate evidence after raw document artifact access and document-model health fix.
 
 ### PRD v1.5 (2026-04-21)
 
@@ -184,8 +195,15 @@ Before releasing a matrix version or making config changes:
 - Updated canonical MVP DoD with quality-smoke semantics for manual document evaluation readiness.
 - Updated runtime runbook to distinguish structural smoke from quality smoke and document operator handling of empty-content runs.
 
+## Release Notes (2026-04-23)
+
+- Added additive raw document artifact access via documents API/UI with valid current-version filtering.
+- Hid synthetic or invalid raw-source links from user-facing document access paths.
+- Fixed document model type-check visibility for `DocumentSection`.
+- Re-ran full `Release Ready Check` on compose runtime and recorded green release evidence for commit `61eb4e7`.
+
 ---
 
-**Version:** 1.0  
-**Last Updated:** 2026-04-21  
+**Version:** 1.1  
+**Last Updated:** 2026-04-23  
 **Status:** ✅ Active for MVP

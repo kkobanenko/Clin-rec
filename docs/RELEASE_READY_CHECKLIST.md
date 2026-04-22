@@ -58,7 +58,7 @@
 - Зафиксировать residual risks, допустимые для post-MVP.
 - Зафиксировать, какие ограничения явно остаются вне scope: full matrix governance, full reviewer productization, external distribution.
 - При оформлении summary использовать `docs/RELEASE_SUMMARY_TEMPLATE.md`.
-- Если текущий цикл уже оформлен, ссылаться на фактические rehearsal/summary артефакты именно этого validation date, например `docs/RELEASE_REHEARSAL_2026-04-22.md` и `docs/RELEASE_SUMMARY_2026-04-22.md`.
+- Если текущий цикл уже оформлен, ссылаться на фактические rehearsal/summary артефакты именно этого validation date, например `docs/RELEASE_REHEARSAL_2026-04-23.md` и `docs/RELEASE_SUMMARY_2026-04-23.md`.
 
 ## 8. Source of Truth
 

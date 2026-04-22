@@ -8,6 +8,8 @@
 - `TZ_CR_Intelligence_Platform_v1_5.md`: текущий технический tranche release hardening
 - `RUNBOOK_RUNTIME_PROFILE.md`: runtime profile, smoke semantics и release verification sequence
 - `docs/RELEASE_READY_CHECKLIST.md`: операторский go/no-go checklist для MVP release decision
+- `docs/RELEASE_REHEARSAL_2026-04-23.md`: current clean full-pack rehearsal record для compose-backed runtime после raw-artifact access и model-health fix
+- `docs/RELEASE_SUMMARY_2026-04-23.md`: current clean full-pack go/no-go summary для rehearsal 2026-04-23
 - `docs/RELEASE_REHEARSAL_2026-04-22.md`: clean full-pack rehearsal record для текущего compose-backed runtime
 - `docs/RELEASE_SUMMARY_2026-04-22.md`: clean full-pack go/no-go summary для rehearsal 2026-04-22
 - `docs/RELEASE_REHEARSAL_2026-04-21.md`: historical rehearsal record с поэтапной историей фиксов и закрытия blocker-ов
