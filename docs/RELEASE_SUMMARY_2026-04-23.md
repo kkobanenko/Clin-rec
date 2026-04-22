@@ -2,23 +2,26 @@
 
 ## 1. Build Identification
 
-- Date: 2026-04-23 01:09:35 MSK
+- Date: 2026-04-23 01:15:21 MSK
 - Branch: `main`
-- Commit SHA: `61eb4e7`
+- Commit SHA: `47fed51`
 - Runtime profile: `docker-compose-only`
-- Validation path: `full`
+- Validation path: `composite`
+- Full rehearsal baseline: `docs/RELEASE_REHEARSAL_2026-04-23.md` at commit `61eb4e7`
+- Late-stage rerun closed remaining regression gates at commit `47fed51`
 - Artifact bundle(s):
   - `.artifacts/release_checks/20260423_010935`
+  - `.artifacts/release_checks/20260423_011521`
 - Operator: `GitHub Copilot`
 
 ## 2. Gate Results
 
 | Gate | Result | Notes |
 | --- | --- | --- |
-| Runtime preflight | pass | Compose-backed runtime stayed healthy for full pack. |
-| Structural smoke | pass | Run `71` completed successfully, including worker-backed memo-task completion, generated output retrieval and auxiliary-route checks. |
-| Quality smoke | pass | Run `72` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
-| API regression | pass | Review API, matrix model ops, outputs API and auxiliary mounts suites all passed. |
+| Runtime preflight | pass | Compose-backed runtime stayed healthy across full rehearsal and late-stage rerun on same profile. |
+| Structural smoke | pass | Full rehearsal baseline remained green: run `71` completed successfully, including worker-backed memo-task completion, generated output retrieval and auxiliary-route checks. |
+| Quality smoke | pass | Full rehearsal baseline remained green: run `72` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
+| API regression | pass | Review API, matrix model ops, outputs API, document outcomes API and auxiliary mounts suites all passed on late-stage rerun at commit `47fed51`. |
 | Downstream verification | pass | `tests/test_kb_integration_postgres.py` completed as `2 passed`. |
 
 ## 3. Key Evidence
@@ -41,6 +44,7 @@
   - `tests/test_pipeline_review_api.py`: `9 passed`
   - `tests/test_matrix_model_ops_api.py`: `10 passed`
   - `tests/test_outputs_api.py`: `7 passed`
+  - `tests/test_document_pipeline_outcomes_api.py`: `5 passed`
   - `tests/test_aux_api_mounts.py`: `2 passed`
 - KB integration:
   - `tests/test_kb_integration_postgres.py`: `2 passed`
@@ -64,8 +68,8 @@
 ## 7. Decision
 
 - Final status: `release-ready`
-- Decision rationale: full release-ready verification pack completed successfully end-to-end on compose-backed runtime at commit `61eb4e7` without open blocker.
-- Required next action: preserve this summary alongside `docs/RELEASE_REHEARSAL_2026-04-23.md` as current clean reference record for compose rehearsal.
+- Decision rationale: full rehearsal established smoke-green baseline on compose runtime, and committed late-stage rerun at `47fed51` closed targeted regression including document outcomes/raw-artifact coverage without open blocker.
+- Required next action: preserve this summary alongside `docs/RELEASE_REHEARSAL_2026-04-23.md` as current composite reference record for compose validation.
 
 ## 8. Sources of Truth
 
