@@ -36,6 +36,7 @@
 - Прогнать `tests/test_pipeline_review_api.py`.
 - Прогнать `tests/test_matrix_model_ops_api.py`.
 - Прогнать `tests/test_outputs_api.py`.
+- Прогнать `tests/test_document_pipeline_outcomes_api.py`.
 - Прогнать `tests/test_aux_api_mounts.py`.
 
 ## 5. Integration Gate

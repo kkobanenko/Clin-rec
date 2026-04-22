@@ -110,7 +110,7 @@ Use this sequence when evaluating whether the current build is release-ready for
 1. Confirm one active runtime profile and broker/result-backend alignment.
 2. Run structural smoke and stop immediately if it fails.
 3. Run quality smoke and stop immediately if it fails.
-4. Run targeted API regression for operator surfaces: review, matrix model operations, outputs, and auxiliary mounts.
+4. Run targeted API regression for operator surfaces: review, matrix model operations, outputs, documents/raw-artifact outcomes, and auxiliary mounts.
 5. Run downstream verification for evidence/matrix and KB/output workflows.
 6. Record a short go/no-go summary with residual risks and classify the build as `release-ready` or `blocked`.
 

@@ -138,6 +138,7 @@ fi
 run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
 run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
 run_step outputs_api "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
+run_step document_outcomes_api "Document outcomes API regression" "$PYTEST_BIN" tests/test_document_pipeline_outcomes_api.py
 run_step aux_routes "Aux routes regression" "$PYTEST_BIN" tests/test_aux_api_mounts.py
 run_step kb_integration "KB integration regression" env CRIN_INTEGRATION_POSTGRES_URL="$INTEGRATION_POSTGRES_URL" "$PYTEST_BIN" tests/test_kb_integration_postgres.py
 ensure_log_has_no_skips kb_integration "KB integration regression"

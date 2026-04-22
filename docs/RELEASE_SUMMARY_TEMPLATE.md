@@ -30,6 +30,7 @@
 - Review API regression reference:
 - Matrix model ops reference:
 - Outputs API reference:
+- Document outcomes API regression reference:
 - Auxiliary mounts reference:
 - KB/output verification reference: state whether verification was limited to visibility or confirmed terminal completion plus readable result
 
