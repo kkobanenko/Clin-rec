@@ -24,6 +24,17 @@
 			"group": "build"
 		},
 		{
+			"label": "UI Stack Status",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"docker compose ps"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
 			"label": "Structural Smoke",
 			"type": "shell",
 			"command": "bash",

@@ -16,12 +16,21 @@
 
 - `UI Stack Up`: поднимает docker-compose runtime для локального UI/API тестирования
 - `UI Stack Down`: останавливает локальный docker-compose runtime после тестирования
+- `UI Stack Status`: показывает статус контейнеров и проброшенные порты текущего docker-compose runtime
 - `Structural Smoke`: быстрый entrypoint для runtime/profile validation
 - `Quality Smoke`: entrypoint для content/downstream quality checks
 - `Release Ready Check`: полный release pack через `scripts/release_ready_check.sh`
 - `Release Late-Stage Rerun`: быстрый rerun regression-only path после уже зафиксированного green structural+quality smoke на том же runtime/profile
 - Release-related tasks по умолчанию маркируют `RUNTIME_PROFILE=docker-compose-only` для seeded summary metadata.
 - Для длинных queue delays используйте `SMOKE_POLL_TIMEOUT=360 bash scripts/release_ready_check.sh`.
+
+## Local Runtime URLs
+
+- UI: `http://localhost:8501`
+- API: `http://localhost:8000`
+- API docs: `http://localhost:8000/docs`
+- MinIO S3 API: `http://localhost:9010`
+- MinIO console: `http://localhost:9011`
 
 ## Operator Surface
 
