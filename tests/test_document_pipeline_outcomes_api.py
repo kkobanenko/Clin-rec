@@ -167,3 +167,65 @@ async def test_document_endpoints_prefer_success_outcome_when_content_exists():
             assert fragments_data["total"] == 1
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_document_endpoints_hide_synthetic_dom_fallback_urls():
+    discovered_at = datetime.now(timezone.utc)
+    registry = SimpleNamespace(
+        id=1,
+        external_id="286_3",
+        title="Synthetic DOM fallback doc",
+        card_url="https://cr.minzdrav.gov.ru/clin-rec/view/286_3",
+        html_url="https://cr.minzdrav.gov.ru/clin-rec/view/286_3",
+        pdf_url="https://cr.minzdrav.gov.ru/clin-rec/pdf/286_3",
+        specialty=None,
+        age_group=None,
+        status=None,
+        version_label=None,
+        publish_date=None,
+        update_date=None,
+        discovered_at=discovered_at,
+        last_seen_at=discovered_at,
+        source_payload_json={"id": "286_3", "title": "Synthetic DOM fallback doc", "dom_row": True},
+        versions=[],
+    )
+
+    list_db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=1),
+            FakeScalarResult(values=[registry]),
+        ]
+    )
+    detail_db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=registry),
+            FakeScalarResult(values=[]),
+        ]
+    )
+    sessions = [list_db, detail_db]
+
+    async def override_get_db():
+        if not sessions:
+            raise AssertionError("No fake session left")
+        yield sessions.pop(0)
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            list_resp = await client.get("/documents")
+            assert list_resp.status_code == 200
+            list_item = list_resp.json()["items"][0]
+            assert list_item["card_url"] is None
+            assert list_item["html_url"] is None
+            assert list_item["pdf_url"] is None
+
+            detail_resp = await client.get("/documents/1")
+            assert detail_resp.status_code == 200
+            registry_data = detail_resp.json()["registry"]
+            assert registry_data["card_url"] is None
+            assert registry_data["html_url"] is None
+            assert registry_data["pdf_url"] is None
+    finally:
+        app.dependency_overrides.pop(get_db, None)
