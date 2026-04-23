@@ -69,15 +69,16 @@ def render_kb_artifact_detail(detail: dict) -> None:
 
 def render_output_detail(detail: dict) -> None:
     st.markdown(f"**{detail.get('title', 'Output')}**")
-    meta1, meta2, meta3, meta4 = st.columns(4)
+    meta1, meta2, meta3, meta4, meta5 = st.columns(5)
     meta1.metric("Output ID", detail.get("id"))
     meta2.metric("Type", detail.get("output_type") or "n/a")
     meta3.metric("File-Back", detail.get("file_back_status") or "n/a")
-    meta4.metric("Artifact", detail.get("artifact_id") or "none")
+    meta4.metric("Review", detail.get("review_status") or "n/a")
+    meta5.metric("Artifact", detail.get("artifact_id") or "none")
 
-    if detail.get("review_status") or detail.get("generator_version"):
+    if detail.get("released_at") or detail.get("generator_version"):
         st.caption(
-            f"review={detail.get('review_status') or 'n/a'} | "
+            f"released_at={detail.get('released_at') or 'n/a'} | "
             f"generator={detail.get('generator_version') or 'n/a'}"
         )
 
