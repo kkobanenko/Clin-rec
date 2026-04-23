@@ -196,11 +196,13 @@ async def test_list_artifacts_filters_by_type_status_and_search():
         assert "knowledge_artifact.review_status = :review_status_1" in sql
         assert "knowledge_artifact.generator_version = :generator_version_1" in sql
         assert "lower(knowledge_artifact.title) LIKE lower(:title_1)" in sql
+        assert "lower(knowledge_artifact.content_md) LIKE lower(:content_md_1)" in sql
         assert params["artifact_type_1"] == "source_digest"
         assert params["status_1"] == "draft"
         assert params["review_status_1"] == "needs_review"
         assert params["generator_version_1"] == "0.3.0"
         assert params["title_1"] == "%digest%"
+        assert params["content_md_1"] == "%digest%"
 
     fake_db = FakeAsyncSession(
         values=[

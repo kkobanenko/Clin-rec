@@ -79,6 +79,7 @@ async def list_artifacts(
             KnowledgeArtifact.title.ilike(term),
             KnowledgeArtifact.summary.ilike(term),
             KnowledgeArtifact.canonical_slug.ilike(term),
+            KnowledgeArtifact.content_md.ilike(term),
         )
         q = q.where(filt)
         count_q = count_q.where(filt)
