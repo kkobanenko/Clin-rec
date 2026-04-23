@@ -420,7 +420,20 @@ def page_reviews():
     if isinstance(queue, dict):
         items = queue.get("items", [])
         if items:
-            st.dataframe(pd.DataFrame(items), width="stretch")
+            queue_rows = []
+            for item in items:
+                queue_rows.append(
+                    {
+                        "id": item.get("id"),
+                        "context_id": item.get("context_id"),
+                        "from": item.get("molecule_from_id"),
+                        "to": item.get("molecule_to_id"),
+                        "relation": item.get("relation_type"),
+                        "score": item.get("final_fragment_score"),
+                        "review_status": item.get("review_status"),
+                    }
+                )
+            st.dataframe(pd.DataFrame(queue_rows), width="stretch", hide_index=True)
         else:
             st.info("No evidence awaiting review")
 
