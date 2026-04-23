@@ -2,18 +2,19 @@
 
 ## 1. Build Identification
 
-- Date: 2026-04-23 15:49:36 MSK
+- Date: 2026-04-23 16:58:10 MSK
 - Branch: `main`
-- Commit SHA: `f0c0a6a`
+- Commit SHA: `b2f2363`
 - Runtime profile: `docker-compose-only`
 - Validation path: `composite`
-- Full rehearsal baseline: `docs/RELEASE_REHEARSAL_2026-04-23.md` at commit `f0c0a6a`
-- Latest full-pack rerun closed regression and smoke gates at commit `f0c0a6a`
+- Full rehearsal baseline: `docs/RELEASE_REHEARSAL_2026-04-23.md` at commit `b2f2363`
+- Latest full-pack rerun closed regression and smoke gates at commit `b2f2363`
 - Artifact bundle(s):
   - `.artifacts/release_checks/20260423_010935`
   - `.artifacts/release_checks/20260423_074011`
   - `.artifacts/release_checks/20260423_122035`
   - `.artifacts/release_checks/20260423_154936`
+  - `.artifacts/release_checks/20260423_165810`
 - Operator: `GitHub Copilot`
 
 ## 2. Gate Results
@@ -21,31 +22,31 @@
 | Gate | Result | Notes |
 | --- | --- | --- |
 | Runtime preflight | pass | Compose-backed runtime stayed healthy across refreshed full release-ready check on same profile. |
-| Structural smoke | pass | Current full-pack rerun remained green: run `73` completed successfully, including worker-backed memo-task completion, generated output retrieval and auxiliary-route checks. |
-| Quality smoke | pass | Current full-pack rerun remained green: run `74` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
-| API regression | pass | Review API, matrix model ops, outputs API, document outcomes API and auxiliary mounts suites all passed on full-pack rerun at commit `f0c0a6a`. |
+| Structural smoke | pass | Current full-pack rerun remained green: run `75` completed successfully, including worker-backed memo-task completion, generated output retrieval and auxiliary-route checks. |
+| Quality smoke | pass | Current full-pack rerun remained green: run `76` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
+| API regression | pass | Review API, matrix model ops, outputs API, document outcomes API and auxiliary mounts suites all passed on full-pack rerun at commit `b2f2363`. |
 | Downstream verification | pass | `tests/test_kb_integration_postgres.py` completed as `2 passed`, covering compiler claims/frontmatter and lint follow-up on current head. |
 
 ## 3. Key Evidence
 
 - Structural smoke:
-  - run `73`
+  - run `75`
   - status `completed`
   - discovered `5`
   - queued memo task `SUCCESS`
-  - generated output `31` retrievable via `/outputs/31`
+  - generated output `33` retrievable via `/outputs/33`
   - auxiliary route/task checks enforced in terminal pass/fail decision
 - Quality smoke:
-  - run `74`
+  - run `76`
   - status `completed`
   - queued memo task `SUCCESS`
-  - generated output `32` retrievable via `/outputs/32`
+  - generated output `34` retrievable via `/outputs/34`
   - pair evidence `10 items` on inspected page, `60 total`
   - matrix cell score `0.13`, confidence `0.575`, supporting evidence `2`
 - API regression:
   - `tests/test_pipeline_review_api.py`: `9 passed`
   - `tests/test_matrix_model_ops_api.py`: `10 passed`
-  - `tests/test_outputs_api.py`: `9 passed`
+  - `tests/test_outputs_api.py`: `12 passed`
   - `tests/test_document_pipeline_outcomes_api.py`: `5 passed`
   - `tests/test_aux_api_mounts.py`: `2 passed`
 - KB integration:
@@ -73,7 +74,7 @@
 ## 7. Decision
 
 - Final status: `release-ready`
-- Decision rationale: current full release-ready check at `f0c0a6a` revalidated structural smoke, quality smoke, API regression and KB integration after operator-surface filter/detail additions and lint follow-up without open blocker.
+- Decision rationale: current full release-ready check at `b2f2363` revalidated structural smoke, quality smoke, API regression and KB integration after expanded KB/output operator filtering plus compact UI follow-up without open blocker.
 - Required next action: preserve this summary alongside `docs/RELEASE_REHEARSAL_2026-04-23.md` as current composite reference record for compose validation.
 
 ## 8. Sources of Truth
