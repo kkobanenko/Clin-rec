@@ -41,7 +41,7 @@
 
 ## Lint / health (TZ §13)
 
-- Реализованы не все проверки: дубликаты, общие orphan, stale vs даты источника, gap discovery — в основном в бэклоге.
+- Реализованы не все проверки: дубликаты, общие orphan, stale vs даты источника, gap discovery — в основном в бэклоге; при этом базовый lint уже ловит digest без provenance, non-hypothesis claims без provenance и compiler artifacts без claims.
 
 ## Clinical extraction / scoring (TZ §14–15)
 

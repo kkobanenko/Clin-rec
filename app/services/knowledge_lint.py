@@ -57,6 +57,27 @@ class KnowledgeLintService:
                     }
                 )
 
+            missing_claim_stmt = (
+                select(KnowledgeArtifact.id, KnowledgeArtifact.canonical_slug)
+                .join(ArtifactSourceLink, ArtifactSourceLink.artifact_id == KnowledgeArtifact.id)
+                .outerjoin(KnowledgeClaim, KnowledgeClaim.artifact_id == KnowledgeArtifact.id)
+                .where(
+                    KnowledgeArtifact.artifact_type.in_(
+                        ["source_digest", "entity_page", "glossary_term", "open_question"]
+                    ),
+                    ArtifactSourceLink.source_kind == "document_version",
+                    KnowledgeClaim.id.is_(None),
+                )
+            )
+            for aid, slug in session.execute(missing_claim_stmt).all():
+                issues.append(
+                    {
+                        "code": "artifacts_missing_claims",
+                        "artifact_id": aid,
+                        "slug": slug,
+                    }
+                )
+
             # TZ §13: entity_page для молекул в entity_registry (после extract).
             covered_molecules: set[int] = set()
             for art in session.execute(

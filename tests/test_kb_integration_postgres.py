@@ -123,6 +123,10 @@ def test_kb_compile_lint_fts(pg_engine, monkeypatch):
     lint_out = KnowledgeLintService().run()
     assert lint_out["status"] == "ok"
     assert "conflict_groups_distinct" in lint_out
+    assert not any(
+        issue.get("code") == "artifacts_missing_claims" and issue.get("artifact_id") in current_artifact_ids
+        for issue in lint_out.get("issues", [])
+    )
 
     monkeypatch.setattr("app.services.index_stats.sync_engine", pg_engine)
 
