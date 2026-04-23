@@ -53,10 +53,12 @@ async def test_list_claims_filters_by_type_and_search():
         params = compiled.params
         assert "knowledge_claim.artifact_id = :artifact_id_1" in sql
         assert "knowledge_claim.claim_type = :claim_type_1" in sql
+        assert "knowledge_claim.review_status = :review_status_1" in sql
         assert "knowledge_claim.is_conflicted IS true" in sql
         assert "lower(knowledge_claim.claim_text) LIKE lower(:claim_text_1)" in sql
         assert params["artifact_id_1"] == 7
         assert params["claim_type_1"] == "fact"
+        assert params["review_status_1"] == "auto"
         assert params["claim_text_1"] == "%insulin%"
 
     def assert_rows_query(query):
@@ -99,7 +101,7 @@ async def test_list_claims_filters_by_type_and_search():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/kb/claims?artifact_id=7&claim_type=fact&conflicted_only=true&search=insulin&page=1&page_size=50"
+                "/kb/claims?artifact_id=7&claim_type=fact&review_status=auto&conflicted_only=true&search=insulin&page=1&page_size=50"
             )
 
         assert resp.status_code == 200
