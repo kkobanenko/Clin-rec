@@ -51,7 +51,7 @@
 
 ## Outputs (TZ §16)
 
-- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, а Streamlit показывает structured output detail, list filter/search/artifact drill-down и linked artifact drill-down, но broader output productization остаётся в бэклоге.
+- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, а Streamlit показывает structured output detail, list filter/search/artifact/review-status drill-down и linked artifact drill-down, но broader output productization остаётся в бэклоге.
 
 ## Очереди Celery (TZ §19)
 
@@ -59,7 +59,7 @@
 
 ## UI (TZ §21)
 
-- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, KB master-index preview, KB artifact type/status/search, KB claims list/filter/search, KB entity filter/search/detail и structured KB artifact detail (claims/source links/frontmatter), но не full productized health dashboard.
+- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, KB master-index preview, KB artifact type/status/review/search, KB claims list/type/review/conflicted filters, KB conflict summaries, KB entity type/status/search/detail и structured KB artifact detail (claims/source links/frontmatter), но не full productized health dashboard.
 
 ## Версионирование документов
 
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard, compiler auto-claims/frontmatter, KB/output detail UI и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard, compiler auto-claims/frontmatter, KB/output detail UI, KB/output review-state filters, KB conflict summaries и синхронизации versioning/release evidence.*

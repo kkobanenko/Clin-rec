@@ -62,6 +62,14 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Captured full release-ready rerun after KB/output filter/detail operator-surface additions and KB lint follow-up.
 - Confirmed structural smoke, quality smoke, API regression and KB Postgres integration remained green on same compose-backed runtime profile.
 
+### Release Evidence Sync (2026-04-23, late-stage rerun refresh 2)
+
+**Files:** `docs/RELEASE_SUMMARY_2026-04-23.md`, `.artifacts/release_checks/20260423_160051`
+
+**Changelog:**
+- Captured latest late-stage rerun on head `f545473` after KB review-status filters, KB conflict summaries and outputs review-status filtering.
+- Confirmed review API, matrix model ops, outputs API, document outcomes API, aux routes and KB Postgres integration remained green on same compose-backed runtime profile.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
@@ -237,6 +245,8 @@ Before releasing a matrix version or making config changes:
 - Added KB/output operator filters and detail drill-downs across artifacts, claims, entities and outputs.
 - Added KB lint check for document-version-linked compiler artifacts missing claims.
 - Re-ran full `Release Ready Check` on compose runtime and recorded green evidence for commit `f0c0a6a`.
+- Added KB/output review-status filters, KB conflicted-claims filter and KB conflict summary previews.
+- Re-ran late-stage release regression pack on compose runtime and recorded green evidence for commit `f545473`.
 
 ---
 
