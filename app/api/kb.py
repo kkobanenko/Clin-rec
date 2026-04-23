@@ -54,6 +54,7 @@ async def list_artifacts(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     artifact_type: str | None = None,
+    status: str | None = None,
     search: str | None = Query(None, description="Подстрока в title, summary или canonical_slug (ILIKE)"),
 ):
     q = select(KnowledgeArtifact)
@@ -61,6 +62,9 @@ async def list_artifacts(
     if artifact_type:
         q = q.where(KnowledgeArtifact.artifact_type == artifact_type)
         count_q = count_q.where(KnowledgeArtifact.artifact_type == artifact_type)
+    if status:
+        q = q.where(KnowledgeArtifact.status == status)
+        count_q = count_q.where(KnowledgeArtifact.status == status)
     if search and search.strip():
         term = f"%{search.strip()}%"
         filt = or_(

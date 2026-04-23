@@ -25,6 +25,10 @@ class FakeRowsResult:
         return self._rows
 
 
+class FakeArtifactRowsResult(FakeRowsResult):
+    pass
+
+
 class FakeAsyncSession:
     def __init__(self, values, assertions):
         self._values = list(values)
@@ -173,5 +177,65 @@ async def test_list_claims_returns_multiple_types_without_filters():
         data = resp.json()
         assert data["total"] == 2
         assert {item["claim_type"] for item in data["items"]} == {"fact", "hypothesis"}
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_list_artifacts_filters_by_type_status_and_search():
+    def assert_count_query(query):
+        compiled = query.compile()
+        sql = str(compiled)
+        params = compiled.params
+        assert "knowledge_artifact.artifact_type = :artifact_type_1" in sql
+        assert "knowledge_artifact.status = :status_1" in sql
+        assert "lower(knowledge_artifact.title) LIKE lower(:title_1)" in sql
+        assert params["artifact_type_1"] == "source_digest"
+        assert params["status_1"] == "draft"
+        assert params["title_1"] == "%digest%"
+
+    fake_db = FakeAsyncSession(
+        values=[
+            FakeScalarResult(1),
+            FakeArtifactRowsResult(
+                [
+                    type(
+                        "ArtifactRow",
+                        (),
+                        {
+                            "id": 31,
+                            "artifact_type": "source_digest",
+                            "title": "Digest artifact",
+                            "canonical_slug": "digest/v31",
+                            "status": "draft",
+                            "summary": "Digest summary",
+                            "confidence": None,
+                            "review_status": None,
+                            "generator_version": "0.3.0",
+                            "created_at": NOW,
+                            "updated_at": NOW,
+                        },
+                    )()
+                ]
+            ),
+        ],
+        assertions=[assert_count_query, lambda _query: None],
+    )
+
+    async def override_get_db():
+        yield fake_db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get(
+                "/kb/artifacts?page=1&page_size=50&artifact_type=source_digest&status=draft&search=digest"
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["items"][0]["canonical_slug"] == "digest/v31"
     finally:
         app.dependency_overrides.pop(get_db, None)
