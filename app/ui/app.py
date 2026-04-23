@@ -67,6 +67,31 @@ def render_kb_artifact_detail(detail: dict) -> None:
         st.json(detail)
 
 
+def render_output_detail(detail: dict) -> None:
+    st.markdown(f"**{detail.get('title', 'Output')}**")
+    meta1, meta2, meta3, meta4 = st.columns(4)
+    meta1.metric("Output ID", detail.get("id"))
+    meta2.metric("Type", detail.get("output_type") or "n/a")
+    meta3.metric("File-Back", detail.get("file_back_status") or "n/a")
+    meta4.metric("Artifact", detail.get("artifact_id") or "none")
+
+    if detail.get("review_status") or detail.get("generator_version"):
+        st.caption(
+            f"review={detail.get('review_status') or 'n/a'} | "
+            f"generator={detail.get('generator_version') or 'n/a'}"
+        )
+
+    if detail.get("scope_json"):
+        with st.expander("Scope", expanded=False):
+            st.json(detail.get("scope_json"))
+
+    if detail.get("file_pointer"):
+        st.code(detail.get("file_pointer"), language="text")
+
+    with st.expander("Raw Payload", expanded=False):
+        st.json(detail)
+
+
 def api_get(
     path: str,
     params: dict | None = None,
@@ -573,7 +598,7 @@ def page_outputs():
     if st.button("Load Output Detail"):
         detail = api_get(f"/outputs/{detail_output_id}")
         if detail:
-            st.json(detail)
+            render_output_detail(detail)
             artifact_id = detail.get("artifact_id")
             if artifact_id:
                 st.success(f"Linked KB artifact: #{artifact_id}")

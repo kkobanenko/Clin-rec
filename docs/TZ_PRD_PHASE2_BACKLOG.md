@@ -51,7 +51,7 @@
 
 ## Outputs (TZ §16)
 
-- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, но broader output productization остаётся в бэклоге.
+- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, а Streamlit показывает structured output detail + linked artifact drill-down, но broader output productization остаётся в бэклоге.
 
 ## Очереди Celery (TZ §19)
 
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard, compiler auto-claims/frontmatter, KB artifact detail UI и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard, compiler auto-claims/frontmatter, KB/output detail UI и синхронизации versioning/release evidence.*
