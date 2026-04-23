@@ -51,7 +51,7 @@
 
 ## Outputs (TZ §16)
 
-- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, а Streamlit показывает structured output detail, list filter/search/artifact/review-status/released/generator-version drill-down и linked artifact drill-down, но broader output productization остаётся в бэклоге.
+- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, а Streamlit показывает structured output detail и compact list filter/search/artifact/review-status/released/generator-version drill-down с linked artifact follow-up, но broader output productization остаётся в бэклоге.
 
 ## Очереди Celery (TZ §19)
 
@@ -59,7 +59,7 @@
 
 ## UI (TZ §21)
 
-- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, KB master-index preview, KB artifact type/status/review/search, KB claims list/type/review/conflicted filters with conflict flags, KB conflict summaries with artifact scoping, KB entity type/status/canonical+alias search/detail и structured KB artifact/entity detail, но не full productized health dashboard.
+- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, KB master-index preview, KB artifact type/status/review/generator/search, KB claims list/type/review/conflicted filters with conflict flags, KB conflict summaries with artifact scoping, KB entity type/status/canonical+alias search/detail и compact KB entity/output tables with structured KB artifact/entity detail, но не full productized health dashboard.
 
 ## Версионирование документов
 
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard, compiler auto-claims/frontmatter, KB/output detail UI, KB/output review-state filters, released/generator-version output filters, KB conflict summaries, entity alias search и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard, compiler auto-claims/frontmatter, KB/output detail UI, compact KB/output tables, KB/output review-state filters, released/generator-version filters, KB conflict summaries, entity alias search и синхронизации versioning/release evidence.*
