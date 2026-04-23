@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     rubricator_api_user_agent: str = "ClinRecPlatform/1.0 (+https://github.com/kkobanenko/Clin-rec)"
     discovery_concurrency: int = 2
     discovery_request_delay: float = 2.0
+    discovery_max_records: int = 20
 
     # Sentry
     sentry_dsn: str = ""

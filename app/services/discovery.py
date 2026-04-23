@@ -75,19 +75,21 @@ class DiscoveryService:
 
             try:
                 records, discovery_stats = self._discover_documents()
-                records = self._deduplicate_records(records)
-                max_n = getattr(settings, "discovery_max_records", 0) or 0
+                deduplicated_records = self._deduplicate_records(records)
+                duplicates_removed = max(0, len(records) - len(deduplicated_records))
+
+                max_n = settings.discovery_max_records if mode == "full" else 0
                 if max_n > 0:
-                    records = records[:max_n]
-                processed, new_inserts, skipped_no_id = self._upsert_records(session, records, mode)
+                    deduplicated_records = deduplicated_records[:max_n]
 
+                processed, new_count, skipped_no_id = self._upsert_records(session, deduplicated_records, mode)
+                
                 # Calculate quality metrics
-                duplicates_removed = len(records) - processed
                 wall_time = time.time() - wall_start
-                coverage = round(100.0 * processed / len(records), 1) if records else 0.0
-
-                run.discovered_count = len(records)
-                run.fetched_count = 0
+                coverage = round(100.0 * processed / len(deduplicated_records), 1) if deduplicated_records else 0.0
+                
+                run.discovered_count = len(deduplicated_records)
+                run.fetched_count = new_count
                 run.parsed_count = processed
                 run.failed_count = skipped_no_id
                 run.status = "completed"
@@ -103,22 +105,21 @@ class DiscoveryService:
 
                     # Quality metrics (PRD section 9, Gate A)
                     "total_raw_records": len(records),
-                    "total_discovered": processed,
+                    "total_discovered": len(deduplicated_records),
                     "duplicates_detected": duplicates_removed,
                     "coverage_percent": coverage,
-                    "new_or_updated": new_inserts,
+                    "new_or_updated": new_count,
                     "skipped_no_external_id": skipped_no_id,
-                    "failed_count": skipped_no_id,
-                    
+                    "failed_count": run.failed_count,
+
                     # Strategy and source metrics
                     **discovery_stats,
                 }
                 session.commit()
                 logger.info(
-                    "Discovery completed: strategy=%s, records=%d, processed=%d, coverage=%.1f%%, time=%.1fs",
+                    "Discovery completed: strategy=%s, discovered=%d, coverage=%.1f%%, time=%.1fs",
                     discovery_stats.get("strategy", "unknown"),
-                    len(records),
-                    processed,
+                    len(deduplicated_records),
                     coverage,
                     wall_time,
                 )
@@ -611,12 +612,10 @@ class DiscoveryService:
 
         return records
 
-    def _upsert_records(
-        self, session, records: list[dict], mode: str
-    ) -> tuple[int, int, int]:
+    def _upsert_records(self, session, records: list[dict], mode: str) -> tuple[int, int, int]:
         """Insert or update document registry records.
 
-        Returns (processed_with_id, new_insert_count, skipped_without_external_id).
+        Returns (processed_with_id, new_or_updated, skipped_without_external_id).
         """
         processed = 0
         new_count = 0
@@ -630,6 +629,7 @@ class DiscoveryService:
                 continue
 
             processed += 1
+
             existing = session.query(DocumentRegistry).filter_by(external_id=ext_id).first()
             if existing:
                 existing.last_seen_at = now

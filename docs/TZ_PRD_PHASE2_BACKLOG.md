@@ -5,8 +5,8 @@
 ## Операционные заметки (важно для развёртывания)
 
 1. `**CRIN_RUBRICATOR_API_USER_AGENT`** — API `apicr.minzdrav.gov.ru` отвечает **451**, если User-Agent не браузероподобный. В [.env](../.env) задан Mozilla-префикс; после смены `.env` нужен `**docker compose up -d --force-recreate`** (restart не подхватывает новые переменные из env_file).
-2. `**CRIN_DISCOVERY_MAX_RECORDS**` (по умолчанию 20) — ограничение числа карточек за один full sync.
-3. **Метрики discovery** — `failed_count` в `pipeline_run` означает число записей **без `external_id`**, а не сбой fetch (исправлено относительно прежней ошибочной формулы `discovered - new_count`).
+2. `**CRIN_DISCOVERY_MAX_RECORDS**` (по умолчанию 20) — ограничение числа карточек за один full sync; поле добавлено в config и применяется только для `full`-режима.
+3. **Метрики discovery** — `failed_count` в `pipeline_run` означает число записей **без `external_id`**, а не сбой fetch; `coverage_percent` считается по реально обработанным записям после dedupe/limit.
 
 ## Справочник МНН (`molecule`)
 
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard и синхронизации versioning/release evidence.*
