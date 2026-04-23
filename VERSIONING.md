@@ -35,6 +35,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Promoted 2026-04-23 rehearsal/summary as current clean reference docs in README and checklist examples.
 - Captured current gate evidence after raw document artifact access and document-model health fix.
 
+### Release Evidence Sync (2026-04-23, late-stage rerun)
+
+**Files:** `docs/RELEASE_SUMMARY_2026-04-23.md`, `.artifacts/release_checks/20260423_074011`
+
+**Changelog:**
+- Refreshed current composite release summary to latest committed head `578f578`.
+- Captured late-stage rerun after scoring explanation ids, output artifact linkage and output UI follow-up.
+- Confirmed operator/API regression pack remained green on same compose-backed runtime profile.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
@@ -201,6 +210,9 @@ Before releasing a matrix version or making config changes:
 - Hid synthetic or invalid raw-source links from user-facing document access paths.
 - Fixed document model type-check visibility for `DocumentSection`.
 - Re-ran full `Release Ready Check` on compose runtime and recorded green release evidence for commit `61eb4e7`.
+- Added scoring explanation traceability ids for contexts, pair-context scores, evidence and fragments.
+- Linked accepted filed outputs to `KnowledgeArtifact` records and surfaced linked artifacts in UI.
+- Re-ran late-stage release regression pack on compose runtime and recorded green evidence for commit `578f578`.
 
 ---
 

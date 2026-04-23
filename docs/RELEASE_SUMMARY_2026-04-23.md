@@ -2,26 +2,26 @@
 
 ## 1. Build Identification
 
-- Date: 2026-04-23 01:15:21 MSK
+- Date: 2026-04-23 07:40:11 MSK
 - Branch: `main`
-- Commit SHA: `47fed51`
+- Commit SHA: `578f578`
 - Runtime profile: `docker-compose-only`
 - Validation path: `composite`
 - Full rehearsal baseline: `docs/RELEASE_REHEARSAL_2026-04-23.md` at commit `61eb4e7`
-- Late-stage rerun closed remaining regression gates at commit `47fed51`
+- Late-stage rerun closed remaining regression gates at commit `578f578`
 - Artifact bundle(s):
   - `.artifacts/release_checks/20260423_010935`
-  - `.artifacts/release_checks/20260423_011521`
+  - `.artifacts/release_checks/20260423_074011`
 - Operator: `GitHub Copilot`
 
 ## 2. Gate Results
 
 | Gate | Result | Notes |
 | --- | --- | --- |
-| Runtime preflight | pass | Compose-backed runtime stayed healthy across full rehearsal and late-stage rerun on same profile. |
+| Runtime preflight | pass | Compose-backed runtime stayed healthy across full rehearsal and latest late-stage rerun on same profile. |
 | Structural smoke | pass | Full rehearsal baseline remained green: run `71` completed successfully, including worker-backed memo-task completion, generated output retrieval and auxiliary-route checks. |
 | Quality smoke | pass | Full rehearsal baseline remained green: run `72` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
-| API regression | pass | Review API, matrix model ops, outputs API, document outcomes API and auxiliary mounts suites all passed on late-stage rerun at commit `47fed51`. |
+| API regression | pass | Review API, matrix model ops, outputs API, document outcomes API and auxiliary mounts suites all passed on late-stage rerun at commit `578f578`. |
 | Downstream verification | pass | `tests/test_kb_integration_postgres.py` completed as `2 passed`. |
 
 ## 3. Key Evidence
@@ -68,7 +68,7 @@
 ## 7. Decision
 
 - Final status: `release-ready`
-- Decision rationale: full rehearsal established smoke-green baseline on compose runtime, and committed late-stage rerun at `47fed51` closed targeted regression including document outcomes/raw-artifact coverage without open blocker.
+- Decision rationale: full rehearsal established smoke-green baseline on compose runtime, and latest committed late-stage rerun at `578f578` closed targeted regression after scoring traceability, output artifact linkage and output-UI follow-up without open blocker.
 - Required next action: preserve this summary alongside `docs/RELEASE_REHEARSAL_2026-04-23.md` as current composite reference record for compose validation.
 
 ## 8. Sources of Truth
