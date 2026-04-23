@@ -127,6 +127,7 @@ async def list_entities(
         filt = or_(
             EntityRegistry.canonical_name.ilike(term),
             cast(EntityRegistry.aliases_json, Text).ilike(term),
+            cast(EntityRegistry.external_refs_json, Text).ilike(term),
         )
         q = q.where(filt)
         count_q = count_q.where(filt)
