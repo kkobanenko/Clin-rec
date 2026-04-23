@@ -92,6 +92,28 @@ def render_output_detail(detail: dict) -> None:
         st.json(detail)
 
 
+def render_entity_detail(detail: dict) -> None:
+    st.caption(f"Entity #{detail.get('id')}")
+    meta1, meta2, meta3 = st.columns(3)
+    meta1.metric("Type", detail.get("entity_type") or "n/a")
+    meta2.metric("Status", detail.get("status") or "n/a")
+    meta3.metric("Aliases", len(detail.get("aliases_json") or {}))
+    st.subheader(detail.get("canonical_name") or "Untitled entity")
+
+    aliases = detail.get("aliases_json") or {}
+    if aliases:
+        with st.expander("Aliases", expanded=False):
+            st.json(aliases)
+
+    external_refs = detail.get("external_refs_json") or {}
+    if external_refs:
+        with st.expander("External Refs", expanded=False):
+            st.json(external_refs)
+
+    with st.expander("Raw Payload", expanded=False):
+        st.json(detail)
+
+
 def api_get(
     path: str,
     params: dict | None = None,
@@ -772,7 +794,7 @@ def page_kb():
     if st.button("Load Entity"):
         entity_detail = api_get(f"/kb/entities/{entity_id}")
         if entity_detail:
-            st.json(entity_detail)
+            render_entity_detail(entity_detail)
 
     st.subheader("Conflicts")
     conflict_artifact_id = st.number_input(
