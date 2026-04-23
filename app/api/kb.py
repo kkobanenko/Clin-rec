@@ -142,6 +142,7 @@ async def list_claims(
     page_size: int = Query(50, ge=1, le=200),
     artifact_id: int | None = None,
     claim_type: str | None = None,
+    conflicted_only: bool = False,
     search: str | None = Query(None, description="Подстрока в claim_text (ILIKE)"),
 ):
     q = select(KnowledgeClaim)
@@ -152,6 +153,9 @@ async def list_claims(
     if claim_type:
         q = q.where(KnowledgeClaim.claim_type == claim_type)
         count_q = count_q.where(KnowledgeClaim.claim_type == claim_type)
+    if conflicted_only:
+        q = q.where(KnowledgeClaim.is_conflicted.is_(True))
+        count_q = count_q.where(KnowledgeClaim.is_conflicted.is_(True))
     if search and search.strip():
         term = f"%{search.strip()}%"
         filt = KnowledgeClaim.claim_text.ilike(term)

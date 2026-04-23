@@ -53,6 +53,7 @@ async def test_list_claims_filters_by_type_and_search():
         params = compiled.params
         assert "knowledge_claim.artifact_id = :artifact_id_1" in sql
         assert "knowledge_claim.claim_type = :claim_type_1" in sql
+        assert "knowledge_claim.is_conflicted IS true" in sql
         assert "lower(knowledge_claim.claim_text) LIKE lower(:claim_text_1)" in sql
         assert params["artifact_id_1"] == 7
         assert params["claim_type_1"] == "fact"
@@ -79,7 +80,7 @@ async def test_list_claims_filters_by_type_and_search():
                             "confidence": "medium",
                             "review_status": "auto",
                             "conflict_group_id": None,
-                            "is_conflicted": False,
+                            "is_conflicted": True,
                             "created_at": NOW,
                             "updated_at": NOW,
                         },
@@ -98,7 +99,7 @@ async def test_list_claims_filters_by_type_and_search():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/kb/claims?artifact_id=7&claim_type=fact&search=insulin&page=1&page_size=50"
+                "/kb/claims?artifact_id=7&claim_type=fact&conflicted_only=true&search=insulin&page=1&page_size=50"
             )
 
         assert resp.status_code == 200
@@ -106,6 +107,7 @@ async def test_list_claims_filters_by_type_and_search():
         assert data["total"] == 1
         assert len(data["items"]) == 1
         assert data["items"][0]["claim_type"] == "fact"
+        assert data["items"][0]["is_conflicted"] is True
         assert "Insulin" in data["items"][0]["claim_text"]
     finally:
         app.dependency_overrides.pop(get_db, None)
