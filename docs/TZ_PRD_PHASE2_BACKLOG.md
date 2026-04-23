@@ -18,7 +18,7 @@
 
 | Gap                                                        | Комментарий                                                                   |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `document_version.normalizer_version` / `compiler_version` | В TZ указаны; в схеме частично покрыто полем `normalizer_version` на секциях. |
+| `document_version.normalizer_version` / `compiler_version` | Поля добавлены и пишутся normalize/compile стадиями; дальнейшее расширение — только если понадобятся дополнительные stage-level version markers. |
 | `text_fragment.fragment_hash`                              | Используется `stable_id` (MD5).                                               |
 | `pair_evidence` vs TZ `component_scores_json`              | В коде — отдельные числовые колонки.                                          |
 
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions и синхронизации versioning/release evidence.*

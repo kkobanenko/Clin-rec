@@ -33,6 +33,7 @@ class KnowledgeCompileService:
             if not version:
                 logger.error("DocumentVersion %s not found for compile", version_id)
                 return {"status": "error", "reason": "version_not_found"}
+            version.compiler_version = COMPILER_VERSION
 
             registry = session.get(DocumentRegistry, version.registry_id)
             if not registry:

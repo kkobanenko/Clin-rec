@@ -142,6 +142,7 @@ def test_fetch_then_normalize_html_flow(sync_engine, monkeypatch):
     assert stored_version is not None
     assert stored_version.registry_id == registry_id
     assert stored_version.version_hash is not None
+    assert stored_version.normalizer_version == "1.0.0"
     assert len(artifacts) == 1
     assert artifacts[0].artifact_type == "html"
     assert len(sections) == 2

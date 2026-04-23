@@ -46,6 +46,8 @@ class DocumentVersion(Base):
     version_hash: Mapped[str | None] = mapped_column(String(128))
     source_type_primary: Mapped[str | None] = mapped_column(String(32))
     source_type_available: Mapped[str | None] = mapped_column(String(128))
+    normalizer_version: Mapped[str | None] = mapped_column(String(64))
+    compiler_version: Mapped[str | None] = mapped_column(String(64))
     detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     is_current: Mapped[bool] = mapped_column(Boolean, default=True)
 

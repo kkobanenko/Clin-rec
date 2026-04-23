@@ -84,6 +84,7 @@ class NormalizeService:
                 )
 
             # Write to DB
+            version.normalizer_version = NORMALIZER_VERSION
             fragments_count = 0
             for sec_order, (sec_title, sec_path, fragments) in enumerate(sections):
                 db_section = DocumentSection(

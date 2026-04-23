@@ -80,6 +80,9 @@ def test_kb_compile_lint_fts(pg_engine, monkeypatch):
 
     check = Session()
     try:
+        refreshed_version = check.get(DocumentVersion, vid)
+        assert refreshed_version is not None
+        assert refreshed_version.compiler_version == "0.2.0"
         types = {r[0] for r in check.query(KnowledgeArtifact.artifact_type).distinct()}
         assert "source_digest" in types
         assert "entity_page" in types
