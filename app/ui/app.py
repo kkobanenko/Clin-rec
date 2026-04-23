@@ -602,7 +602,7 @@ def page_scoring_models():
 def page_outputs():
     st.header("Outputs")
 
-    out_col1, out_col2, out_col3, out_col4 = st.columns(4)
+    out_col1, out_col2, out_col3, out_col4, out_col5 = st.columns(5)
     output_type_filter = out_col1.selectbox("Output Type Filter", ["", "memo"], index=0)
     file_back_filter = out_col2.selectbox(
         "File-Back Filter",
@@ -614,7 +614,8 @@ def page_outputs():
         ["", "draft", "auto", "needs_review", "approved", "rejected"],
         index=0,
     )
-    output_artifact_id = out_col4.number_input(
+    generator_version_filter = out_col4.text_input("Generator Version Filter")
+    output_artifact_id = out_col5.number_input(
         "Artifact ID Filter",
         min_value=0,
         step=1,
@@ -629,6 +630,8 @@ def page_outputs():
         params["file_back_status"] = file_back_filter
     if review_status_filter:
         params["review_status"] = review_status_filter
+    if generator_version_filter:
+        params["generator_version"] = generator_version_filter
     if released_only:
         params["released_only"] = True
     if output_artifact_id > 0:

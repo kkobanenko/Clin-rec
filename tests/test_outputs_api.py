@@ -225,6 +225,51 @@ async def test_list_outputs_applies_released_only_filter():
 
 
 @pytest.mark.asyncio
+async def test_list_outputs_applies_generator_version_filter():
+    fake_session = FakeAsyncSession(
+        [
+            FakeScalarResult(1),
+            FakeRowsResult(
+                [
+                    SimpleNamespace(
+                        id=13,
+                        output_type="memo",
+                        title="Generator filtered memo",
+                        artifact_id=9,
+                        file_pointer="var/crin_outputs/generator-filtered.md",
+                        scope_json=None,
+                        generator_version="v3",
+                        review_status="approved",
+                        released_at=None,
+                        file_back_status="accepted",
+                    )
+                ]
+            ),
+        ]
+    )
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/outputs?page=1&page_size=50&generator_version=v3")
+
+        assert resp.status_code == 200
+        compiled_count = fake_session.queries[0].compile()
+        compiled_rows = fake_session.queries[1].compile()
+        for compiled in (compiled_count, compiled_rows):
+            sql = str(compiled)
+            params = compiled.params
+            assert "output_release.generator_version = :generator_version_1" in sql
+            assert params["generator_version_1"] == "v3"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [
