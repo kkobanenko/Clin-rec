@@ -770,7 +770,20 @@ def page_kb():
     if isinstance(artifacts, dict):
         items = artifacts.get("items", [])
         if items:
-            st.dataframe(pd.DataFrame(items), width="stretch")
+            artifact_rows = []
+            for item in items:
+                artifact_rows.append(
+                    {
+                        "id": item.get("id"),
+                        "type": item.get("artifact_type"),
+                        "title": item.get("title"),
+                        "slug": item.get("canonical_slug"),
+                        "status": item.get("status"),
+                        "review_status": item.get("review_status"),
+                        "generator_version": item.get("generator_version"),
+                    }
+                )
+            st.dataframe(pd.DataFrame(artifact_rows), width="stretch", hide_index=True)
         else:
             st.info("No KB artifacts available")
 
