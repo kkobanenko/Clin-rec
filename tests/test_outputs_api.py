@@ -33,8 +33,10 @@ class FakeRowsResult:
 class FakeAsyncSession:
     def __init__(self, values):
         self._values = list(values)
+        self.queries = []
 
-    async def execute(self, _query):
+    async def execute(self, query):
+        self.queries.append(query)
         if not self._values:
             raise AssertionError("Unexpected execute call")
         return self._values.pop(0)
@@ -42,28 +44,30 @@ class FakeAsyncSession:
 
 @pytest.mark.asyncio
 async def test_list_outputs_returns_paginated_rows():
+    fake_session = FakeAsyncSession(
+        [
+            FakeScalarResult(1),
+            FakeRowsResult(
+                [
+                    SimpleNamespace(
+                        id=5,
+                        output_type="memo",
+                        title="Demo memo",
+                        artifact_id=None,
+                        file_pointer=None,
+                        scope_json=None,
+                        generator_version="v1",
+                        review_status=None,
+                        released_at=None,
+                        file_back_status=None,
+                    )
+                ]
+            ),
+        ]
+    )
+
     async def override_get_db():
-        yield FakeAsyncSession(
-            [
-                FakeScalarResult(1),
-                FakeRowsResult(
-                    [
-                        SimpleNamespace(
-                            id=5,
-                            output_type="memo",
-                            title="Demo memo",
-                            artifact_id=None,
-                            file_pointer=None,
-                            scope_json=None,
-                            generator_version="v1",
-                            review_status=None,
-                            released_at=None,
-                            file_back_status=None,
-                        )
-                    ]
-                ),
-            ]
-        )
+        yield fake_session
 
     app.dependency_overrides[get_db] = override_get_db
     try:
@@ -75,6 +79,58 @@ async def test_list_outputs_returns_paginated_rows():
         data = resp.json()
         assert data["total"] == 1
         assert data["items"][0]["title"] == "Demo memo"
+        assert len(fake_session.queries) == 2
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_list_outputs_applies_file_back_and_search_filters():
+    fake_session = FakeAsyncSession(
+        [
+            FakeScalarResult(1),
+            FakeRowsResult(
+                [
+                    SimpleNamespace(
+                        id=9,
+                        output_type="memo",
+                        title="Accepted insulin memo",
+                        artifact_id=3,
+                        file_pointer="var/crin_outputs/accepted-insulin.md",
+                        scope_json=None,
+                        generator_version="v2",
+                        review_status=None,
+                        released_at=None,
+                        file_back_status="accepted",
+                    )
+                ]
+            ),
+        ]
+    )
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get(
+                "/outputs?page=1&page_size=50&output_type=memo&file_back_status=accepted&search=insulin"
+            )
+
+        assert resp.status_code == 200
+        compiled_count = fake_session.queries[0].compile()
+        compiled_rows = fake_session.queries[1].compile()
+        for compiled in (compiled_count, compiled_rows):
+            sql = str(compiled)
+            params = compiled.params
+            assert "output_release.output_type = :output_type_1" in sql
+            assert "output_release.file_back_status = :file_back_status_1" in sql
+            assert "lower(output_release.title) LIKE lower(:title_1)" in sql
+            assert params["output_type_1"] == "memo"
+            assert params["file_back_status_1"] == "accepted"
+        assert compiled_count.params["title_1"] == "%insulin%"
     finally:
         app.dependency_overrides.pop(get_db, None)
 

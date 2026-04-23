@@ -580,10 +580,21 @@ def page_scoring_models():
 def page_outputs():
     st.header("Outputs")
 
-    output_type_filter = st.selectbox("Output Type Filter", ["", "memo"], index=0)
+    out_col1, out_col2 = st.columns(2)
+    output_type_filter = out_col1.selectbox("Output Type Filter", ["", "memo"], index=0)
+    file_back_filter = out_col2.selectbox(
+        "File-Back Filter",
+        ["", "accepted", "rejected", "needs_review"],
+        index=0,
+    )
+    output_search = st.text_input("Output Search")
     params = {"page_size": 50}
     if output_type_filter:
         params["output_type"] = output_type_filter
+    if file_back_filter:
+        params["file_back_status"] = file_back_filter
+    if output_search:
+        params["search"] = output_search
 
     outputs = api_get("/outputs", params)
     if isinstance(outputs, dict):

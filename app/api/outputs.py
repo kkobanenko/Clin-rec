@@ -2,7 +2,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
@@ -72,12 +72,25 @@ async def list_outputs(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     output_type: str | None = None,
+    file_back_status: str | None = None,
+    search: str | None = Query(None, description="Подстрока в title или file_pointer (ILIKE)"),
 ):
     q = select(OutputRelease)
     count_q = select(func.count(OutputRelease.id))
     if output_type:
         q = q.where(OutputRelease.output_type == output_type)
         count_q = count_q.where(OutputRelease.output_type == output_type)
+    if file_back_status:
+        q = q.where(OutputRelease.file_back_status == file_back_status)
+        count_q = count_q.where(OutputRelease.file_back_status == file_back_status)
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        filt = or_(
+            OutputRelease.title.ilike(term),
+            OutputRelease.file_pointer.ilike(term),
+        )
+        q = q.where(filt)
+        count_q = count_q.where(filt)
     total = (await db.execute(count_q)).scalar_one()
     q = q.order_by(OutputRelease.id.desc()).offset((page - 1) * page_size).limit(page_size)
     rows = (await db.execute(q)).scalars().all()
