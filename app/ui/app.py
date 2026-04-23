@@ -877,6 +877,8 @@ def page_kb():
                         "id": item.get("id"),
                         "artifact_id": item.get("artifact_id"),
                         "type": item.get("claim_type"),
+                        "conflicted": item.get("is_conflicted"),
+                        "conflict_group_id": item.get("conflict_group_id"),
                         "confidence": item.get("confidence"),
                         "review_status": item.get("review_status"),
                         "text": item.get("claim_text"),
