@@ -199,10 +199,12 @@ async def list_conflicts(
     )
     rows = result.scalars().all()
     by_group: dict[int, list[int]] = defaultdict(list)
+    artifacts_by_group: dict[int, set[int]] = defaultdict(set)
     previews_by_group: dict[int, list[str]] = defaultdict(list)
     for c in rows:
         if c.conflict_group_id is not None:
             by_group[c.conflict_group_id].append(c.id)
+            artifacts_by_group[c.conflict_group_id].add(c.artifact_id)
             if len(previews_by_group[c.conflict_group_id]) < 3:
                 text = (c.claim_text or "").strip()
                 if len(text) > 120:
@@ -212,6 +214,7 @@ async def list_conflicts(
         ConflictGroupOut(
             conflict_group_id=gid,
             claim_ids=ids,
+            artifact_ids=sorted(artifacts_by_group.get(gid, set())),
             claim_count=len(ids),
             claim_previews=previews_by_group.get(gid, []),
         )

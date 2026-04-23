@@ -362,6 +362,7 @@ async def test_list_conflicts_returns_counts_and_previews():
         assert len(data) == 1
         assert data[0]["conflict_group_id"] == 9
         assert data[0]["claim_count"] == 2
+        assert data[0]["artifact_ids"] == [7]
         assert data[0]["claim_ids"] == [51, 52]
         assert any("first-line therapy" in preview for preview in data[0]["claim_previews"])
     finally:

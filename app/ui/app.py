@@ -865,6 +865,9 @@ def page_kb():
                     {
                         "conflict_group_id": item.get("conflict_group_id"),
                         "claim_count": item.get("claim_count"),
+                        "artifact_ids": ", ".join(
+                            str(artifact_id) for artifact_id in item.get("artifact_ids", [])
+                        ),
                         "claim_ids": ", ".join(str(claim_id) for claim_id in item.get("claim_ids", [])),
                         "claim_previews": "\n\n".join(item.get("claim_previews", [])),
                     }

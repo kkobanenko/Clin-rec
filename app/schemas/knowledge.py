@@ -68,6 +68,7 @@ class EntityRegistryOut(BaseModel):
 class ConflictGroupOut(BaseModel):
     conflict_group_id: int
     claim_ids: list[int]
+    artifact_ids: list[int] = Field(default_factory=list)
     claim_count: int
     claim_previews: list[str] = Field(default_factory=list)
 
