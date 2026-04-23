@@ -76,6 +76,7 @@ async def list_outputs(
     review_status: str | None = None,
     generator_version: str | None = None,
     released_only: bool = False,
+    has_file_pointer: bool = False,
     artifact_id: int | None = None,
     search: str | None = Query(None, description="Подстрока в title или file_pointer (ILIKE)"),
 ):
@@ -96,6 +97,9 @@ async def list_outputs(
     if released_only:
         q = q.where(OutputRelease.released_at.is_not(None))
         count_q = count_q.where(OutputRelease.released_at.is_not(None))
+    if has_file_pointer:
+        q = q.where(OutputRelease.file_pointer.is_not(None))
+        count_q = count_q.where(OutputRelease.file_pointer.is_not(None))
     if artifact_id is not None:
         q = q.where(OutputRelease.artifact_id == artifact_id)
         count_q = count_q.where(OutputRelease.artifact_id == artifact_id)

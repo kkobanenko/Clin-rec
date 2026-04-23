@@ -629,6 +629,7 @@ def page_outputs():
     )
     output_search = st.text_input("Output Search")
     released_only = st.checkbox("Released Outputs Only")
+    has_file_pointer = st.checkbox("Outputs With Files Only")
     params = {"page_size": 50}
     if output_type_filter:
         params["output_type"] = output_type_filter
@@ -640,6 +641,8 @@ def page_outputs():
         params["generator_version"] = generator_version_filter
     if released_only:
         params["released_only"] = True
+    if has_file_pointer:
+        params["has_file_pointer"] = True
     if output_artifact_id > 0:
         params["artifact_id"] = output_artifact_id
     if output_search:
