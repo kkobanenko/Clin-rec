@@ -610,7 +610,17 @@ def page_scoring_models():
                 },
             )
             if isinstance(diff, dict):
-                st.json(diff)
+                diff_col1, diff_col2, diff_col3 = st.columns(3)
+                diff_col1.metric("Added", diff.get("added", 0))
+                diff_col2.metric("Removed", diff.get("removed", 0))
+                diff_col3.metric("Changed", diff.get("changed", 0))
+
+                details = diff.get("details", {})
+                for section in ("added", "changed", "removed"):
+                    rows = details.get(section) or []
+                    if rows:
+                        st.markdown(f"**{section.title()}**")
+                        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     else:
         st.info("No scoring models defined")
 
