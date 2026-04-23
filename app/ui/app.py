@@ -695,6 +695,46 @@ def page_kb():
         else:
             st.info("No KB conflicts detected")
 
+    st.subheader("Claims")
+    claim_col1, claim_col2 = st.columns(2)
+    claim_artifact_id = claim_col1.number_input(
+        "Claim Artifact ID Filter",
+        min_value=0,
+        step=1,
+        key="kb_claim_artifact_id",
+        help="0 means no artifact filter",
+    )
+    claim_page_size = claim_col2.number_input(
+        "Claims Page Size",
+        min_value=10,
+        max_value=200,
+        value=50,
+        step=10,
+        key="kb_claim_page_size",
+    )
+    claim_params = {"page_size": claim_page_size}
+    if claim_artifact_id > 0:
+        claim_params["artifact_id"] = claim_artifact_id
+    claims = api_get("/kb/claims", claim_params)
+    if isinstance(claims, dict):
+        items = claims.get("items", [])
+        if items:
+            claim_rows = []
+            for item in items:
+                claim_rows.append(
+                    {
+                        "id": item.get("id"),
+                        "artifact_id": item.get("artifact_id"),
+                        "type": item.get("claim_type"),
+                        "confidence": item.get("confidence"),
+                        "review_status": item.get("review_status"),
+                        "text": item.get("claim_text"),
+                    }
+                )
+            st.dataframe(pd.DataFrame(claim_rows), width="stretch", hide_index=True)
+        else:
+            st.info("No KB claims available")
+
 
 # --- Page: Tasks ---
 
