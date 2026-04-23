@@ -21,11 +21,17 @@ def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
 
 def render_kb_artifact_detail(detail: dict) -> None:
     st.markdown(f"**{detail.get('title', 'KB Artifact')}**")
-    meta1, meta2, meta3, meta4 = st.columns(4)
+    source_links = detail.get("source_links") or []
+    meta1, meta2, meta3, meta4, meta5, meta6 = st.columns(6)
     meta1.metric("Artifact ID", detail.get("id"))
     meta2.metric("Type", detail.get("artifact_type") or "n/a")
     meta3.metric("Status", detail.get("status") or "n/a")
-    meta4.metric("Claims", len(detail.get("claims") or []))
+    meta4.metric("Review", detail.get("review_status") or "n/a")
+    meta5.metric("Claims", len(detail.get("claims") or []))
+    meta6.metric("Sources", len(source_links))
+
+    if detail.get("generator_version"):
+        st.caption(f"generator={detail.get('generator_version')}")
 
     if detail.get("summary"):
         st.caption(detail.get("summary"))
@@ -34,7 +40,6 @@ def render_kb_artifact_detail(detail: dict) -> None:
         with st.expander("Manifest", expanded=False):
             st.json(detail.get("manifest_json"))
 
-    source_links = detail.get("source_links") or []
     if source_links:
         st.markdown("**Source Links**")
         st.dataframe(pd.DataFrame(source_links), width="stretch", hide_index=True)
