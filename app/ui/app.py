@@ -648,6 +648,19 @@ def page_kb():
         if result:
             st.success(f"KB lint queued: {result.get('task_id')}")
 
+    st.subheader("Master Index")
+    master_index = api_get("/kb/indexes/master", allow_statuses={404})
+    if isinstance(master_index, dict):
+        if master_index.get("artifact_id"):
+            st.success(
+                f"artifact #{master_index.get('artifact_id')} {master_index.get('canonical_slug')}"
+            )
+            if master_index.get("manifest_json"):
+                with st.expander("Master Manifest", expanded=False):
+                    st.json(master_index.get("manifest_json"))
+        else:
+            st.info(master_index.get("message") or "No master index artifact yet")
+
     st.subheader("Artifacts")
     filter_col1, filter_col2 = st.columns(2)
     artifact_type_filter = filter_col1.selectbox(
