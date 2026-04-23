@@ -794,7 +794,19 @@ def page_kb():
     if isinstance(entities, dict):
         items = entities.get("items", [])
         if items:
-            st.dataframe(pd.DataFrame(items), width="stretch")
+            entity_rows = []
+            for item in items:
+                entity_rows.append(
+                    {
+                        "id": item.get("id"),
+                        "type": item.get("entity_type"),
+                        "canonical_name": item.get("canonical_name"),
+                        "status": item.get("status"),
+                        "alias_count": len(item.get("aliases_json") or {}),
+                        "external_ref_count": len(item.get("external_refs_json") or {}),
+                    }
+                )
+            st.dataframe(pd.DataFrame(entity_rows), width="stretch", hide_index=True)
         else:
             st.info("No KB entities available")
 
