@@ -129,6 +129,7 @@ async def test_list_outputs_applies_file_back_and_search_filters():
             assert "output_release.output_type = :output_type_1" in sql
             assert "output_release.file_back_status = :file_back_status_1" in sql
             assert "lower(output_release.title) LIKE lower(:title_1)" in sql
+            assert "CAST(output_release.scope_json AS TEXT)" in sql
             assert params["output_type_1"] == "memo"
             assert params["file_back_status_1"] == "accepted"
         assert compiled_count.params["title_1"] == "%insulin%"

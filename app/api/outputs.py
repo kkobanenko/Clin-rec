@@ -2,7 +2,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import Text, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
@@ -104,6 +104,7 @@ async def list_outputs(
         filt = or_(
             OutputRelease.title.ilike(term),
             OutputRelease.file_pointer.ilike(term),
+            cast(OutputRelease.scope_json, Text).ilike(term),
         )
         q = q.where(filt)
         count_q = count_q.where(filt)
