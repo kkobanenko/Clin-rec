@@ -20,7 +20,7 @@ from app.core import sync_database
 from app.models.clinical import ClinicalContext
 from app.models.document import DocumentRegistry, DocumentVersion
 from app.models.evidence import PairEvidence
-from app.models.knowledge import KnowledgeArtifact
+from app.models.knowledge import KnowledgeArtifact, KnowledgeClaim
 from app.models.molecule import Molecule
 from app.models.text import DocumentSection, TextFragment
 from app.services.candidate_engine import CandidateEngine
@@ -89,6 +89,10 @@ def test_kb_compile_lint_fts(pg_engine, monkeypatch):
         assert "glossary_term" in types
         assert "open_question" in types
         assert "master_index" in types
+        claim_rows = check.execute(select(KnowledgeClaim).order_by(KnowledgeClaim.id)).scalars().all()
+        assert claim_rows
+        assert {claim.claim_type for claim in claim_rows} >= {"fact", "hypothesis"}
+        assert all((claim.provenance_json or {}).get("document_version_id") == vid for claim in claim_rows)
     finally:
         check.close()
 

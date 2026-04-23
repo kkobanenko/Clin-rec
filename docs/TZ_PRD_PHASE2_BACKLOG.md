@@ -37,7 +37,7 @@
 
 - Нет отдельного типа `concept_page` (частично закрыто `glossary_term`).
 - Нет YAML frontmatter в Markdown.
-- Компилятор не создаёт строки `**knowledge_claim**` автоматически.
+- Компилятор теперь создаёт минимальные детерминированные `**knowledge_claim**` для `source_digest` / `entity_page` / `glossary_term` / `open_question`; richer claim graph и conflict semantics остаются в бэклоге.
 
 ## Lint / health (TZ §13)
 
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard, compiler auto-claims и синхронизации versioning/release evidence.*

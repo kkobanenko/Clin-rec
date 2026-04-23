@@ -12,7 +12,7 @@ from typing import Any
 from sqlalchemy import func, select
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentRegistry, DocumentVersion
-from app.models.knowledge import ArtifactSourceLink, EntityRegistry, KnowledgeArtifact
+from app.models.knowledge import ArtifactSourceLink, EntityRegistry, KnowledgeArtifact, KnowledgeClaim
 from app.models.molecule import Molecule
 from app.models.text import DocumentSection, TextFragment
 
@@ -124,6 +124,28 @@ class KnowledgeCompileService:
             )
 
             session.flush()
+            self._replace_artifact_claims(
+                session,
+                artifact=artifact,
+                claims=[
+                    {
+                        "claim_type": "fact",
+                        "claim_text": (
+                            f"Документ registry_id={registry.id}, version_id={version_id} содержит "
+                            f"{section_count} раздел(ов) и {fragment_count} фрагмент(ов); "
+                            f"primary_source={version.source_type_primary or 'unknown'}."
+                        ),
+                        "confidence": "medium",
+                        "review_status": "auto",
+                        "provenance_json": {
+                            "compiler": COMPILER_VERSION,
+                            "registry_id": registry.id,
+                            "document_version_id": version_id,
+                            "artifact_slug": canonical_slug,
+                        },
+                    }
+                ],
+            )
             artifact_id = artifact.id
 
             # TZ §12.3 foundation-типы (без LLM): карточка документа как сущность, глоссарий, открытые вопросы.
@@ -231,6 +253,29 @@ class KnowledgeCompileService:
             version_id=version_id,
             link_notes=digest_link_notes,
         )
+        self._replace_artifact_claims(
+            session,
+            artifact=session.execute(
+                select(KnowledgeArtifact).where(KnowledgeArtifact.canonical_slug == entity_slug)
+            ).scalar_one(),
+            claims=[
+                {
+                    "claim_type": "fact",
+                    "claim_text": (
+                        f"Document registry_id={registry.id} mapped to entity_registry_id={entity_registry_id}."
+                    ),
+                    "confidence": "medium",
+                    "review_status": "auto",
+                    "provenance_json": {
+                        "compiler": COMPILER_VERSION,
+                        "registry_id": registry.id,
+                        "document_version_id": version_id,
+                        "entity_registry_id": entity_registry_id,
+                        "artifact_slug": entity_slug,
+                    },
+                }
+            ],
+        )
 
         glossary_slug = f"glossary/doc_{registry.id}"
         term_heading = (registry.title or f"Документ {registry.id}")[:200]
@@ -259,6 +304,26 @@ class KnowledgeCompileService:
             },
             version_id=version_id,
             link_notes=digest_link_notes,
+        )
+        self._replace_artifact_claims(
+            session,
+            artifact=session.execute(
+                select(KnowledgeArtifact).where(KnowledgeArtifact.canonical_slug == glossary_slug)
+            ).scalar_one(),
+            claims=[
+                {
+                    "claim_type": "fact",
+                    "claim_text": f"Официальное название документа registry_id={registry.id}: {term_heading}.",
+                    "confidence": "medium",
+                    "review_status": "auto",
+                    "provenance_json": {
+                        "compiler": COMPILER_VERSION,
+                        "registry_id": registry.id,
+                        "document_version_id": version_id,
+                        "artifact_slug": glossary_slug,
+                    },
+                }
+            ],
         )
 
         oq_slug = f"open_questions/v{version_id}"
@@ -290,6 +355,29 @@ class KnowledgeCompileService:
             },
             version_id=version_id,
             link_notes=digest_link_notes,
+        )
+        self._replace_artifact_claims(
+            session,
+            artifact=session.execute(
+                select(KnowledgeArtifact).where(KnowledgeArtifact.canonical_slug == oq_slug)
+            ).scalar_one(),
+            claims=[
+                {
+                    "claim_type": "hypothesis",
+                    "claim_text": (
+                        f"Для document_version_id={version_id} требуется дальнейшее clinical extraction "
+                        "и claim/provenance enrichment."
+                    ),
+                    "confidence": "low",
+                    "review_status": "needs_review",
+                    "provenance_json": {
+                        "compiler": COMPILER_VERSION,
+                        "registry_id": registry.id,
+                        "document_version_id": version_id,
+                        "artifact_slug": oq_slug,
+                    },
+                }
+            ],
         )
 
     def _upsert_linked_artifact(
@@ -344,6 +432,23 @@ class KnowledgeCompileService:
         )
         session.flush()
         return art
+
+    def _replace_artifact_claims(self, session, *, artifact: KnowledgeArtifact, claims: list[dict[str, Any]]) -> None:
+        session.query(KnowledgeClaim).filter(KnowledgeClaim.artifact_id == artifact.id).delete(
+            synchronize_session=False
+        )
+        for claim in claims:
+            session.add(
+                KnowledgeClaim(
+                    artifact_id=artifact.id,
+                    claim_type=claim["claim_type"],
+                    claim_text=claim["claim_text"],
+                    confidence=claim.get("confidence"),
+                    review_status=claim.get("review_status"),
+                    provenance_json=claim.get("provenance_json"),
+                )
+            )
+        session.flush()
 
     def _ensure_molecule_entity_pages(self, session) -> None:
         """
