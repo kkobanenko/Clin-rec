@@ -191,9 +191,11 @@ async def test_list_artifacts_filters_by_type_status_and_search():
         params = compiled.params
         assert "knowledge_artifact.artifact_type = :artifact_type_1" in sql
         assert "knowledge_artifact.status = :status_1" in sql
+        assert "knowledge_artifact.review_status = :review_status_1" in sql
         assert "lower(knowledge_artifact.title) LIKE lower(:title_1)" in sql
         assert params["artifact_type_1"] == "source_digest"
         assert params["status_1"] == "draft"
+        assert params["review_status_1"] == "needs_review"
         assert params["title_1"] == "%digest%"
 
     fake_db = FakeAsyncSession(
@@ -212,7 +214,7 @@ async def test_list_artifacts_filters_by_type_status_and_search():
                             "status": "draft",
                             "summary": "Digest summary",
                             "confidence": None,
-                            "review_status": None,
+                            "review_status": "needs_review",
                             "generator_version": "0.3.0",
                             "created_at": NOW,
                             "updated_at": NOW,
@@ -232,7 +234,7 @@ async def test_list_artifacts_filters_by_type_status_and_search():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/kb/artifacts?page=1&page_size=50&artifact_type=source_digest&status=draft&search=digest"
+                "/kb/artifacts?page=1&page_size=50&artifact_type=source_digest&status=draft&review_status=needs_review&search=digest"
             )
 
         assert resp.status_code == 200
