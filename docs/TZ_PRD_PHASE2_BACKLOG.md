@@ -46,7 +46,7 @@
 ## Clinical extraction / scoring (TZ §14–15)
 
 - Confidence экстрактора не пишется в `PairEvidence`.
-- `explanation_json` без полных id evidence/claims по TZ.
+- `explanation_json` теперь содержит context/pair/evidence/fragment ids для scoring traceability, но claim ids по TZ по-прежнему не покрыты.
 - Negative evidence не смоделирован явно.
 
 ## Outputs (TZ §16)
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids и синхронизации versioning/release evidence.*

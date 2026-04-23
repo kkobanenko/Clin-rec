@@ -12,6 +12,24 @@ logger = logging.getLogger(__name__)
 
 
 class MatrixBuilder:
+    def _build_matrix_explanation(self, context_scores: list[PairContextScore]) -> dict:
+        return {
+            "contexts": [
+                {
+                    "pair_context_score_id": s.id,
+                    "context_id": s.context_id,
+                    "substitution_score": s.substitution_score,
+                    "confidence_score": s.confidence_score,
+                    "evidence_count": s.evidence_count,
+                    "evidence_ids": (s.explanation_json or {}).get("evidence_ids", []),
+                    "fragment_ids": (s.explanation_json or {}).get("fragment_ids", []),
+                }
+                for s in context_scores
+            ],
+            "pair_context_score_ids": [s.id for s in context_scores if getattr(s, "id", None) is not None],
+            "aggregation": "mean",
+        }
+
     def build(self, model_version_id: int, scope_type: str = "global", scope_id: str | None = None) -> int:
         """Build or rebuild matrix cells from pair context scores.
 
@@ -54,18 +72,7 @@ class MatrixBuilder:
                 global_conf = sum(conf_scores) / len(conf_scores) if conf_scores else 0.5
 
                 # Build explanation
-                explanation = {
-                    "contexts": [
-                        {
-                            "context_id": s.context_id,
-                            "substitution_score": s.substitution_score,
-                            "confidence_score": s.confidence_score,
-                            "evidence_count": s.evidence_count,
-                        }
-                        for s in context_scores
-                    ],
-                    "aggregation": "mean",
-                }
+                explanation = self._build_matrix_explanation(context_scores)
 
                 # Get molecule names for short explanation
                 mol_from_obj = session.get(Molecule, mol_from)

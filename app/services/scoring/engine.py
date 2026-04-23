@@ -42,6 +42,16 @@ class ScoringEngine:
     def __init__(self):
         self.confidence_calculator = ConfidenceCalculator()
 
+    def _build_context_explanation(self, evidence_list: list[PairEvidence], fragment_scores: list[float]) -> dict:
+        return {
+            "evidence_count": len(evidence_list),
+            "evidence_ids": [e.id for e in evidence_list if getattr(e, "id", None) is not None],
+            "fragment_ids": [e.fragment_id for e in evidence_list if getattr(e, "fragment_id", None) is not None],
+            "fragment_scores": fragment_scores,
+            "relation_types": [e.relation_type for e in evidence_list],
+            "aggregation": "weighted_max",
+        }
+
     def score_all(self, model_version_id: int) -> int:
         """Score all pairs for a given model version. Returns count of scored pairs."""
         session = get_sync_session()
@@ -87,12 +97,7 @@ class ScoringEngine:
                         relation_types=[e.relation_type for e in evidence_list],
                     )
 
-                    explanation = {
-                        "evidence_count": len(evidence_list),
-                        "fragment_scores": fragment_scores,
-                        "relation_types": [e.relation_type for e in evidence_list],
-                        "aggregation": "weighted_max",
-                    }
+                    explanation = self._build_context_explanation(evidence_list, fragment_scores)
 
                     # Upsert PairContextScore
                     existing = (

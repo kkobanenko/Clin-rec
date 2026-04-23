@@ -1,6 +1,9 @@
 """Tests for scoring engine."""
 
+from types import SimpleNamespace
+
 import pytest
+from app.services.matrix_builder import MatrixBuilder
 from app.services.scoring.engine import ScoringEngine, RELATION_ROLE_SCORES
 
 
@@ -67,3 +70,45 @@ class TestScoringEngine:
         ]
         for rt in expected_types:
             assert rt in RELATION_ROLE_SCORES
+
+    def test_context_explanation_includes_evidence_and_fragment_ids(self):
+        explanation = self.engine._build_context_explanation(
+            [
+                SimpleNamespace(id=11, fragment_id=101, relation_type="same_line_option"),
+                SimpleNamespace(id=12, fragment_id=102, relation_type="switch_if_failure"),
+            ],
+            [0.8, 0.6],
+        )
+
+        assert explanation["evidence_ids"] == [11, 12]
+        assert explanation["fragment_ids"] == [101, 102]
+        assert explanation["relation_types"] == ["same_line_option", "switch_if_failure"]
+
+
+class TestMatrixBuilder:
+    def test_matrix_explanation_includes_pair_context_and_evidence_ids(self):
+        builder = MatrixBuilder()
+        explanation = builder._build_matrix_explanation(
+            [
+                SimpleNamespace(
+                    id=21,
+                    context_id=7,
+                    substitution_score=0.8,
+                    confidence_score=0.7,
+                    evidence_count=2,
+                    explanation_json={"evidence_ids": [11, 12], "fragment_ids": [101, 102]},
+                ),
+                SimpleNamespace(
+                    id=22,
+                    context_id=8,
+                    substitution_score=0.6,
+                    confidence_score=0.5,
+                    evidence_count=1,
+                    explanation_json={"evidence_ids": [13], "fragment_ids": [103]},
+                ),
+            ]
+        )
+
+        assert explanation["pair_context_score_ids"] == [21, 22]
+        assert explanation["contexts"][0]["evidence_ids"] == [11, 12]
+        assert explanation["contexts"][1]["fragment_ids"] == [103]
