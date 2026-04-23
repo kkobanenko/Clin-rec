@@ -2,55 +2,56 @@
 
 ## 1. Build Identification
 
-- Date: 2026-04-23 12:20:35 MSK
+- Date: 2026-04-23 15:49:36 MSK
 - Branch: `main`
-- Commit SHA: `4d35f23`
+- Commit SHA: `f0c0a6a`
 - Runtime profile: `docker-compose-only`
 - Validation path: `composite`
-- Full rehearsal baseline: `docs/RELEASE_REHEARSAL_2026-04-23.md` at commit `61eb4e7`
-- Late-stage rerun closed remaining regression gates at commit `4d35f23`
+- Full rehearsal baseline: `docs/RELEASE_REHEARSAL_2026-04-23.md` at commit `f0c0a6a`
+- Latest full-pack rerun closed regression and smoke gates at commit `f0c0a6a`
 - Artifact bundle(s):
   - `.artifacts/release_checks/20260423_010935`
   - `.artifacts/release_checks/20260423_074011`
   - `.artifacts/release_checks/20260423_122035`
+  - `.artifacts/release_checks/20260423_154936`
 - Operator: `GitHub Copilot`
 
 ## 2. Gate Results
 
 | Gate | Result | Notes |
 | --- | --- | --- |
-| Runtime preflight | pass | Compose-backed runtime stayed healthy across full rehearsal and latest late-stage rerun on same profile. |
-| Structural smoke | pass | Full rehearsal baseline remained green: run `71` completed successfully, including worker-backed memo-task completion, generated output retrieval and auxiliary-route checks. |
-| Quality smoke | pass | Full rehearsal baseline remained green: run `72` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
-| API regression | pass | Review API, matrix model ops, outputs API, document outcomes API and auxiliary mounts suites all passed on late-stage rerun at commit `4d35f23`. |
-| Downstream verification | pass | `tests/test_kb_integration_postgres.py` completed as `2 passed`, covering compiler claims/frontmatter on current head. |
+| Runtime preflight | pass | Compose-backed runtime stayed healthy across refreshed full release-ready check on same profile. |
+| Structural smoke | pass | Current full-pack rerun remained green: run `73` completed successfully, including worker-backed memo-task completion, generated output retrieval and auxiliary-route checks. |
+| Quality smoke | pass | Current full-pack rerun remained green: run `74` completed successfully with worker-backed memo-task completion, downstream pair-evidence and matrix checks green. |
+| API regression | pass | Review API, matrix model ops, outputs API, document outcomes API and auxiliary mounts suites all passed on full-pack rerun at commit `f0c0a6a`. |
+| Downstream verification | pass | `tests/test_kb_integration_postgres.py` completed as `2 passed`, covering compiler claims/frontmatter and lint follow-up on current head. |
 
 ## 3. Key Evidence
 
 - Structural smoke:
-  - run `71`
+  - run `73`
   - status `completed`
   - discovered `5`
   - queued memo task `SUCCESS`
-  - generated output `29` retrievable via `/outputs/29`
+  - generated output `31` retrievable via `/outputs/31`
   - auxiliary route/task checks enforced in terminal pass/fail decision
 - Quality smoke:
-  - run `72`
+  - run `74`
   - status `completed`
   - queued memo task `SUCCESS`
-  - generated output `30` retrievable via `/outputs/30`
+  - generated output `32` retrievable via `/outputs/32`
   - pair evidence `10 items` on inspected page, `60 total`
   - matrix cell score `0.13`, confidence `0.575`, supporting evidence `2`
 - API regression:
   - `tests/test_pipeline_review_api.py`: `9 passed`
   - `tests/test_matrix_model_ops_api.py`: `10 passed`
-  - `tests/test_outputs_api.py`: `7 passed`
+  - `tests/test_outputs_api.py`: `9 passed`
   - `tests/test_document_pipeline_outcomes_api.py`: `5 passed`
   - `tests/test_aux_api_mounts.py`: `2 passed`
 - KB integration:
   - `tests/test_kb_integration_postgres.py`: `2 passed`
   - current rerun verifies `DocumentVersion.compiler_version = 0.3.0`
-  - current rerun verifies compiler-generated claims and YAML frontmatter on current digest artifact
+  - current rerun verifies compiler-generated claims, YAML frontmatter, and missing-claims lint follow-up on current digest artifact
 
 ## 4. Blockers
 
@@ -61,7 +62,7 @@
 - This summary covers only `docker-compose-only` runtime profile; any other runtime path still needs separate validation.
 - Structural smoke still discovered only `5` records because discovery strategy remained `playwright_fallback`; acceptable for runtime verification, not completeness claim.
 - Remaining phase-2 backlog items around deeper governance, richer UI and broader knowledge automation remain outside immediate MVP release scope.
-- Late-stage rerun skips structural/quality smoke by design; baseline remains the earlier full rehearsal and should be rerun again only if runtime-critical surfaces move.
+- Discovery still uses `playwright_fallback` during smoke on current runtime; acceptable for release verification, not completeness claim.
 
 ## 6. Scope Boundaries
 
@@ -72,7 +73,7 @@
 ## 7. Decision
 
 - Final status: `release-ready`
-- Decision rationale: full rehearsal established smoke-green baseline on compose runtime, and latest committed late-stage rerun at `4d35f23` closed targeted regression after discovery metrics repair, compiler auto-claims/frontmatter and KB artifact-detail UI follow-up without open blocker.
+- Decision rationale: current full release-ready check at `f0c0a6a` revalidated structural smoke, quality smoke, API regression and KB integration after operator-surface filter/detail additions and lint follow-up without open blocker.
 - Required next action: preserve this summary alongside `docs/RELEASE_REHEARSAL_2026-04-23.md` as current composite reference record for compose validation.
 
 ## 8. Sources of Truth

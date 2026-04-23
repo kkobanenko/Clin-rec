@@ -53,6 +53,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Captured late-stage rerun after discovery metrics/max-record repair, compiler auto-claims/frontmatter and KB artifact-detail UI follow-up.
 - Confirmed operator/API regression pack and KB Postgres integration remained green on same compose-backed runtime profile.
 
+### Release Evidence Sync (2026-04-23, full rerun refresh)
+
+**Files:** `docs/RELEASE_SUMMARY_2026-04-23.md`, `.artifacts/release_checks/20260423_154936`
+
+**Changelog:**
+- Refreshed current composite release summary to validated head `f0c0a6a`.
+- Captured full release-ready rerun after KB/output filter/detail operator-surface additions and KB lint follow-up.
+- Confirmed structural smoke, quality smoke, API regression and KB Postgres integration remained green on same compose-backed runtime profile.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
@@ -225,6 +234,9 @@ Before releasing a matrix version or making config changes:
 - Restored discovery metric semantics and `CRIN_DISCOVERY_MAX_RECORDS` enforcement for full syncs.
 - Added compiler-generated `KnowledgeClaim` rows and YAML frontmatter on KB markdown artifacts.
 - Enriched Streamlit KB artifact detail with claims, source links and frontmatter/body preview.
+- Added KB/output operator filters and detail drill-downs across artifacts, claims, entities and outputs.
+- Added KB lint check for document-version-linked compiler artifacts missing claims.
+- Re-ran full `Release Ready Check` on compose runtime and recorded green evidence for commit `f0c0a6a`.
 
 ---
 
