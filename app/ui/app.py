@@ -514,6 +514,13 @@ def page_outputs():
         detail = api_get(f"/outputs/{detail_output_id}")
         if detail:
             st.json(detail)
+            artifact_id = detail.get("artifact_id")
+            if artifact_id:
+                st.success(f"Linked KB artifact: #{artifact_id}")
+                if st.button("Load Linked Artifact", key=f"load_output_artifact_{artifact_id}"):
+                    artifact = api_get(f"/kb/artifacts/{artifact_id}")
+                    if artifact:
+                        st.json(artifact)
 
     st.subheader("Generate Output")
     with st.form("output_generate_form"):
