@@ -733,6 +733,13 @@ def page_kb():
         else:
             st.info("No KB entities available")
 
+    st.subheader("Entity Detail")
+    entity_id = st.number_input("Entity ID", min_value=1, step=1, key="kb_entity_id")
+    if st.button("Load Entity"):
+        entity_detail = api_get(f"/kb/entities/{entity_id}")
+        if entity_detail:
+            st.json(entity_detail)
+
     st.subheader("Conflicts")
     conflicts = api_get("/kb/conflicts")
     if isinstance(conflicts, list):
