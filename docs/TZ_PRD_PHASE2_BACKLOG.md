@@ -51,7 +51,7 @@
 
 ## Outputs (TZ §16)
 
-- Генерация кроме memo — заглушки; filing не создаёт `KnowledgeArtifact` автоматически.
+- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, но broader output productization остаётся в бэклоге.
 
 ## Очереди Celery (TZ §19)
 
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage и синхронизации versioning/release evidence.*

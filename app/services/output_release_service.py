@@ -17,6 +17,32 @@ logger = logging.getLogger(__name__)
 GENERATOR_VERSION = "0.2.0"
 
 
+def _ensure_output_artifact(session, row: OutputRelease) -> KnowledgeArtifact | None:
+    if row.artifact_id or not row.file_pointer:
+        return None
+
+    artifact = KnowledgeArtifact(
+        artifact_type="output_release",
+        title=row.title,
+        canonical_slug=f"output/{row.output_type}/{row.id}",
+        status="published",
+        content_md=None,
+        summary=f"Filed output release #{row.id}",
+        review_status=row.review_status,
+        generator_version=row.generator_version,
+        storage_path=row.file_pointer,
+        manifest_json={
+            "output_release_id": row.id,
+            "output_type": row.output_type,
+            "file_pointer": row.file_pointer,
+        },
+    )
+    session.add(artifact)
+    session.flush()
+    row.artifact_id = artifact.id
+    return artifact
+
+
 def _build_memo_markdown(
     session,
     output_id: int,
@@ -121,14 +147,23 @@ def apply_file_back(output_id: int, file_back_status: str) -> dict:
         if file_back_status == "accepted":
             row.released_at = datetime.now(timezone.utc)
             row.review_status = "accepted"
+            artifact = _ensure_output_artifact(session, row)
         elif file_back_status == "rejected":
             row.review_status = "rejected"
+            artifact = None
         else:
             row.review_status = "needs_review"
+            artifact = None
 
         session.commit()
         logger.info("file_back output_id=%s status=%s", output_id, file_back_status)
-        return {"status": "ok", "output_id": output_id, "file_back_status": file_back_status}
+        return {
+            "status": "ok",
+            "output_id": output_id,
+            "file_back_status": file_back_status,
+            "artifact_id": row.artifact_id,
+            "artifact_created": artifact is not None,
+        }
     except Exception:
         session.rollback()
         raise
