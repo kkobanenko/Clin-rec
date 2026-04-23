@@ -599,6 +599,7 @@ def page_outputs():
         help="0 means no artifact filter",
     )
     output_search = st.text_input("Output Search")
+    released_only = st.checkbox("Released Outputs Only")
     params = {"page_size": 50}
     if output_type_filter:
         params["output_type"] = output_type_filter
@@ -606,6 +607,8 @@ def page_outputs():
         params["file_back_status"] = file_back_filter
     if review_status_filter:
         params["review_status"] = review_status_filter
+    if released_only:
+        params["released_only"] = True
     if output_artifact_id > 0:
         params["artifact_id"] = output_artifact_id
     if output_search:
