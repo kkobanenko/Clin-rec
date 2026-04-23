@@ -294,3 +294,53 @@ async def test_list_entities_filters_by_type_status_and_search():
         assert data["items"][0]["canonical_name"] == "Insulin"
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_list_conflicts_returns_counts_and_previews():
+    fake_db = FakeAsyncSession(
+        values=[
+            FakeRowsResult(
+                [
+                    type(
+                        "ClaimRow",
+                        (),
+                        {
+                            "id": 51,
+                            "conflict_group_id": 9,
+                            "claim_text": "Insulin should be first-line therapy in this scenario.",
+                        },
+                    )(),
+                    type(
+                        "ClaimRow",
+                        (),
+                        {
+                            "id": 52,
+                            "conflict_group_id": 9,
+                            "claim_text": "Insulin should be reserved for rescue therapy in this scenario.",
+                        },
+                    )(),
+                ]
+            )
+        ],
+        assertions=[lambda _query: None],
+    )
+
+    async def override_get_db():
+        yield fake_db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/kb/conflicts")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["conflict_group_id"] == 9
+        assert data[0]["claim_count"] == 2
+        assert data[0]["claim_ids"] == [51, 52]
+        assert any("first-line therapy" in preview for preview in data[0]["claim_previews"])
+    finally:
+        app.dependency_overrides.pop(get_db, None)

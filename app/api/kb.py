@@ -172,10 +172,24 @@ async def list_conflicts(db: AsyncSession = Depends(get_db)):
     )
     rows = result.scalars().all()
     by_group: dict[int, list[int]] = defaultdict(list)
+    previews_by_group: dict[int, list[str]] = defaultdict(list)
     for c in rows:
         if c.conflict_group_id is not None:
             by_group[c.conflict_group_id].append(c.id)
-    return [ConflictGroupOut(conflict_group_id=gid, claim_ids=ids) for gid, ids in sorted(by_group.items())]
+            if len(previews_by_group[c.conflict_group_id]) < 3:
+                text = (c.claim_text or "").strip()
+                if len(text) > 120:
+                    text = f"{text[:117]}..."
+                previews_by_group[c.conflict_group_id].append(text)
+    return [
+        ConflictGroupOut(
+            conflict_group_id=gid,
+            claim_ids=ids,
+            claim_count=len(ids),
+            claim_previews=previews_by_group.get(gid, []),
+        )
+        for gid, ids in sorted(by_group.items())
+    ]
 
 
 @router.post("/compile", response_model=KbTaskQueued, status_code=202)

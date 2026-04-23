@@ -760,7 +760,17 @@ def page_kb():
     conflicts = api_get("/kb/conflicts")
     if isinstance(conflicts, list):
         if conflicts:
-            st.dataframe(pd.DataFrame(conflicts), width="stretch")
+            conflict_rows = []
+            for item in conflicts:
+                conflict_rows.append(
+                    {
+                        "conflict_group_id": item.get("conflict_group_id"),
+                        "claim_count": item.get("claim_count"),
+                        "claim_ids": ", ".join(str(claim_id) for claim_id in item.get("claim_ids", [])),
+                        "claim_previews": "\n\n".join(item.get("claim_previews", [])),
+                    }
+                )
+            st.dataframe(pd.DataFrame(conflict_rows), width="stretch", hide_index=True)
         else:
             st.info("No KB conflicts detected")
 

@@ -68,6 +68,8 @@ class EntityRegistryOut(BaseModel):
 class ConflictGroupOut(BaseModel):
     conflict_group_id: int
     claim_ids: list[int]
+    claim_count: int
+    claim_previews: list[str] = Field(default_factory=list)
 
 
 class KbTaskQueued(BaseModel):
