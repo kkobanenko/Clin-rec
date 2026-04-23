@@ -265,3 +265,35 @@ async def test_get_review_history_returns_paginated_actions():
         mocked_history.assert_called_once_with(target_type=None, target_id=7, limit=20, offset=0)
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_get_review_history_passes_target_type_filter():
+    async def override_get_db():
+        yield FakeAsyncSession([FakeScalarResult(1)])
+
+    app.dependency_overrides[get_db] = override_get_db
+    actions = [
+        SimpleNamespace(
+            id=2,
+            target_type="pair_evidence",
+            target_id=8,
+            action="approve",
+            old_value_json={"review_status": "auto"},
+            new_value_json={"review_status": "approved"},
+            reason=None,
+            author="tester",
+            created_at="2026-04-21T00:00:00Z",
+        )
+    ]
+
+    try:
+        with patch("app.api.pipeline.ReviewerService.get_review_history", return_value=actions) as mocked_history:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/review/history?target_type=pair_evidence&page=1&page_size=20")
+
+        assert resp.status_code == 200
+        mocked_history.assert_called_once_with(target_type="pair_evidence", target_id=None, limit=20, offset=0)
+    finally:
+        app.dependency_overrides.pop(get_db, None)

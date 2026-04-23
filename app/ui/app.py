@@ -426,21 +426,41 @@ def page_reviews():
 
     # Review history
     st.subheader("Recent Review Actions")
-    history_target_id = st.number_input(
+    history_col1, history_col2 = st.columns(2)
+    history_target_type = history_col1.selectbox(
+        "History Target Type",
+        ["", "pair_evidence"],
+        index=0,
+    )
+    history_target_id = history_col2.number_input(
         "History Target ID",
         min_value=0,
         step=1,
         help="0 means no target filter",
     )
     history_params = {"page_size": 50}
+    if history_target_type:
+        history_params["target_type"] = history_target_type
     if history_target_id > 0:
         history_params["target_id"] = history_target_id
     reviews = api_get("/review/history", history_params)
     if isinstance(reviews, dict):
         items = reviews.get("items", [])
         if items:
-            df = pd.DataFrame(items)
-            st.dataframe(df, width="stretch")
+            history_rows = []
+            for item in items:
+                history_rows.append(
+                    {
+                        "id": item.get("id"),
+                        "target_type": item.get("target_type"),
+                        "target_id": item.get("target_id"),
+                        "action": item.get("action"),
+                        "author": item.get("author"),
+                        "reason": item.get("reason"),
+                        "created_at": item.get("created_at"),
+                    }
+                )
+            st.dataframe(pd.DataFrame(history_rows), width="stretch", hide_index=True)
         else:
             st.info("No review actions yet")
 
