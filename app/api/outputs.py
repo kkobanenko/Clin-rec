@@ -73,6 +73,7 @@ async def list_outputs(
     page_size: int = Query(50, ge=1, le=200),
     output_type: str | None = None,
     file_back_status: str | None = None,
+    artifact_id: int | None = None,
     search: str | None = Query(None, description="Подстрока в title или file_pointer (ILIKE)"),
 ):
     q = select(OutputRelease)
@@ -83,6 +84,9 @@ async def list_outputs(
     if file_back_status:
         q = q.where(OutputRelease.file_back_status == file_back_status)
         count_q = count_q.where(OutputRelease.file_back_status == file_back_status)
+    if artifact_id is not None:
+        q = q.where(OutputRelease.artifact_id == artifact_id)
+        count_q = count_q.where(OutputRelease.artifact_id == artifact_id)
     if search and search.strip():
         term = f"%{search.strip()}%"
         filt = or_(

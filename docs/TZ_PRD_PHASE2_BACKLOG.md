@@ -51,7 +51,7 @@
 
 ## Outputs (TZ §16)
 
-- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, а Streamlit показывает structured output detail, list filter/search и linked artifact drill-down, но broader output productization остаётся в бэклоге.
+- Генерация кроме memo — заглушки; accepted file-back теперь может создавать и линковать `KnowledgeArtifact`, а Streamlit показывает structured output detail, list filter/search/artifact drill-down и linked artifact drill-down, но broader output productization остаётся в бэклоге.
 
 ## Очереди Celery (TZ §19)
 
