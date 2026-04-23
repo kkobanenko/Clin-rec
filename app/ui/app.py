@@ -643,7 +643,21 @@ def page_outputs():
     if isinstance(outputs, dict):
         items = outputs.get("items", [])
         if items:
-            st.dataframe(pd.DataFrame(items), width="stretch")
+            output_rows = []
+            for item in items:
+                output_rows.append(
+                    {
+                        "id": item.get("id"),
+                        "type": item.get("output_type"),
+                        "title": item.get("title"),
+                        "artifact_id": item.get("artifact_id"),
+                        "review_status": item.get("review_status"),
+                        "file_back_status": item.get("file_back_status"),
+                        "generator_version": item.get("generator_version"),
+                        "released_at": item.get("released_at"),
+                    }
+                )
+            st.dataframe(pd.DataFrame(output_rows), width="stretch", hide_index=True)
         else:
             st.info("No outputs available")
 
