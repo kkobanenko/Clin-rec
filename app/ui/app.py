@@ -79,6 +79,75 @@ def page_dashboard():
             if health.get("db_error"):
                 st.error(f"DB: {health['db_error']}")
 
+    st.subheader("Release Gate Snapshot")
+
+    snapshot_col1, snapshot_col2 = st.columns(2)
+
+    latest_runs = api_get("/runs", {"page_size": 5})
+    latest_outputs = api_get("/outputs", {"page_size": 5})
+    active_model = api_get("/matrix/models/active", allow_statuses={404})
+    kb_master = api_get("/kb/indexes/master", allow_statuses={404})
+
+    with snapshot_col1:
+        st.markdown("**Latest Pipeline Runs**")
+        if isinstance(latest_runs, dict) and latest_runs.get("items"):
+            run_rows = []
+            for item in latest_runs.get("items", [])[:5]:
+                run_rows.append(
+                    {
+                        "id": item.get("id"),
+                        "status": item.get("status"),
+                        "discovered": item.get("discovered_count"),
+                        "fetched": item.get("fetched_count"),
+                        "finished_at": item.get("finished_at"),
+                    }
+                )
+            st.dataframe(pd.DataFrame(run_rows), width="stretch", hide_index=True)
+        else:
+            st.info("No pipeline runs available")
+
+        st.markdown("**Latest Outputs**")
+        if isinstance(latest_outputs, dict) and latest_outputs.get("items"):
+            output_rows = []
+            for item in latest_outputs.get("items", [])[:5]:
+                output_rows.append(
+                    {
+                        "id": item.get("id"),
+                        "type": item.get("output_type"),
+                        "status": item.get("file_back_status") or "n/a",
+                        "title": item.get("title"),
+                    }
+                )
+            st.dataframe(pd.DataFrame(output_rows), width="stretch", hide_index=True)
+        else:
+            st.info("No outputs available")
+
+    with snapshot_col2:
+        st.markdown("**Release-Critical Operator Surfaces**")
+        if isinstance(active_model, dict):
+            st.success(
+                f"Active scoring model: #{active_model.get('id')} {active_model.get('version_label')}"
+            )
+        else:
+            st.warning("No active scoring model")
+
+        if isinstance(kb_master, dict):
+            st.success(
+                "KB master index available: "
+                f"artifact #{kb_master.get('artifact_id')} ({kb_master.get('format')})"
+            )
+        else:
+            st.warning("KB master index unavailable")
+
+        st.caption("Quick operator checks")
+        st.code(
+            "GET /health\n"
+            "GET /outputs?page=1\n"
+            "GET /kb/indexes/master\n"
+            "GET /matrix/models/active",
+            language="text",
+        )
+
 
 # --- Page: Documents ---
 
