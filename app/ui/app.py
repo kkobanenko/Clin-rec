@@ -580,14 +580,19 @@ def page_scoring_models():
 def page_outputs():
     st.header("Outputs")
 
-    out_col1, out_col2, out_col3 = st.columns(3)
+    out_col1, out_col2, out_col3, out_col4 = st.columns(4)
     output_type_filter = out_col1.selectbox("Output Type Filter", ["", "memo"], index=0)
     file_back_filter = out_col2.selectbox(
         "File-Back Filter",
         ["", "accepted", "rejected", "needs_review"],
         index=0,
     )
-    output_artifact_id = out_col3.number_input(
+    review_status_filter = out_col3.selectbox(
+        "Review Status Filter",
+        ["", "draft", "auto", "needs_review", "approved", "rejected"],
+        index=0,
+    )
+    output_artifact_id = out_col4.number_input(
         "Artifact ID Filter",
         min_value=0,
         step=1,
@@ -599,6 +604,8 @@ def page_outputs():
         params["output_type"] = output_type_filter
     if file_back_filter:
         params["file_back_status"] = file_back_filter
+    if review_status_filter:
+        params["review_status"] = review_status_filter
     if output_artifact_id > 0:
         params["artifact_id"] = output_artifact_id
     if output_search:
