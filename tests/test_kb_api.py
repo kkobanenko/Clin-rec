@@ -316,7 +316,9 @@ async def test_list_conflicts_returns_counts_and_previews():
         params = compiled.params
         assert "knowledge_claim.conflict_group_id IS NOT NULL" in sql
         assert "knowledge_claim.artifact_id = :artifact_id_1" in sql
+        assert "knowledge_claim.review_status = :review_status_1" in sql
         assert params["artifact_id_1"] == 7
+        assert params["review_status_1"] == "needs_review"
 
     fake_db = FakeAsyncSession(
         values=[
@@ -328,6 +330,7 @@ async def test_list_conflicts_returns_counts_and_previews():
                         {
                             "id": 51,
                             "artifact_id": 7,
+                            "review_status": "needs_review",
                             "conflict_group_id": 9,
                             "claim_text": "Insulin should be first-line therapy in this scenario.",
                         },
@@ -338,6 +341,7 @@ async def test_list_conflicts_returns_counts_and_previews():
                         {
                             "id": 52,
                             "artifact_id": 7,
+                            "review_status": "needs_review",
                             "conflict_group_id": 9,
                             "claim_text": "Insulin should be reserved for rescue therapy in this scenario.",
                         },
@@ -355,7 +359,7 @@ async def test_list_conflicts_returns_counts_and_previews():
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.get("/kb/conflicts?artifact_id=7")
+            resp = await client.get("/kb/conflicts?artifact_id=7&review_status=needs_review")
 
         assert resp.status_code == 200
         data = resp.json()

@@ -190,12 +190,15 @@ async def list_claims(
 async def list_conflicts(
     db: AsyncSession = Depends(get_db),
     artifact_id: int | None = None,
+    review_status: str | None = None,
 ):
+    filters = [KnowledgeClaim.conflict_group_id.isnot(None)]
+    if artifact_id is not None:
+        filters.append(KnowledgeClaim.artifact_id == artifact_id)
+    if review_status:
+        filters.append(KnowledgeClaim.review_status == review_status)
     result = await db.execute(
-        select(KnowledgeClaim).where(
-            KnowledgeClaim.conflict_group_id.isnot(None),
-            *( [KnowledgeClaim.artifact_id == artifact_id] if artifact_id is not None else [] ),
-        )
+        select(KnowledgeClaim).where(*filters)
     )
     rows = result.scalars().all()
     by_group: dict[int, list[int]] = defaultdict(list)

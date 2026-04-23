@@ -846,16 +846,26 @@ def page_kb():
             render_entity_detail(entity_detail)
 
     st.subheader("Conflicts")
-    conflict_artifact_id = st.number_input(
+    conflict_col1, conflict_col2 = st.columns(2)
+    conflict_artifact_id = conflict_col1.number_input(
         "Conflict Artifact ID Filter",
         min_value=0,
         step=1,
         key="kb_conflict_artifact_id",
         help="0 means no artifact filter",
     )
+    conflict_review_filter = conflict_col2.selectbox(
+        "Conflict Review Filter",
+        ["", "auto", "needs_review", "approved", "rejected"],
+        index=0,
+        key="kb_conflict_review_filter",
+    )
     conflict_params = None
     if conflict_artifact_id > 0:
         conflict_params = {"artifact_id": conflict_artifact_id}
+    if conflict_review_filter:
+        conflict_params = conflict_params or {}
+        conflict_params["review_status"] = conflict_review_filter
     conflicts = api_get("/kb/conflicts", conflict_params)
     if isinstance(conflicts, list):
         if conflicts:
