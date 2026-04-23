@@ -723,7 +723,7 @@ def page_kb():
             st.info("No KB conflicts detected")
 
     st.subheader("Claims")
-    claim_col1, claim_col2 = st.columns(2)
+    claim_col1, claim_col2, claim_col3 = st.columns(3)
     claim_artifact_id = claim_col1.number_input(
         "Claim Artifact ID Filter",
         min_value=0,
@@ -731,7 +731,13 @@ def page_kb():
         key="kb_claim_artifact_id",
         help="0 means no artifact filter",
     )
-    claim_page_size = claim_col2.number_input(
+    claim_type_filter = claim_col2.selectbox(
+        "Claim Type Filter",
+        ["", "fact", "inference", "hypothesis"],
+        index=0,
+        key="kb_claim_type_filter",
+    )
+    claim_page_size = claim_col3.number_input(
         "Claims Page Size",
         min_value=10,
         max_value=200,
@@ -739,9 +745,14 @@ def page_kb():
         step=10,
         key="kb_claim_page_size",
     )
+    claim_search = st.text_input("Claim Search", key="kb_claim_search")
     claim_params = {"page_size": claim_page_size}
     if claim_artifact_id > 0:
         claim_params["artifact_id"] = claim_artifact_id
+    if claim_type_filter:
+        claim_params["claim_type"] = claim_type_filter
+    if claim_search:
+        claim_params["search"] = claim_search
     claims = api_get("/kb/claims", claim_params)
     if isinstance(claims, dict):
         items = claims.get("items", [])

@@ -133,12 +133,22 @@ async def list_claims(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     artifact_id: int | None = None,
+    claim_type: str | None = None,
+    search: str | None = Query(None, description="Подстрока в claim_text (ILIKE)"),
 ):
     q = select(KnowledgeClaim)
     count_q = select(func.count(KnowledgeClaim.id))
     if artifact_id is not None:
         q = q.where(KnowledgeClaim.artifact_id == artifact_id)
         count_q = count_q.where(KnowledgeClaim.artifact_id == artifact_id)
+    if claim_type:
+        q = q.where(KnowledgeClaim.claim_type == claim_type)
+        count_q = count_q.where(KnowledgeClaim.claim_type == claim_type)
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        filt = KnowledgeClaim.claim_text.ilike(term)
+        q = q.where(filt)
+        count_q = count_q.where(filt)
     total = (await db.execute(count_q)).scalar_one()
     q = q.order_by(KnowledgeClaim.id).offset((page - 1) * page_size).limit(page_size)
     rows = (await db.execute(q)).scalars().all()
