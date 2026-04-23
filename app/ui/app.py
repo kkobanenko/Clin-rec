@@ -7,6 +7,66 @@ import streamlit as st
 API_BASE = "http://app:8000"
 
 
+def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
+    if not content_md:
+        return None, ""
+    if not content_md.startswith("---\n"):
+        return None, content_md
+    parts = content_md[4:].split("\n---\n", 1)
+    if len(parts) != 2:
+        return None, content_md
+    frontmatter, body = parts
+    return frontmatter, body.lstrip("\n")
+
+
+def render_kb_artifact_detail(detail: dict) -> None:
+    st.markdown(f"**{detail.get('title', 'KB Artifact')}**")
+    meta1, meta2, meta3, meta4 = st.columns(4)
+    meta1.metric("Artifact ID", detail.get("id"))
+    meta2.metric("Type", detail.get("artifact_type") or "n/a")
+    meta3.metric("Status", detail.get("status") or "n/a")
+    meta4.metric("Claims", len(detail.get("claims") or []))
+
+    if detail.get("summary"):
+        st.caption(detail.get("summary"))
+
+    if detail.get("manifest_json"):
+        with st.expander("Manifest", expanded=False):
+            st.json(detail.get("manifest_json"))
+
+    source_links = detail.get("source_links") or []
+    if source_links:
+        st.markdown("**Source Links**")
+        st.dataframe(pd.DataFrame(source_links), width="stretch", hide_index=True)
+
+    claims = detail.get("claims") or []
+    if claims:
+        st.markdown("**Claims**")
+        claim_rows = []
+        for claim in claims:
+            claim_rows.append(
+                {
+                    "id": claim.get("id"),
+                    "type": claim.get("claim_type"),
+                    "confidence": claim.get("confidence"),
+                    "review": claim.get("review_status"),
+                    "text": claim.get("claim_text"),
+                }
+            )
+        st.dataframe(pd.DataFrame(claim_rows), width="stretch", hide_index=True)
+
+    frontmatter, body = _split_frontmatter(detail.get("content_md"))
+    if frontmatter:
+        with st.expander("Frontmatter", expanded=True):
+            st.code(frontmatter, language="yaml")
+    if body:
+        with st.expander("Markdown Body", expanded=True):
+            st.code(body, language="markdown")
+
+    with st.expander("Raw Payload", expanded=False):
+        st.json(detail)
+
+
 def api_get(
     path: str,
     params: dict | None = None,
@@ -520,7 +580,7 @@ def page_outputs():
                 if st.button("Load Linked Artifact", key=f"load_output_artifact_{artifact_id}"):
                     artifact = api_get(f"/kb/artifacts/{artifact_id}")
                     if artifact:
-                        st.json(artifact)
+                        render_kb_artifact_detail(artifact)
 
     st.subheader("Generate Output")
     with st.form("output_generate_form"):
@@ -577,7 +637,7 @@ def page_kb():
     if st.button("Load Artifact"):
         detail = api_get(f"/kb/artifacts/{artifact_id}")
         if detail:
-            st.json(detail)
+            render_kb_artifact_detail(detail)
 
     st.subheader("Entities")
     entities = api_get("/kb/entities", {"page_size": 50})
