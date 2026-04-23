@@ -103,6 +103,14 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Captured latest late-stage rerun on head `67e3797` after expanded KB conflict scoping, KB artifact body search, KB entity ref search, richer KB/output detail metrics and outputs scope search.
 - Confirmed review API, matrix model ops, outputs API, document outcomes API, aux routes and KB Postgres integration remained green on same compose-backed runtime profile.
 
+### Release Evidence Sync (2026-04-23, late-stage rerun refresh 6)
+
+**Files:** `VERSIONING.md`, `docs/TZ_PRD_PHASE2_BACKLOG.md`, `.artifacts/release_checks/20260423_172540`
+
+**Changelog:**
+- Captured latest late-stage rerun on head `a4a7c24` after outputs has-file filter and final KB/output operator-surface follow-up.
+- Confirmed review API, matrix model ops, outputs API, document outcomes API, aux routes and KB Postgres integration remained green on same compose-backed runtime profile.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
@@ -287,6 +295,8 @@ Before releasing a matrix version or making config changes:
 - Re-ran full `Release Ready Check` on compose runtime and recorded green evidence for commit `b2f2363`.
 - Added KB artifact body search, KB entity ref search, KB conflict review scoping/artifact ids, outputs scope search and richer KB/output detail metrics.
 - Re-ran late-stage release regression pack on compose runtime and recorded green evidence for commit `67e3797`.
+- Added outputs has-file filter and synced compact KB artifact table coverage in backlog/versioning docs.
+- Re-ran late-stage release regression pack on compose runtime and recorded green evidence for commit `a4a7c24`.
 
 ---
 
