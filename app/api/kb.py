@@ -3,7 +3,7 @@
 from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import Text, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -119,7 +119,10 @@ async def list_entities(
         count_q = count_q.where(EntityRegistry.status == status)
     if search and search.strip():
         term = f"%{search.strip()}%"
-        filt = EntityRegistry.canonical_name.ilike(term)
+        filt = or_(
+            EntityRegistry.canonical_name.ilike(term),
+            cast(EntityRegistry.aliases_json, Text).ilike(term),
+        )
         q = q.where(filt)
         count_q = count_q.where(filt)
     total = (await db.execute(count_q)).scalar_one()

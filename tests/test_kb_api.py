@@ -256,6 +256,7 @@ async def test_list_entities_filters_by_type_status_and_search():
         assert "entity_registry.entity_type = :entity_type_1" in sql
         assert "entity_registry.status = :status_1" in sql
         assert "lower(entity_registry.canonical_name) LIKE lower(:canonical_name_1)" in sql
+        assert "CAST(entity_registry.aliases_json AS TEXT)" in sql
         assert params["entity_type_1"] == "molecule"
         assert params["status_1"] == "active"
         assert params["canonical_name_1"] == "%insulin%"
