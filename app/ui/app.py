@@ -716,7 +716,7 @@ def page_kb():
             st.info(master_index.get("message") or "No master index artifact yet")
 
     st.subheader("Artifacts")
-    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
+    filter_col1, filter_col2, filter_col3, filter_col4, filter_col5 = st.columns(5)
     artifact_type_filter = filter_col1.selectbox(
         "Artifact Type Filter",
         ["", "source_digest", "entity_page", "glossary_term", "open_question", "master_index"],
@@ -735,7 +735,11 @@ def page_kb():
         index=0,
         key="kb_artifact_review_filter",
     )
-    artifact_search = filter_col4.text_input("Artifact Search", key="kb_artifact_search")
+    artifact_generator_filter = filter_col4.text_input(
+        "Artifact Generator Filter",
+        key="kb_artifact_generator_filter",
+    )
+    artifact_search = filter_col5.text_input("Artifact Search", key="kb_artifact_search")
     artifact_params = {"page_size": 50}
     if artifact_type_filter:
         artifact_params["artifact_type"] = artifact_type_filter
@@ -743,6 +747,8 @@ def page_kb():
         artifact_params["status"] = artifact_status_filter
     if artifact_review_filter:
         artifact_params["review_status"] = artifact_review_filter
+    if artifact_generator_filter:
+        artifact_params["generator_version"] = artifact_generator_filter
     if artifact_search:
         artifact_params["search"] = artifact_search
 

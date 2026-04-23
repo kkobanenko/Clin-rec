@@ -56,6 +56,7 @@ async def list_artifacts(
     artifact_type: str | None = None,
     status: str | None = None,
     review_status: str | None = None,
+    generator_version: str | None = None,
     search: str | None = Query(None, description="Подстрока в title, summary или canonical_slug (ILIKE)"),
 ):
     q = select(KnowledgeArtifact)
@@ -69,6 +70,9 @@ async def list_artifacts(
     if review_status:
         q = q.where(KnowledgeArtifact.review_status == review_status)
         count_q = count_q.where(KnowledgeArtifact.review_status == review_status)
+    if generator_version:
+        q = q.where(KnowledgeArtifact.generator_version == generator_version)
+        count_q = count_q.where(KnowledgeArtifact.generator_version == generator_version)
     if search and search.strip():
         term = f"%{search.strip()}%"
         filt = or_(
