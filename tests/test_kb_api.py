@@ -239,3 +239,58 @@ async def test_list_artifacts_filters_by_type_status_and_search():
         assert data["items"][0]["canonical_slug"] == "digest/v31"
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_list_entities_filters_by_type_status_and_search():
+    def assert_count_query(query):
+        compiled = query.compile()
+        sql = str(compiled)
+        params = compiled.params
+        assert "entity_registry.entity_type = :entity_type_1" in sql
+        assert "entity_registry.status = :status_1" in sql
+        assert "lower(entity_registry.canonical_name) LIKE lower(:canonical_name_1)" in sql
+        assert params["entity_type_1"] == "molecule"
+        assert params["status_1"] == "active"
+        assert params["canonical_name_1"] == "%insulin%"
+
+    fake_db = FakeAsyncSession(
+        values=[
+            FakeScalarResult(1),
+            FakeRowsResult(
+                [
+                    type(
+                        "EntityRow",
+                        (),
+                        {
+                            "id": 41,
+                            "entity_type": "molecule",
+                            "canonical_name": "Insulin",
+                            "aliases_json": None,
+                            "external_refs_json": {"molecule_id": 5},
+                            "status": "active",
+                        },
+                    )()
+                ]
+            ),
+        ],
+        assertions=[assert_count_query, lambda _query: None],
+    )
+
+    async def override_get_db():
+        yield fake_db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get(
+                "/kb/entities?page=1&page_size=50&entity_type=molecule&status=active&search=insulin"
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["items"][0]["canonical_name"] == "Insulin"
+    finally:
+        app.dependency_overrides.pop(get_db, None)

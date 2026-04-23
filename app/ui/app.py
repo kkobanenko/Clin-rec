@@ -719,17 +719,25 @@ def page_kb():
             render_kb_artifact_detail(detail)
 
     st.subheader("Entities")
-    entity_col1, entity_col2 = st.columns(2)
+    entity_col1, entity_col2, entity_col3 = st.columns(3)
     entity_type_filter = entity_col1.selectbox(
         "Entity Type Filter",
         ["", "document", "molecule"],
         index=0,
         key="kb_entity_type_filter",
     )
-    entity_search = entity_col2.text_input("Entity Search", key="kb_entity_search")
+    entity_status_filter = entity_col2.selectbox(
+        "Entity Status Filter",
+        ["", "active", "draft", "archived"],
+        index=0,
+        key="kb_entity_status_filter",
+    )
+    entity_search = entity_col3.text_input("Entity Search", key="kb_entity_search")
     entity_params = {"page_size": 50}
     if entity_type_filter:
         entity_params["entity_type"] = entity_type_filter
+    if entity_status_filter:
+        entity_params["status"] = entity_status_filter
     if entity_search:
         entity_params["search"] = entity_search
 

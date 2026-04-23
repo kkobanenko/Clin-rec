@@ -101,6 +101,7 @@ async def list_entities(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     entity_type: str | None = None,
+    status: str | None = None,
     search: str | None = Query(None, description="Подстрока в canonical_name (ILIKE)"),
 ):
     """Список сущностей entity_registry (в т.ч. molecule после extract)."""
@@ -109,6 +110,9 @@ async def list_entities(
     if entity_type:
         q = q.where(EntityRegistry.entity_type == entity_type)
         count_q = count_q.where(EntityRegistry.entity_type == entity_type)
+    if status:
+        q = q.where(EntityRegistry.status == status)
+        count_q = count_q.where(EntityRegistry.status == status)
     if search and search.strip():
         term = f"%{search.strip()}%"
         filt = EntityRegistry.canonical_name.ilike(term)
