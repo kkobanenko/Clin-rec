@@ -110,17 +110,6 @@
 			],
 			"isBackground": false,
 			"group": "test"
-		},
-		{
-			"label": "Document Outcomes Regression",
-			"type": "shell",
-			"command": "bash",
-			"args": [
-				"-lc",
-				".venv/bin/pytest tests/test_document_pipeline_outcomes_api.py"
-			],
-			"isBackground": false,
-			"group": "test"
 		}
 	]
 }
