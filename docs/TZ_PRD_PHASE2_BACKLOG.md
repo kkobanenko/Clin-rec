@@ -59,7 +59,7 @@
 
 ## UI (TZ §21)
 
-- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot и structured KB artifact detail (claims/source links/frontmatter), но не full productized health dashboard.
+- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, KB artifact filter/search и structured KB artifact detail (claims/source links/frontmatter), но не full productized health dashboard.
 
 ## Версионирование документов
 

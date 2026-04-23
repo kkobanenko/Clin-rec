@@ -649,7 +649,21 @@ def page_kb():
             st.success(f"KB lint queued: {result.get('task_id')}")
 
     st.subheader("Artifacts")
-    artifacts = api_get("/kb/artifacts", {"page_size": 50})
+    filter_col1, filter_col2 = st.columns(2)
+    artifact_type_filter = filter_col1.selectbox(
+        "Artifact Type Filter",
+        ["", "source_digest", "entity_page", "glossary_term", "open_question", "master_index"],
+        index=0,
+        key="kb_artifact_type_filter",
+    )
+    artifact_search = filter_col2.text_input("Artifact Search", key="kb_artifact_search")
+    artifact_params = {"page_size": 50}
+    if artifact_type_filter:
+        artifact_params["artifact_type"] = artifact_type_filter
+    if artifact_search:
+        artifact_params["search"] = artifact_search
+
+    artifacts = api_get("/kb/artifacts", artifact_params)
     if isinstance(artifacts, dict):
         items = artifacts.get("items", [])
         if items:
