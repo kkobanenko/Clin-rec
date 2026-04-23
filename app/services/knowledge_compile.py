@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -19,7 +20,7 @@ from app.models.text import DocumentSection, TextFragment
 logger = logging.getLogger(__name__)
 
 # Версия компилятора: поднимаем при изменении шаблонов TZ §12.3 (foundation).
-COMPILER_VERSION = "0.2.0"
+COMPILER_VERSION = "0.3.0"
 
 
 class KnowledgeCompileService:
@@ -60,19 +61,27 @@ class KnowledgeCompileService:
                 f"Primary source: {version.source_type_primary or 'unknown'}."
             )
 
-            content_md = "\n".join(
+            content_md = self._with_frontmatter(
+                "\n".join(
+                    [
+                        f"# {registry.title}",
+                        "",
+                        f"- registry_id: `{registry.id}`",
+                        f"- document_version_id: `{version_id}`",
+                        f"- version_hash: `{version.version_hash or ''}`",
+                        f"- sections: {section_count}",
+                        f"- fragments: {fragment_count}",
+                        "",
+                        "## Кратко",
+                        summary,
+                    ]
+                ),
                 [
-                    f"# {registry.title}",
-                    "",
-                    f"- registry_id: `{registry.id}`",
-                    f"- document_version_id: `{version_id}`",
-                    f"- version_hash: `{version.version_hash or ''}`",
-                    f"- sections: {section_count}",
-                    f"- fragments: {fragment_count}",
-                    "",
-                    "## Кратко",
-                    summary,
-                ]
+                    ("artifact_type", "source_digest"),
+                    ("compiler_version", COMPILER_VERSION),
+                    ("registry_id", registry.id),
+                    ("document_version_id", version_id),
+                ],
             )
 
             artifact = session.execute(
@@ -399,7 +408,10 @@ class KnowledgeCompileService:
         if art:
             art.title = title
             art.summary = summary
-            art.content_md = content_md
+            art.content_md = self._with_frontmatter(
+                content_md,
+                [("artifact_type", artifact_type), ("compiler_version", COMPILER_VERSION), *manifest_json.items()],
+            )
             art.artifact_type = artifact_type
             art.status = "draft"
             art.generator_version = COMPILER_VERSION
@@ -413,7 +425,10 @@ class KnowledgeCompileService:
                 title=title,
                 canonical_slug=slug,
                 status="draft",
-                content_md=content_md,
+                content_md=self._with_frontmatter(
+                    content_md,
+                    [("artifact_type", artifact_type), ("compiler_version", COMPILER_VERSION), *manifest_json.items()],
+                ),
                 summary=summary,
                 confidence="medium",
                 generator_version=COMPILER_VERSION,
@@ -450,6 +465,20 @@ class KnowledgeCompileService:
             )
         session.flush()
 
+    def _with_frontmatter(self, body: str, metadata_items: list[tuple[str, Any]]) -> str:
+        lines = ["---"]
+        for key, value in metadata_items:
+            lines.append(f"{key}: {self._yaml_scalar(value)}")
+        lines.extend(["---", "", body])
+        return "\n".join(lines)
+
+    def _yaml_scalar(self, value: Any) -> str:
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, (int, float)):
+            return str(value)
+        return json.dumps(value, ensure_ascii=False)
+
     def _ensure_molecule_entity_pages(self, session) -> None:
         """
         Для каждой строки entity_registry с entity_type=molecule и molecule_id в external_refs
@@ -482,7 +511,15 @@ class KnowledgeCompileService:
             ]
             if inn:
                 body_lines.insert(3, f"- `inn_ru`: {inn}")
-            body = "\n".join(body_lines)
+            body = self._with_frontmatter(
+                "\n".join(body_lines),
+                [
+                    ("artifact_type", "entity_page"),
+                    ("compiler_version", COMPILER_VERSION),
+                    ("molecule_id", mid_int),
+                    ("entity_registry_id", ent.id),
+                ],
+            )
             session.add(
                 KnowledgeArtifact(
                     artifact_type="entity_page",
@@ -539,26 +576,36 @@ class KnowledgeCompileService:
             return block
 
         idx_slug = "master_index"
-        body = "\n".join(
-            [
-                "# Knowledge base master index",
-                "",
-                f"Версия компилятора: `{COMPILER_VERSION}`.",
-                f"- Дайджестов источников: **{len(digest_entries)}**.",
-                f"- Страниц сущностей: **{len(entity_entries)}**.",
-                f"- Терминов глоссария: **{len(glossary_entries)}**.",
-                f"- Реестров открытых вопросов: **{len(openq_entries)}**.",
-                "",
-            ]
-            + lines_for("Дайджесты источников (source_digest)", digest_entries)
-            + lines_for("Страницы сущностей (entity_page)", entity_entries)
-            + lines_for("Глоссарий (glossary_term)", glossary_entries)
-            + lines_for("Открытые вопросы (open_question)", openq_entries)
-        )
         nd = len(digest_entries)
         ne = len(entity_entries)
         ng = len(glossary_entries)
         nq = len(openq_entries)
+        body = self._with_frontmatter(
+            "\n".join(
+                [
+                    "# Knowledge base master index",
+                    "",
+                    f"Версия компилятора: `{COMPILER_VERSION}`.",
+                    f"- Дайджестов источников: **{nd}**.",
+                    f"- Страниц сущностей: **{ne}**.",
+                    f"- Терминов глоссария: **{ng}**.",
+                    f"- Реестров открытых вопросов: **{nq}**.",
+                    "",
+                ]
+                + lines_for("Дайджесты источников (source_digest)", digest_entries)
+                + lines_for("Страницы сущностей (entity_page)", entity_entries)
+                + lines_for("Глоссарий (glossary_term)", glossary_entries)
+                + lines_for("Открытые вопросы (open_question)", openq_entries)
+            ),
+            [
+                ("artifact_type", "master_index"),
+                ("compiler_version", COMPILER_VERSION),
+                ("digest_count", nd),
+                ("entity_page_count", ne),
+                ("glossary_term_count", ng),
+                ("open_question_count", nq),
+            ],
+        )
         summary_line = (
             f"Индекс: дайджесты {nd}, entity_page {ne}, glossary {ng}, open_question {nq}"
         )

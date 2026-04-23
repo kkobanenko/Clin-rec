@@ -73,6 +73,7 @@ def test_kb_compile_lint_fts(pg_engine, monkeypatch):
     seed.add(ver)
     seed.commit()
     vid = int(ver.id)
+    reg_id = int(reg.id)
     seed.close()
 
     out = KnowledgeCompileService().compile_version(vid)
@@ -82,14 +83,37 @@ def test_kb_compile_lint_fts(pg_engine, monkeypatch):
     try:
         refreshed_version = check.get(DocumentVersion, vid)
         assert refreshed_version is not None
-        assert refreshed_version.compiler_version == "0.2.0"
+        assert refreshed_version.compiler_version == "0.3.0"
         types = {r[0] for r in check.query(KnowledgeArtifact.artifact_type).distinct()}
         assert "source_digest" in types
         assert "entity_page" in types
         assert "glossary_term" in types
         assert "open_question" in types
         assert "master_index" in types
-        claim_rows = check.execute(select(KnowledgeClaim).order_by(KnowledgeClaim.id)).scalars().all()
+        source_digest = check.execute(
+            select(KnowledgeArtifact).where(KnowledgeArtifact.canonical_slug == f"digest/v{vid}")
+        ).scalar_one()
+        assert source_digest.content_md.startswith("---\nartifact_type: \"source_digest\"")
+        assert "compiler_version: \"0.3.0\"" in source_digest.content_md
+        current_artifact_ids = set(
+            check.execute(
+                select(KnowledgeArtifact.id).where(
+                    KnowledgeArtifact.canonical_slug.in_(
+                        [
+                            f"digest/v{vid}",
+                                f"entity_page/registry_{reg_id}",
+                                f"glossary/doc_{reg_id}",
+                            f"open_questions/v{vid}",
+                        ]
+                    )
+                )
+            ).scalars()
+        )
+        claim_rows = check.execute(
+            select(KnowledgeClaim)
+            .where(KnowledgeClaim.artifact_id.in_(current_artifact_ids))
+            .order_by(KnowledgeClaim.id)
+        ).scalars().all()
         assert claim_rows
         assert {claim.claim_type for claim in claim_rows} >= {"fact", "hypothesis"}
         assert all((claim.provenance_json or {}).get("document_version_id") == vid for claim in claim_rows)
