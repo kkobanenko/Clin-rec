@@ -775,7 +775,17 @@ def page_kb():
             st.json(entity_detail)
 
     st.subheader("Conflicts")
-    conflicts = api_get("/kb/conflicts")
+    conflict_artifact_id = st.number_input(
+        "Conflict Artifact ID Filter",
+        min_value=0,
+        step=1,
+        key="kb_conflict_artifact_id",
+        help="0 means no artifact filter",
+    )
+    conflict_params = None
+    if conflict_artifact_id > 0:
+        conflict_params = {"artifact_id": conflict_artifact_id}
+    conflicts = api_get("/kb/conflicts", conflict_params)
     if isinstance(conflicts, list):
         if conflicts:
             conflict_rows = []

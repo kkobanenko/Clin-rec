@@ -178,9 +178,15 @@ async def list_claims(
 
 
 @router.get("/conflicts", response_model=list[ConflictGroupOut])
-async def list_conflicts(db: AsyncSession = Depends(get_db)):
+async def list_conflicts(
+    db: AsyncSession = Depends(get_db),
+    artifact_id: int | None = None,
+):
     result = await db.execute(
-        select(KnowledgeClaim).where(KnowledgeClaim.conflict_group_id.isnot(None))
+        select(KnowledgeClaim).where(
+            KnowledgeClaim.conflict_group_id.isnot(None),
+            *( [KnowledgeClaim.artifact_id == artifact_id] if artifact_id is not None else [] ),
+        )
     )
     rows = result.scalars().all()
     by_group: dict[int, list[int]] = defaultdict(list)

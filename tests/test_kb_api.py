@@ -304,6 +304,14 @@ async def test_list_entities_filters_by_type_status_and_search():
 
 @pytest.mark.asyncio
 async def test_list_conflicts_returns_counts_and_previews():
+    def assert_conflicts_query(query):
+        compiled = query.compile()
+        sql = str(compiled)
+        params = compiled.params
+        assert "knowledge_claim.conflict_group_id IS NOT NULL" in sql
+        assert "knowledge_claim.artifact_id = :artifact_id_1" in sql
+        assert params["artifact_id_1"] == 7
+
     fake_db = FakeAsyncSession(
         values=[
             FakeRowsResult(
@@ -313,6 +321,7 @@ async def test_list_conflicts_returns_counts_and_previews():
                         (),
                         {
                             "id": 51,
+                            "artifact_id": 7,
                             "conflict_group_id": 9,
                             "claim_text": "Insulin should be first-line therapy in this scenario.",
                         },
@@ -322,6 +331,7 @@ async def test_list_conflicts_returns_counts_and_previews():
                         (),
                         {
                             "id": 52,
+                            "artifact_id": 7,
                             "conflict_group_id": 9,
                             "claim_text": "Insulin should be reserved for rescue therapy in this scenario.",
                         },
@@ -329,7 +339,7 @@ async def test_list_conflicts_returns_counts_and_previews():
                 ]
             )
         ],
-        assertions=[lambda _query: None],
+        assertions=[assert_conflicts_query],
     )
 
     async def override_get_db():
@@ -339,7 +349,7 @@ async def test_list_conflicts_returns_counts_and_previews():
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.get("/kb/conflicts")
+            resp = await client.get("/kb/conflicts?artifact_id=7")
 
         assert resp.status_code == 200
         data = resp.json()
