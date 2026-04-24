@@ -258,7 +258,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Master Index": {"ru": "Главный индекс", "en": "Master Index"},
     "artifact #{id} {slug}": {"ru": "артефакт #{id} {slug}", "en": "artifact #{id} {slug}"},
     "No master index artifact yet": {"ru": "Артефакт главного индекса пока отсутствует", "en": "No master index artifact yet"},
-    "Master Manifest": {"ru": "Манифест master index", "en": "Master Manifest"},
+    "Master Manifest": {"ru": "Манифест главного индекса", "en": "Master Manifest"},
     "Artifacts": {"ru": "Артефакты", "en": "Artifacts"},
     "Artifact Type Filter": {"ru": "Фильтр по типу артефакта", "en": "Artifact Type Filter"},
     "Artifact Status Filter": {"ru": "Фильтр по статусу артефакта", "en": "Artifact Status Filter"},
