@@ -245,7 +245,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Title": {"ru": "Заголовок", "en": "Title"},
     "Queue Generation": {"ru": "Поставить генерацию в очередь", "en": "Queue Generation"},
     "Generation queued: {task_id}": {"ru": "Генерация поставлена в очередь: {task_id}", "en": "Generation queued: {task_id}"},
-    "File Back Output": {"ru": "Файлинг выхода", "en": "File Back Output"},
+    "File Back Output": {"ru": "Обратная связь по выходу", "en": "File Back Output"},
     "Current File-Back Output": {"ru": "Выход для файлинга из текущего списка", "en": "Current File-Back Output"},
     "Manual File-Back Output ID": {"ru": "Ввести ID файлинга вручную", "en": "Manual File-Back Output ID"},
     "File Back Status": {"ru": "Статус файлинга", "en": "File Back Status"},
