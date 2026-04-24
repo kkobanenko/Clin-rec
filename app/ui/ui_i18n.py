@@ -224,7 +224,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Model created: ID {id}": {"ru": "Модель создана: ID {id}", "en": "Model created: ID {id}"},
     "No scoring models defined": {"ru": "Скоринговые модели не определены", "en": "No scoring models defined"},
     "Output Type Filter": {"ru": "Фильтр по типу выхода", "en": "Output Type Filter"},
-    "File-Back Filter": {"ru": "Фильтр по файлингу", "en": "File-Back Filter"},
+    "File-Back Filter": {"ru": "Фильтр по файловой обратной связи", "en": "File-Back Filter"},
     "Review Status Filter": {"ru": "Фильтр по статусу ревью", "en": "Review Status Filter"},
     "Generator Version Filter": {"ru": "Фильтр по версии генератора", "en": "Generator Version Filter"},
     "Artifact ID Filter": {"ru": "Фильтр по ID артефакта", "en": "Artifact ID Filter"},
