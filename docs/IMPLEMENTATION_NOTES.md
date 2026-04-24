@@ -79,3 +79,34 @@ Release impact:
 
 Residual risks:
 - Dedicated `release` endpoint/status transition guard is still not implemented in this slice.
+
+## 2026-04-25 — Milestone E KB quality/lint expansion (partial complete)
+
+Changed:
+- Expanded `KnowledgeLintService` checks for:
+	- provenance gaps across core KB artifact types;
+	- non-hypothesis claims missing provenance (including JSON null);
+	- duplicate canonical slug detection;
+	- empty summary detection;
+	- stale source version linkage (`document_version.is_current=false`);
+	- orphan entities (`document`/`molecule`) without linked `entity_page`;
+	- conflict groups with missing review status.
+- Enriched KB compiler frontmatter metadata for generated artifacts with:
+	- `artifact_type`, `source_document_version_ids`, `source_hashes`, `generator_version`,
+		`confidence`, `review_status`, `claim_count`, `generated_at`.
+- Extended `master_index` manifest/frontmatter to include `warning_counts`
+	(`empty_summary`, `missing_provenance`) alongside artifact counts.
+- Added targeted unit coverage:
+	- `tests/test_knowledge_lint.py` (missing provenance, empty summary);
+	- `tests/test_knowledge_compile.py` (rich frontmatter, master index warning counts).
+
+Tests:
+- command: `.venv/bin/pytest -q tests/test_knowledge_compile.py tests/test_knowledge_lint.py tests/test_knowledge_conflicts.py tests/test_kb_api.py tests/test_kb_integration_postgres.py`
+- result: pass (`10 passed, 2 skipped`)
+
+Release impact:
+- non-blocker hardening, additive only
+
+Residual risks:
+- `duplicate_canonical_slug` lint check remains mostly sentinel-level because DB unique constraint already prevents duplicates in normal writes.
+- Full pilot-grade KB lint policy can still grow (e.g., richer stale-source heuristics and severity taxonomy).

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import func, select
@@ -79,8 +80,15 @@ class KnowledgeCompileService:
                 [
                     ("artifact_type", "source_digest"),
                     ("compiler_version", COMPILER_VERSION),
+                    ("generator_version", COMPILER_VERSION),
                     ("registry_id", registry.id),
                     ("document_version_id", version_id),
+                    ("source_document_version_ids", [version_id]),
+                    ("source_hashes", [version.version_hash] if version.version_hash else []),
+                    ("confidence", "medium"),
+                    ("review_status", "auto"),
+                    ("claim_count", 1),
+                    ("generated_at", self._generated_at()),
                 ],
             )
 
@@ -410,7 +418,18 @@ class KnowledgeCompileService:
             art.summary = summary
             art.content_md = self._with_frontmatter(
                 content_md,
-                [("artifact_type", artifact_type), ("compiler_version", COMPILER_VERSION), *manifest_json.items()],
+                [
+                    ("artifact_type", artifact_type),
+                    ("compiler_version", COMPILER_VERSION),
+                    ("generator_version", COMPILER_VERSION),
+                    ("source_document_version_ids", [version_id]),
+                    ("source_hashes", []),
+                    ("confidence", "medium"),
+                    ("review_status", "auto"),
+                    ("claim_count", 1),
+                    ("generated_at", self._generated_at()),
+                    *manifest_json.items(),
+                ],
             )
             art.artifact_type = artifact_type
             art.status = "draft"
@@ -427,7 +446,18 @@ class KnowledgeCompileService:
                 status="draft",
                 content_md=self._with_frontmatter(
                     content_md,
-                    [("artifact_type", artifact_type), ("compiler_version", COMPILER_VERSION), *manifest_json.items()],
+                    [
+                        ("artifact_type", artifact_type),
+                        ("compiler_version", COMPILER_VERSION),
+                        ("generator_version", COMPILER_VERSION),
+                        ("source_document_version_ids", [version_id]),
+                        ("source_hashes", []),
+                        ("confidence", "medium"),
+                        ("review_status", "auto"),
+                        ("claim_count", 1),
+                        ("generated_at", self._generated_at()),
+                        *manifest_json.items(),
+                    ],
                 ),
                 summary=summary,
                 confidence="medium",
@@ -516,8 +546,15 @@ class KnowledgeCompileService:
                 [
                     ("artifact_type", "entity_page"),
                     ("compiler_version", COMPILER_VERSION),
+                    ("generator_version", COMPILER_VERSION),
                     ("molecule_id", mid_int),
                     ("entity_registry_id", ent.id),
+                    ("source_document_version_ids", []),
+                    ("source_hashes", []),
+                    ("confidence", "medium"),
+                    ("review_status", "auto"),
+                    ("claim_count", 0),
+                    ("generated_at", self._generated_at()),
                 ],
             )
             session.add(
@@ -556,6 +593,31 @@ class KnowledgeCompileService:
         glossary_entries = self._artifact_index_entries(session, "glossary_term")
         openq_entries = self._artifact_index_entries(session, "open_question")
 
+        empty_summary_count = (
+            session.execute(
+                select(func.count(KnowledgeArtifact.id)).where(
+                    (KnowledgeArtifact.summary.is_(None)) | (func.trim(KnowledgeArtifact.summary) == "")
+                )
+            ).scalar_one()
+            or 0
+        )
+        provenance_gap_count = (
+            session.execute(
+                select(func.count(KnowledgeArtifact.id))
+                .outerjoin(ArtifactSourceLink, ArtifactSourceLink.artifact_id == KnowledgeArtifact.id)
+                .where(
+                    KnowledgeArtifact.artifact_type.in_(["source_digest", "entity_page", "glossary_term", "open_question"]),
+                    ArtifactSourceLink.id.is_(None),
+                )
+            ).scalar_one()
+            or 0
+        )
+
+        warning_counts = {
+            "empty_summary": int(empty_summary_count),
+            "missing_provenance": int(provenance_gap_count),
+        }
+
         manifest: dict[str, Any] = {
             "compiler": COMPILER_VERSION,
             "digest_count": len(digest_entries),
@@ -566,6 +628,7 @@ class KnowledgeCompileService:
             "glossary_terms": glossary_entries,
             "open_question_count": len(openq_entries),
             "open_questions": openq_entries,
+            "warning_counts": warning_counts,
         }
 
         def lines_for(heading: str, entries: list[dict[str, Any]]) -> list[str]:
@@ -590,6 +653,8 @@ class KnowledgeCompileService:
                     f"- Страниц сущностей: **{ne}**.",
                     f"- Терминов глоссария: **{ng}**.",
                     f"- Реестров открытых вопросов: **{nq}**.",
+                    f"- Warnings (empty_summary): **{warning_counts['empty_summary']}**.",
+                    f"- Warnings (missing_provenance): **{warning_counts['missing_provenance']}**.",
                     "",
                 ]
                 + lines_for("Дайджесты источников (source_digest)", digest_entries)
@@ -600,10 +665,18 @@ class KnowledgeCompileService:
             [
                 ("artifact_type", "master_index"),
                 ("compiler_version", COMPILER_VERSION),
+                ("generator_version", COMPILER_VERSION),
                 ("digest_count", nd),
                 ("entity_page_count", ne),
                 ("glossary_term_count", ng),
                 ("open_question_count", nq),
+                ("source_document_version_ids", []),
+                ("source_hashes", []),
+                ("confidence", "high"),
+                ("review_status", "auto"),
+                ("claim_count", 0),
+                ("generated_at", self._generated_at()),
+                ("warning_counts", warning_counts),
             ],
         )
         summary_line = (
@@ -634,3 +707,6 @@ class KnowledgeCompileService:
                 manifest_json=manifest,
             )
             session.add(master)
+
+    def _generated_at(self) -> str:
+        return datetime.now(timezone.utc).isoformat()

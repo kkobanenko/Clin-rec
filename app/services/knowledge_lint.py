@@ -7,9 +7,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import Text, cast, func, select
 
 from app.core.sync_database import get_sync_session
+from app.models.document import DocumentVersion
 from app.models.knowledge import ArtifactSourceLink, EntityRegistry, KnowledgeArtifact, KnowledgeClaim
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,8 @@ class KnowledgeLintService:
         try:
             issues: list[dict[str, Any]] = []
 
+            provenance_required_types = ["source_digest", "entity_page", "glossary_term", "open_question"]
+
             no_link_stmt = (
                 select(KnowledgeArtifact.id, KnowledgeArtifact.canonical_slug)
                 .outerjoin(
@@ -28,7 +31,7 @@ class KnowledgeLintService:
                     ArtifactSourceLink.artifact_id == KnowledgeArtifact.id,
                 )
                 .where(
-                    KnowledgeArtifact.artifact_type == "source_digest",
+                    KnowledgeArtifact.artifact_type.in_(provenance_required_types),
                     ArtifactSourceLink.id.is_(None),
                 )
             )
@@ -41,11 +44,38 @@ class KnowledgeLintService:
                     }
                 )
 
+            duplicate_slug_stmt = (
+                select(KnowledgeArtifact.canonical_slug, func.count(KnowledgeArtifact.id))
+                .group_by(KnowledgeArtifact.canonical_slug)
+                .having(func.count(KnowledgeArtifact.id) > 1)
+            )
+            for slug, count in session.execute(duplicate_slug_stmt).all():
+                issues.append(
+                    {
+                        "code": "duplicate_canonical_slug",
+                        "slug": slug,
+                        "count": int(count),
+                    }
+                )
+
+            empty_summary_stmt = select(KnowledgeArtifact.id, KnowledgeArtifact.canonical_slug).where(
+                KnowledgeArtifact.summary.is_(None)
+                | (func.trim(KnowledgeArtifact.summary) == "")
+            )
+            for aid, slug in session.execute(empty_summary_stmt).all():
+                issues.append(
+                    {
+                        "code": "artifact_empty_summary",
+                        "artifact_id": aid,
+                        "slug": slug,
+                    }
+                )
+
             claims_no_prov = session.scalar(
                 select(func.count())
                 .select_from(KnowledgeClaim)
                 .where(
-                    KnowledgeClaim.provenance_json.is_(None),
+                    (KnowledgeClaim.provenance_json.is_(None) | (cast(KnowledgeClaim.provenance_json, Text) == "null")),
                     KnowledgeClaim.claim_type != "hypothesis",
                 )
             ) or 0
@@ -54,6 +84,30 @@ class KnowledgeLintService:
                     {
                         "code": "claims_missing_provenance_json",
                         "count": claims_no_prov,
+                    }
+                )
+
+            stale_source_stmt = (
+                select(
+                    KnowledgeArtifact.id,
+                    KnowledgeArtifact.canonical_slug,
+                    ArtifactSourceLink.source_id,
+                )
+                .join(ArtifactSourceLink, ArtifactSourceLink.artifact_id == KnowledgeArtifact.id)
+                .join(DocumentVersion, DocumentVersion.id == ArtifactSourceLink.source_id)
+                .where(
+                    ArtifactSourceLink.source_kind == "document_version",
+                    KnowledgeArtifact.artifact_type.in_(provenance_required_types),
+                    DocumentVersion.is_current.is_(False),
+                )
+            )
+            for aid, slug, source_id in session.execute(stale_source_stmt).all():
+                issues.append(
+                    {
+                        "code": "stale_source_version",
+                        "artifact_id": aid,
+                        "slug": slug,
+                        "document_version_id": int(source_id),
                     }
                 )
 
@@ -102,6 +156,46 @@ class KnowledgeLintService:
                             "molecule_id": mid_int,
                         }
                     )
+
+            linked_entity_ids: set[int] = set()
+            for art in session.execute(
+                select(KnowledgeArtifact).where(KnowledgeArtifact.artifact_type == "entity_page")
+            ).scalars():
+                manifest = art.manifest_json or {}
+                entity_id = manifest.get("entity_registry_id")
+                if entity_id is None:
+                    continue
+                linked_entity_ids.add(int(entity_id))
+
+            for ent in session.execute(
+                select(EntityRegistry).where(EntityRegistry.entity_type.in_(["document", "molecule"]))
+            ).scalars():
+                if ent.id in linked_entity_ids:
+                    continue
+                issues.append(
+                    {
+                        "code": "orphan_entity",
+                        "entity_registry_id": ent.id,
+                        "entity_type": ent.entity_type,
+                    }
+                )
+
+            conflict_missing_review_stmt = (
+                select(KnowledgeClaim.conflict_group_id, func.count(KnowledgeClaim.id))
+                .where(
+                    KnowledgeClaim.conflict_group_id.isnot(None),
+                    KnowledgeClaim.review_status.is_(None),
+                )
+                .group_by(KnowledgeClaim.conflict_group_id)
+            )
+            for group_id, count in session.execute(conflict_missing_review_stmt).all():
+                issues.append(
+                    {
+                        "code": "conflict_group_missing_review_status",
+                        "conflict_group_id": int(group_id),
+                        "claim_count": int(count),
+                    }
+                )
 
             # Незакрытые группы конфликтов: distinct conflict_group_id среди claims.
             conflict_groups = (
