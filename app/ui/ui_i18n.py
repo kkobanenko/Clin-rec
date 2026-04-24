@@ -180,7 +180,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Bulk Approve": {"ru": "Массовое подтверждение", "en": "Bulk Approve"},
     "Evidence IDs (comma-separated)": {"ru": "ID доказательств (через запятую)", "en": "Evidence IDs (comma-separated)"},
     "Queued Evidence IDs": {"ru": "ID доказательств из очереди", "en": "Queued Evidence IDs"},
-    "Optional quick-pick from current review queue": {"ru": "Необязательный быстрый выбор из текущей очереди ревью", "en": "Optional quick-pick from current review queue"},
+    "Optional quick-pick from current review queue": {"ru": "Быстрый выбор из текущей очереди ревью (необязательно)", "en": "Optional quick-pick from current review queue"},
     "Queued Evidence Target": {"ru": "Target из текущей очереди", "en": "Queued Evidence Target"},
     "Manual Target ID": {"ru": "Ввести ID вручную", "en": "Manual Target ID"},
     "Bulk Approve Author": {"ru": "Автор bulk approve", "en": "Bulk Approve Author"},
