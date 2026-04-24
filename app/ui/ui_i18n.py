@@ -108,7 +108,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Latest Pipeline Runs": {"ru": "Последние прогоны пайплайна", "en": "Latest Pipeline Runs"},
     "No pipeline runs available": {"ru": "Прогоны пайплайна не найдены", "en": "No pipeline runs available"},
     "Latest Outputs": {"ru": "Последние выходы", "en": "Latest Outputs"},
-    "Release-Critical Operator Surfaces": {"ru": "Release-критичные operator поверхности", "en": "Release-Critical Operator Surfaces"},
+    "Release-Critical Operator Surfaces": {"ru": "Критичные операторские поверхности релиза", "en": "Release-Critical Operator Surfaces"},
     "Active scoring model: #{id} {label}": {"ru": "Активная модель: #{id} {label}", "en": "Active scoring model: #{id} {label}"},
     "No active scoring model": {"ru": "Нет активной скоринговой модели", "en": "No active scoring model"},
     "KB master index available: artifact #{id} ({fmt})": {"ru": "Master index KB доступен: артефакт #{id} ({fmt})", "en": "KB master index available: artifact #{id} ({fmt})"},
