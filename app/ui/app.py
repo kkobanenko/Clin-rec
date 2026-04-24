@@ -1314,12 +1314,14 @@ def page_kb():
         tr("Entity Type Filter"),
         ["", "document", "molecule"],
         index=0,
+        format_func=format_pipeline_stage_option,
         key="kb_entity_type_filter",
     )
     entity_status_filter = entity_col2.selectbox(
         tr("Entity Status Filter"),
         ["", "active", "draft", "archived"],
         index=0,
+        format_func=format_pipeline_stage_option,
         key="kb_entity_status_filter",
     )
     entity_search = entity_col3.text_input(tr("Entity Search"), key="kb_entity_search")
@@ -1385,6 +1387,7 @@ def page_kb():
         tr("Conflict Review Filter"),
         ["", "auto", "needs_review", "approved", "rejected"],
         index=0,
+        format_func=format_pipeline_stage_option,
         key="kb_conflict_review_filter",
     )
     conflict_params = None
