@@ -132,6 +132,10 @@ def resolve_review_target_id(manual_target_id: int, queued_target_id: int | None
     return queued_target_id or manual_target_id
 
 
+def resolve_history_target_id(manual_target_id: int, queued_target_id: int | None) -> int:
+    return queued_target_id or manual_target_id
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -639,6 +643,16 @@ def page_reviews():
         ["", "pair_evidence"],
         index=0,
     )
+    queued_history_options = {
+        item["id"]: f"#{item['id']} | {item.get('relation_type')} | {item.get('final_fragment_score')}"
+        for item in items
+        if item.get("id") is not None
+    }
+    selected_history_target_id = history_col1.selectbox(
+        tr("History Target From Queue"),
+        [None, *list(queued_history_options)],
+        format_func=lambda value: tr("Manual History Target") if value is None else queued_history_options[value],
+    )
     history_target_id = history_col2.number_input(
         "History Target ID",
         min_value=0,
@@ -648,8 +662,9 @@ def page_reviews():
     history_params = {"page_size": 50}
     if history_target_type:
         history_params["target_type"] = history_target_type
-    if history_target_id > 0:
-        history_params["target_id"] = history_target_id
+    resolved_history_target_id = resolve_history_target_id(history_target_id, selected_history_target_id)
+    if resolved_history_target_id > 0:
+        history_params["target_id"] = resolved_history_target_id
     reviews = api_get("/review/history", history_params)
     if isinstance(reviews, dict):
         items = reviews.get("items", [])
