@@ -563,7 +563,7 @@ def page_documents():
     # Document detail
     st.subheader(tr("Document Detail"))
     current_document_options = {
-        item["id"]: f"#{item['id']} | {item.get('title') or tr('Untitled')}"
+        item["id"]: format_document_option_label(item)
         for item in filtered_items
         if item.get("id") is not None
     }
