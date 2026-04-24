@@ -348,7 +348,7 @@ def render_output_detail(detail: dict) -> None:
     st.markdown(f"**{detail.get('title', tr('Output'))}**")
     meta1, meta2, meta3, meta4, meta5 = st.columns(5)
     meta1.metric(tr("Output ID"), detail.get("id"))
-    meta2.metric(tr("Type"), tr(detail.get("output_type") or "n/a"))
+    meta2.metric(tr("Type"), translate_value_or_fallback(detail.get("output_type")))
     meta3.metric(tr("File-Back"), tr(detail.get("file_back_status") or "n/a"))
     meta4.metric(tr("Review"), tr(detail.get("review_status") or "n/a"))
     meta5.metric(tr("Artifact"), tr(str(detail.get("artifact_id"))) if detail.get("artifact_id") else tr("none"))
