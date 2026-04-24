@@ -175,7 +175,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Manual History Target": {"ru": "Ввести цель истории вручную", "en": "Manual History Target"},
     "History Target Type": {"ru": "Тип цели истории", "en": "History Target Type"},
     "History Target ID": {"ru": "ID цели истории", "en": "History Target ID"},
-    "0 means no target filter": {"ru": "0 означает отсутствие target-фильтра", "en": "0 means no target filter"},
+    "0 means no target filter": {"ru": "0 означает отсутствие фильтра по цели", "en": "0 means no target filter"},
     "No review actions yet": {"ru": "Действий ревью пока нет", "en": "No review actions yet"},
     "Bulk Approve": {"ru": "Массовое подтверждение", "en": "Bulk Approve"},
     "Evidence IDs (comma-separated)": {"ru": "ID evidence (через запятую)", "en": "Evidence IDs (comma-separated)"},
