@@ -32,6 +32,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Scoring Models": {"ru": "Скоринговые модели", "en": "Scoring Models"},
     "Knowledge Base": {"ru": "База знаний", "en": "Knowledge Base"},
     "Tasks": {"ru": "Задачи", "en": "Tasks"},
+    "Recent UI Tasks": {"ru": "Недавние UI-задачи", "en": "Recent UI Tasks"},
+    "Tracked Task": {"ru": "Отслеживаемая задача", "en": "Tracked Task"},
+    "Load Selected Task": {"ru": "Загрузить выбранную задачу", "en": "Load Selected Task"},
+    "No tracked tasks in this session": {"ru": "В этой сессии ещё нет отслеживаемых задач", "en": "No tracked tasks in this session"},
     "Outputs": {"ru": "Выходы", "en": "Outputs"},
     "KB Artifact": {"ru": "KB артефакт", "en": "KB Artifact"},
     "Output": {"ru": "Выход", "en": "Output"},
@@ -290,6 +294,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "review_status": {"ru": "статус ревью", "en": "review_status"},
     "file_back_status": {"ru": "статус файлинга", "en": "file_back_status"},
     "generator_version": {"ru": "версия генератора", "en": "generator_version"},
+    "task_id": {"ru": "ID задачи", "en": "task_id"},
+    "label": {"ru": "метка", "en": "label"},
+    "origin": {"ru": "источник", "en": "origin"},
+    "queued_at": {"ru": "поставлено в очередь", "en": "queued_at"},
+    "output_generate": {"ru": "генерация выхода", "en": "output_generate"},
+    "output_file_back": {"ru": "файлинг выхода", "en": "output_file_back"},
+    "kb_compile": {"ru": "сборка KB", "en": "kb_compile"},
+    "kb_lint": {"ru": "lint KB", "en": "kb_lint"},
+    "outputs": {"ru": "выходы", "en": "outputs"},
+    "knowledge_base": {"ru": "база знаний", "en": "knowledge_base"},
 }
 
 

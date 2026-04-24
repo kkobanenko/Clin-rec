@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from app.ui.app import append_recent_task
 from app.ui import ui_i18n
 from app.ui.ui_i18n import (
     load_language_preference,
@@ -58,3 +59,21 @@ def test_language_preference_roundtrip(tmp_path: pytest.TempPathFactory, monkeyp
     save_language_preference("en")
 
     assert load_language_preference() == "en"
+
+
+def test_append_recent_task_deduplicates_and_keeps_latest_first() -> None:
+    recent_tasks = [
+        {"task_id": "old-1", "label": "kb_compile", "origin": "knowledge_base", "queued_at": "t1"},
+        {"task_id": "old-2", "label": "output_generate", "origin": "outputs", "queued_at": "t2"},
+    ]
+
+    updated_tasks = append_recent_task(
+        recent_tasks,
+        task_id="old-1",
+        label="kb_lint",
+        origin="knowledge_base",
+    )
+
+    assert [item["task_id"] for item in updated_tasks[:2]] == ["old-1", "old-2"]
+    assert updated_tasks[0]["label"] == "kb_lint"
+    assert updated_tasks[0]["origin"] == "knowledge_base"

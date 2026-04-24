@@ -1,5 +1,7 @@
 """CR Intelligence Platform — Streamlit Admin UI."""
 
+from datetime import datetime, timezone
+
 import httpx
 import pandas as pd
 import streamlit as st
@@ -24,6 +26,38 @@ except ModuleNotFoundError:
     )
 
 API_BASE = "http://app:8000"
+
+
+def append_recent_task(
+    recent_tasks: list[dict],
+    *,
+    task_id: str,
+    label: str,
+    origin: str,
+    max_items: int = 10,
+) -> list[dict]:
+    filtered_tasks = [item for item in recent_tasks if item.get("task_id") != task_id]
+    return [
+        {
+            "task_id": task_id,
+            "label": label,
+            "origin": origin,
+            "queued_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        },
+        *filtered_tasks,
+    ][:max_items]
+
+
+def remember_task(task_id: str | None, *, label: str, origin: str) -> None:
+    if not task_id:
+        return
+    recent_tasks = st.session_state.get("recent_tasks") or []
+    st.session_state["recent_tasks"] = append_recent_task(
+        recent_tasks,
+        task_id=task_id,
+        label=label,
+        origin=origin,
+    )
 
 
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
@@ -775,6 +809,7 @@ def page_outputs():
                 {"output_type": output_type, "title": title or None, "scope_json": None},
             )
             if result:
+                remember_task(result.get("task_id"), label="output_generate", origin="outputs")
                 st.success(tr("Generation queued: {task_id}", task_id=result.get("task_id")))
 
     st.subheader("File Back Output")
@@ -787,6 +822,7 @@ def page_outputs():
                 {"file_back_status": file_back_status},
             )
             if result:
+                remember_task(result.get("task_id"), label="output_file_back", origin="outputs")
                 st.success(tr("File-back queued: {task_id}", task_id=result.get("task_id")))
 
 
@@ -799,11 +835,13 @@ def page_kb():
     if col1.button("Compile KB"):
         result = api_post("/kb/compile")
         if result:
+            remember_task(result.get("task_id"), label="kb_compile", origin="knowledge_base")
             st.success(tr("KB compile queued: {task_id}", task_id=result.get("task_id")))
 
     if col2.button("Lint KB"):
         result = api_post("/kb/lint")
         if result:
+            remember_task(result.get("task_id"), label="kb_lint", origin="knowledge_base")
             st.success(tr("KB lint queued: {task_id}", task_id=result.get("task_id")))
 
     st.subheader("Master Index")
@@ -1048,6 +1086,30 @@ def page_kb():
 
 def page_tasks():
     st.header("Tasks")
+
+    recent_tasks = st.session_state.get("recent_tasks") or []
+    st.subheader("Recent UI Tasks")
+    if recent_tasks:
+        st.dataframe(pd.DataFrame(recent_tasks), width="stretch", hide_index=True)
+        selected_task_id = st.selectbox(
+            "Tracked Task",
+            [item["task_id"] for item in recent_tasks],
+            format_func=lambda task_value: next(
+                (
+                    f"{item['task_id']} | {tr(item['label'])} | {tr(item['origin'])}"
+                    for item in recent_tasks
+                    if item["task_id"] == task_value
+                ),
+                task_value,
+            ),
+            key="tracked_task_id",
+        )
+        if st.button("Load Selected Task"):
+            status = api_get(f"/tasks/{selected_task_id}", {"include_result": True})
+            if status:
+                st.json(status)
+    else:
+        st.info("No tracked tasks in this session")
 
     task_id = st.text_input("Task ID")
     include_result = st.checkbox("Include Result", value=True)
