@@ -261,3 +261,9 @@ def test_filter_pipeline_runs_keeps_only_matching_status() -> None:
 
 def test_translate_value_or_fallback_uses_localized_default_for_empty_value() -> None:
     assert translate_value_or_fallback(None) == "n/a"
+
+
+def test_format_output_option_label_uses_fallback_title() -> None:
+    formatted = format_output_option_label({"id": 7, "output_type": "memo", "title": None})
+
+    assert formatted == "#7 | memo | Untitled"
