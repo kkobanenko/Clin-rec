@@ -255,16 +255,16 @@ def render_kb_artifact_detail(detail: dict) -> None:
         st.caption(detail.get("summary"))
 
     if detail.get("manifest_json"):
-        with st.expander("Manifest", expanded=False):
+        with st.expander(tr("Manifest"), expanded=False):
             st.json(detail.get("manifest_json"))
 
     if source_links:
-        st.markdown("**Source Links**")
+        st.markdown(f"**{tr('Source Links')}**")
         st.dataframe(pd.DataFrame(source_links), width="stretch", hide_index=True)
 
     claims = detail.get("claims") or []
     if claims:
-        st.markdown("**Claims**")
+        st.markdown(f"**{tr('Claims')}**")
         claim_rows = []
         for claim in claims:
             claim_rows.append(
@@ -280,13 +280,13 @@ def render_kb_artifact_detail(detail: dict) -> None:
 
     frontmatter, body = _split_frontmatter(detail.get("content_md"))
     if frontmatter:
-        with st.expander("Frontmatter", expanded=True):
+        with st.expander(tr("Frontmatter"), expanded=True):
             st.code(frontmatter, language="yaml")
     if body:
-        with st.expander("Markdown Body", expanded=True):
+        with st.expander(tr("Markdown Body"), expanded=True):
             st.code(body, language="markdown")
 
-    with st.expander("Raw Payload", expanded=False):
+    with st.expander(tr("Raw Payload"), expanded=False):
         st.json(detail)
 
 
@@ -309,13 +309,13 @@ def render_output_detail(detail: dict) -> None:
         )
 
     if detail.get("scope_json"):
-        with st.expander("Scope", expanded=False):
+        with st.expander(tr("Scope"), expanded=False):
             st.json(detail.get("scope_json"))
 
     if detail.get("file_pointer"):
         st.code(detail.get("file_pointer"), language="text")
 
-    with st.expander("Raw Payload", expanded=False):
+    with st.expander(tr("Raw Payload"), expanded=False):
         st.json(detail)
 
 
@@ -329,15 +329,15 @@ def render_entity_detail(detail: dict) -> None:
 
     aliases = detail.get("aliases_json") or {}
     if aliases:
-        with st.expander("Aliases", expanded=False):
+        with st.expander(tr("Aliases"), expanded=False):
             st.json(aliases)
 
     external_refs = detail.get("external_refs_json") or {}
     if external_refs:
-        with st.expander("External Refs", expanded=False):
+        with st.expander(tr("External Refs"), expanded=False):
             st.json(external_refs)
 
-    with st.expander("Raw Payload", expanded=False):
+    with st.expander(tr("Raw Payload"), expanded=False):
         st.json(detail)
 
 
