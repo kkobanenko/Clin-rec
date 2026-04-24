@@ -100,6 +100,13 @@ def format_output_option_label(item: dict[str, Any]) -> str:
     )
 
 
+def format_artifact_option_label(item: dict[str, Any]) -> str:
+    return (
+        f"#{item.get('id')} | {tr(item.get('artifact_type') or 'Unknown')} | "
+        f"{item.get('title') or tr('Untitled')}"
+    )
+
+
 def localize_dataframe_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
     return dataframe.rename(columns=lambda column: tr(str(column)))
 
