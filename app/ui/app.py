@@ -85,6 +85,10 @@ def format_review_evidence_option(item: dict[str, Any]) -> str:
     )
 
 
+def format_document_option_label(item: dict[str, Any]) -> str:
+    return tr("#{id} | {title}", id=item.get("id"), title=item.get("title") or tr("Untitled"))
+
+
 def localize_dataframe_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
     return dataframe.rename(columns=lambda column: tr(str(column)))
 
