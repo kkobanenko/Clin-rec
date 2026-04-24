@@ -944,11 +944,11 @@ def page_scoring_models():
             col2.metric(tr("Cells"), readiness.get("cell_count", 0))
             col3.metric(tr("Pair Scores"), readiness.get("pcs_count", 0))
 
-        st.subheader("Model Actions")
+        st.subheader(tr("Model Actions"))
         with st.form("model_refresh_form"):
             refresh_scope_type = st.selectbox(tr("Refresh Scope Type"), ["global"], key="refresh_scope_type")
             refresh_scope_id = st.text_input(tr("Refresh Scope ID"), value="", key="refresh_scope_id")
-            if st.form_submit_button("Refresh Model"):
+            if st.form_submit_button(tr("Refresh Model")):
                 payload = {
                     "scope_type": refresh_scope_type,
                     "scope_id": refresh_scope_id or None,
@@ -965,8 +965,8 @@ def page_scoring_models():
 
         with st.form("model_activate_form"):
             activate_author = st.text_input(tr("Activation Author"), key="activate_author")
-            activate_force = st.checkbox("Force Activate", value=False)
-            if st.form_submit_button("Activate Model"):
+            activate_force = st.checkbox(tr("Force Activate"), value=False)
+            if st.form_submit_button(tr("Activate Model")):
                 result = api_post(
                     f"/matrix/models/{selected_model_id}/activate",
                     {"author": activate_author, "force": activate_force},
@@ -974,13 +974,13 @@ def page_scoring_models():
                 if result:
                     st.success(tr("Activated model {label}", label=result.get("version_label")))
 
-        st.subheader("Model Diff")
+        st.subheader(tr("Model Diff"))
         diff_options = {
             f"#{model['id']} {model['version_label']}": model["id"] for model in models
         }
         diff_left = st.selectbox(tr("Old Version"), list(diff_options.keys()), key="diff_left")
         diff_right = st.selectbox(tr("New Version"), list(diff_options.keys()), key="diff_right")
-        if st.button("Load Diff"):
+        if st.button(tr("Load Diff")):
             diff = api_get(
                 "/matrix/models/diff",
                 {
@@ -1001,23 +1001,23 @@ def page_scoring_models():
                         st.markdown(f"**{tr(section.title())}**")
                         st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     else:
-        st.info("No scoring models defined")
+        st.info(tr("No scoring models defined"))
 
     # Create new model
-    st.subheader("Create Scoring Model Version")
+    st.subheader(tr("Create Scoring Model Version"))
     with st.form("model_form"):
         label = st.text_input(tr("Version Label"), "v1.0")
         weights_str = st.text_area(
-            "Weights JSON",
+            tr("Weights JSON"),
             '{"role": 0.2, "text": 0.25, "population": 0.15, "parity": 0.15, "practical": 0.1, "penalty": 0.15}',
         )
 
-        if st.form_submit_button("Create"):
+        if st.form_submit_button(tr("Create")):
             import json
             try:
                 weights = json.loads(weights_str)
             except json.JSONDecodeError:
-                st.error("Invalid JSON")
+                st.error(tr("Invalid JSON"))
                 return
 
             result = api_post("/matrix/models", {"version_label": label, "weights_json": weights})
