@@ -554,7 +554,7 @@ def page_documents():
     df = pd.DataFrame(filtered_items)
     display_cols = ["id", "title", "specialty", "status", "external_id"]
     display_cols = [c for c in display_cols if c in df.columns]
-    st.dataframe(df[display_cols], width="stretch")
+    st.dataframe(localize_dataframe_columns(df[display_cols]), width="stretch")
 
     # Document detail
     st.subheader(tr("Document Detail"))
