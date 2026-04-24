@@ -85,6 +85,10 @@ def format_review_evidence_option(item: dict[str, Any]) -> str:
     )
 
 
+def localize_dataframe_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
+    return dataframe.rename(columns=lambda column: tr(str(column)))
+
+
 def build_matrix_query_params(
     *,
     page_size: int,
@@ -449,7 +453,7 @@ def page_dashboard():
                         "finished_at": item.get("finished_at"),
                     }
                 )
-            st.dataframe(pd.DataFrame(run_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(run_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No pipeline runs available"))
 
@@ -465,7 +469,7 @@ def page_dashboard():
                         "title": item.get("title"),
                     }
                 )
-            st.dataframe(pd.DataFrame(output_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(output_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No outputs available"))
 
