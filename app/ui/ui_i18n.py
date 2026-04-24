@@ -284,7 +284,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "No KB conflicts detected": {"ru": "Конфликты KB не обнаружены", "en": "No KB conflicts detected"},
     "Claim Artifact ID Filter": {"ru": "Фильтр утверждений по ID артефакта", "en": "Claim Artifact ID Filter"},
     "Claim Type Filter": {"ru": "Фильтр по типу утверждения", "en": "Claim Type Filter"},
-    "Claim Review Filter": {"ru": "Фильтр по ревью claim", "en": "Claim Review Filter"},
+    "Claim Review Filter": {"ru": "Фильтр по статусу ревью утверждения", "en": "Claim Review Filter"},
     "Claims Page Size": {"ru": "Размер страницы claims", "en": "Claims Page Size"},
     "Claim Search": {"ru": "Поиск по claims", "en": "Claim Search"},
     "Conflicted Claims Only": {"ru": "Только конфликтные claims", "en": "Conflicted Claims Only"},
