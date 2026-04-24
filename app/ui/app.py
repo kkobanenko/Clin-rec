@@ -1162,19 +1162,19 @@ def page_kb():
     st.header(tr("Knowledge Base"))
 
     col1, col2 = st.columns(2)
-    if col1.button("Compile KB"):
+    if col1.button(tr("Compile KB")):
         result = api_post("/kb/compile")
         if result:
             remember_task(result.get("task_id"), label="kb_compile", origin="knowledge_base")
             st.success(tr("KB compile queued: {task_id}", task_id=result.get("task_id")))
 
-    if col2.button("Lint KB"):
+    if col2.button(tr("Lint KB")):
         result = api_post("/kb/lint")
         if result:
             remember_task(result.get("task_id"), label="kb_lint", origin="knowledge_base")
             st.success(tr("KB lint queued: {task_id}", task_id=result.get("task_id")))
 
-    st.subheader("Master Index")
+    st.subheader(tr("Master Index"))
     master_index = api_get("/kb/indexes/master", allow_statuses={404})
     if isinstance(master_index, dict):
         if master_index.get("artifact_id"):
@@ -1186,10 +1186,10 @@ def page_kb():
                 )
             )
             if master_index.get("manifest_json"):
-                with st.expander("Master Manifest", expanded=False):
+                with st.expander(tr("Master Manifest"), expanded=False):
                     st.json(master_index.get("manifest_json"))
         else:
-            st.info(master_index.get("message") or "No master index artifact yet")
+            st.info(master_index.get("message") or tr("No master index artifact yet"))
 
     st.subheader(tr("Artifacts"))
     filter_col1, filter_col2, filter_col3, filter_col4, filter_col5 = st.columns(5)
