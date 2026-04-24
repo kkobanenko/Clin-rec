@@ -67,6 +67,10 @@ def format_pipeline_run_label(run: dict) -> str:
     )
 
 
+def format_pipeline_stage_option(stage: str) -> str:
+    return tr("All") if not stage else tr(stage)
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -411,9 +415,19 @@ def page_pipeline():
             remember_task(result.get("task_id"), label="sync_incremental", origin="pipeline")
             st.success(tr("Pipeline run started: ID {run_id}", run_id=result.get("run_id")))
 
+    stage_filter = st.selectbox(
+        tr("Stage Filter"),
+        ["", "probe", "discovery", "fetch", "normalize", "extract"],
+        format_func=format_pipeline_stage_option,
+        key="pipeline_stage_filter",
+    )
+
     # Recent runs
     st.subheader("Recent Pipeline Runs")
-    runs = api_get("/runs", {"page_size": 20})
+    run_params = {"page_size": 20}
+    if stage_filter:
+        run_params["stage"] = stage_filter
+    runs = api_get("/runs", run_params)
     if runs:
         items = runs.get("items", [])
         if items:

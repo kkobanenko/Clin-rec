@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from app.ui.app import append_recent_task, format_pipeline_run_label
+from app.ui.app import append_recent_task, format_pipeline_run_label, format_pipeline_stage_option
 from app.ui import ui_i18n
 from app.ui.ui_i18n import (
     load_language_preference,
@@ -87,9 +87,17 @@ def test_format_pipeline_run_label_includes_core_run_fields() -> None:
     assert label == "#17 | discovery | full | success"
 
 
+def test_format_pipeline_stage_option_translates_blank_and_value() -> None:
+    set_current_language("ru")
+
+    assert format_pipeline_stage_option("") == "Все"
+    assert format_pipeline_stage_option("discovery") == "discovery"
+
+
 def test_new_pipeline_detail_labels_translate_to_russian() -> None:
     set_current_language("ru")
 
     assert tr("Run Detail") == "Детали прогона"
     assert tr("Recent Run") == "Недавний прогон"
     assert tr("Load Selected Run") == "Загрузить выбранный прогон"
+    assert tr("Stage Filter") == "Фильтр по стадии"
