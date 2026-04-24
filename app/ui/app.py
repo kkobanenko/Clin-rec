@@ -511,7 +511,7 @@ def page_documents():
 
     items = data.get("items", [])
     if not items:
-        st.info("No documents found")
+        st.info(tr("No documents found"))
         return
 
     document_status_options = [""] + sorted(
@@ -531,7 +531,7 @@ def page_documents():
     )
     filtered_items = sort_document_items(filter_document_items(items, selected_status), document_sort_order)
     if not filtered_items:
-        st.info("No documents found")
+        st.info(tr("No documents found"))
         return
 
     df = pd.DataFrame(filtered_items)
@@ -580,7 +580,7 @@ def page_documents():
                 col2.link_button("Download", f"{API_BASE}{artifact.get('download_url')}")
                 col3.link_button("Preview", f"{API_BASE}{artifact.get('preview_url')}")
         else:
-            st.info("No valid raw artifacts available for current version")
+            st.info(tr("No valid raw artifacts available for current version"))
 
         content = api_get(f"/documents/{resolved_doc_id}/content")
         if content:
@@ -652,7 +652,7 @@ def page_pipeline():
                 if detail:
                     st.json(detail)
         else:
-            st.info("No pipeline runs yet")
+            st.info(tr("No pipeline runs yet"))
 
 
 # --- Page: Matrix ---
@@ -691,7 +691,7 @@ def page_matrix():
 
     items = data.get("items", [])
     if not items:
-        st.info("No matrix cells found")
+        st.info(tr("No matrix cells found"))
         return
 
     df = pd.DataFrame(items)
@@ -771,7 +771,7 @@ def page_reviews():
                 )
             st.dataframe(pd.DataFrame(queue_rows), width="stretch", hide_index=True)
         else:
-            st.info("No evidence awaiting review")
+            st.info(tr("No evidence awaiting review"))
     else:
         items = []
 
@@ -824,7 +824,7 @@ def page_reviews():
                 )
             st.dataframe(pd.DataFrame(history_rows), width="stretch", hide_index=True)
         else:
-            st.info("No review actions yet")
+            st.info(tr("No review actions yet"))
 
     st.subheader(tr("Bulk Approve"))
     with st.form("bulk_review_form"):
@@ -845,7 +845,7 @@ def page_reviews():
         if st.form_submit_button(tr("Bulk Approve")):
             evidence_ids = build_bulk_approve_evidence_ids(bulk_ids, selected_evidence_ids)
             if not evidence_ids:
-                st.warning("Enter at least one evidence ID")
+                st.warning(tr("Enter at least one evidence ID"))
             else:
                 result = api_post(
                     "/review/bulk-approve",
@@ -1247,7 +1247,7 @@ def page_kb():
                 )
             st.dataframe(pd.DataFrame(artifact_rows), width="stretch", hide_index=True)
         else:
-            st.info("No KB artifacts available")
+            st.info(tr("No KB artifacts available"))
 
     st.subheader(tr("Artifact Detail"))
     current_artifact_options = {
@@ -1308,7 +1308,7 @@ def page_kb():
                 )
             st.dataframe(pd.DataFrame(entity_rows), width="stretch", hide_index=True)
         else:
-            st.info("No KB entities available")
+            st.info(tr("No KB entities available"))
 
     st.subheader(tr("Entity Detail"))
     current_entity_options = {
@@ -1431,7 +1431,7 @@ def page_kb():
                 )
             st.dataframe(pd.DataFrame(claim_rows), width="stretch", hide_index=True)
         else:
-            st.info("No KB claims available")
+            st.info(tr("No KB claims available"))
 
 
 # --- Page: Tasks ---
