@@ -229,6 +229,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Entity Search": {"ru": "Поиск по сущностям", "en": "Entity Search"},
     "No KB entities available": {"ru": "KB сущности не найдены", "en": "No KB entities available"},
     "Entity Detail": {"ru": "Детали сущности", "en": "Entity Detail"},
+    "Current Entity": {"ru": "Сущность из текущего списка", "en": "Current Entity"},
+    "Manual Entity ID": {"ru": "Ввести ID сущности вручную", "en": "Manual Entity ID"},
     "Entity ID": {"ru": "ID сущности", "en": "Entity ID"},
     "Load Entity": {"ru": "Загрузить сущность", "en": "Load Entity"},
     "Conflicts": {"ru": "Конфликты", "en": "Conflicts"},

@@ -148,6 +148,10 @@ def resolve_artifact_id(manual_artifact_id: int, selected_artifact_id: int | Non
     return selected_artifact_id or manual_artifact_id
 
 
+def resolve_entity_id(manual_entity_id: int, selected_entity_id: int | None) -> int:
+    return selected_entity_id or manual_entity_id
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -1194,9 +1198,20 @@ def page_kb():
             st.info("No KB entities available")
 
     st.subheader("Entity Detail")
+    current_entity_options = {
+        item["id"]: f"#{item['id']} | {item.get('entity_type')} | {item.get('canonical_name') or 'unnamed'}"
+        for item in items
+        if item.get("id") is not None
+    }
+    selected_entity_id = st.selectbox(
+        tr("Current Entity"),
+        [None, *list(current_entity_options)],
+        format_func=lambda value: tr("Manual Entity ID") if value is None else current_entity_options[value],
+        key="current_entity_id",
+    )
     entity_id = st.number_input("Entity ID", min_value=1, step=1, key="kb_entity_id")
     if st.button("Load Entity"):
-        entity_detail = api_get(f"/kb/entities/{entity_id}")
+        entity_detail = api_get(f"/kb/entities/{resolve_entity_id(entity_id, selected_entity_id)}")
         if entity_detail:
             render_entity_detail(entity_detail)
 

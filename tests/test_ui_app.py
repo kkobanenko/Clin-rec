@@ -2,11 +2,12 @@ from app.ui.app import (
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
     build_matrix_query_params,
+    resolve_artifact_id,
     resolve_document_id,
+    resolve_entity_id,
     resolve_history_target_id,
     resolve_output_id,
     resolve_review_target_id,
-    resolve_artifact_id,
 )
 
 
@@ -122,3 +123,11 @@ def test_resolve_artifact_id_prefers_current_list_selection() -> None:
 
 def test_resolve_artifact_id_falls_back_to_manual_value() -> None:
     assert resolve_artifact_id(2, None) == 2
+
+
+def test_resolve_entity_id_prefers_current_list_selection() -> None:
+    assert resolve_entity_id(3, 31) == 31
+
+
+def test_resolve_entity_id_falls_back_to_manual_value() -> None:
+    assert resolve_entity_id(3, None) == 3
