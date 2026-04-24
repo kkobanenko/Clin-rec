@@ -1270,13 +1270,13 @@ def page_kb():
     st.subheader(tr("Entities"))
     entity_col1, entity_col2, entity_col3 = st.columns(3)
     entity_type_filter = entity_col1.selectbox(
-        "Entity Type Filter",
+        tr("Entity Type Filter"),
         ["", "document", "molecule"],
         index=0,
         key="kb_entity_type_filter",
     )
     entity_status_filter = entity_col2.selectbox(
-        "Entity Status Filter",
+        tr("Entity Status Filter"),
         ["", "active", "draft", "archived"],
         index=0,
         key="kb_entity_status_filter",
