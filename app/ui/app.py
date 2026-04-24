@@ -351,7 +351,7 @@ def render_output_detail(detail: dict) -> None:
     meta2.metric(tr("Type"), translate_value_or_fallback(detail.get("output_type")))
     meta3.metric(tr("File-Back"), translate_value_or_fallback(detail.get("file_back_status")))
     meta4.metric(tr("Review"), translate_value_or_fallback(detail.get("review_status")))
-    meta5.metric(tr("Artifact"), tr(str(detail.get("artifact_id"))) if detail.get("artifact_id") else tr("none"))
+    meta5.metric(tr("Artifact"), translate_value_or_fallback(detail.get("artifact_id"), fallback="none"))
 
     if detail.get("released_at") or detail.get("generator_version"):
         st.caption(
