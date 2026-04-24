@@ -1118,11 +1118,11 @@ def page_outputs():
                     if artifact:
                         render_kb_artifact_detail(artifact)
 
-    st.subheader("Generate Output")
+    st.subheader(tr("Generate Output"))
     with st.form("output_generate_form"):
-        output_type = st.selectbox("Output Type", ["memo"])
-        title = st.text_input("Title")
-        if st.form_submit_button("Queue Generation"):
+        output_type = st.selectbox(tr("Output Type"), ["memo"])
+        title = st.text_input(tr("Title"))
+        if st.form_submit_button(tr("Queue Generation")):
             result = api_post(
                 "/outputs/generate",
                 {"output_type": output_type, "title": title or None, "scope_json": None},
@@ -1131,7 +1131,7 @@ def page_outputs():
                 remember_task(result.get("task_id"), label="output_generate", origin="outputs")
                 st.success(tr("Generation queued: {task_id}", task_id=result.get("task_id")))
 
-    st.subheader("File Back Output")
+    st.subheader(tr("File Back Output"))
     with st.form("output_file_back_form"):
         file_back_output_options = {
             item["id"]: f"#{item['id']} | {item.get('output_type')} | {item.get('title') or 'untitled'}"
@@ -1144,9 +1144,9 @@ def page_outputs():
             format_func=lambda value: tr("Manual File-Back Output ID") if value is None else file_back_output_options[value],
             key="current_file_back_output_id",
         )
-        output_id = st.number_input("Output ID", min_value=1, step=1)
-        file_back_status = st.selectbox("File Back Status", ["accepted", "rejected", "needs_review"])
-        if st.form_submit_button("Queue File Back"):
+        output_id = st.number_input(tr("Output ID"), min_value=1, step=1)
+        file_back_status = st.selectbox(tr("File Back Status"), ["accepted", "rejected", "needs_review"])
+        if st.form_submit_button(tr("Queue File Back")):
             result = api_post(
                 f"/outputs/file-back/{resolve_output_id(output_id, selected_file_back_output_id)}",
                 {"file_back_status": file_back_status},
