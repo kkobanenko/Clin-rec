@@ -69,10 +69,11 @@
 
 ## Ближайшие шаги
 
-- Расширять async follow-up и cross-surface linkage между pipeline, tasks, outputs, KB и review.
-- Дозакрыть remaining detail-renderer labels, compact picker summaries, helper-level polish и неохваченные table-like blocks в Streamlit admin UI без изменения API semantics.
-- Держать PRD/TZ/VERSIONING/backlog синхронными с validated head после каждого заметного tranche.
-- Оставлять full dashboard redesign, gap suggestions и более глубокую Streamlit chrome localization в post-MVP polish.
+- P0. Держать PRD/TZ/VERSIONING/backlog синхронными с validated head и не выдавать старую release evidence baseline за новый rerun.
+- P0. Расширять helper-level regression batches для pure UI functions, compact filter/sort/picker logic и i18n-sensitive display helpers.
+- P0. Дозакрыть remaining detail-renderer labels, compact picker summaries и small linkage handoff gaps без изменения API semantics.
+- P1. Расширять async follow-up и cross-surface linkage между pipeline, tasks, outputs, KB и review.
+- P2. Оставлять full dashboard redesign, gap suggestions и более глубокую Streamlit chrome localization в post-MVP polish.
 
 ## Версионирование документов
 
@@ -80,4 +81,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-24 — после повторного operator-hardening sync, в котором multilingual display-layer polish уже включает localized table headers across dashboard/documents/pipeline/matrix/reviews/scoring/outputs/KB/tasks surfaces; следующий cheap path смещен к detail renderers, compact summaries и linkage follow-up.*
+*Последнее обновление: 2026-04-24 — backlog синхронизирован с текущей стадией `release-ready MVP`; ближайший cheap path смещен к helper-level regression expansion, remaining detail renderers, compact summaries и linkage follow-up, без переписывания validated release evidence.*

@@ -16,6 +16,13 @@
 - `docs/RELEASE_SUMMARY_2026-04-21.md`: historical composite go/no-go summary для предыдущего release cycle
 - `DOD_MVP.md`: baseline acceptance floor
 
+## Current Implementation Stage
+
+- Stage: `release-ready MVP`
+- Active tranche: `phase-2 operator hardening`
+- Latest validated full-pack evidence: `docs/RELEASE_SUMMARY_2026-04-24.md`
+- Immediate focus: canonical doc sync, helper-level regression expansion, remaining detail-renderer polish, and additive cross-surface handoff between pipeline, tasks, outputs, KB and review surfaces without reopening release-contract risk
+
 ## VS Code Tasks
 
 - `UI Stack Up`: поднимает docker-compose runtime для локального UI/API тестирования

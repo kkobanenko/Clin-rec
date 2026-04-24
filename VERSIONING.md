@@ -6,6 +6,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 
 ## Document Versions
 
+### Canonical Stage & Roadmap Sync (2026-04-24)
+
+**Files:** `README.md`, `PRD_CR_Intelligence_Platform_v1_6.md`, `TZ_CR_Intelligence_Platform_v1_5.md`, `docs/TZ_PRD_PHASE2_BACKLOG.md`, `VERSIONING.md`
+
+**Changelog:**
+- Synced canon docs to current implementation stage: `release-ready MVP` with active `phase-2 operator hardening`.
+- Refreshed immediate execution sequence toward helper-level regression expansion, remaining detail-renderer polish and cross-surface handoff.
+- Preserved boundary that `docs/RELEASE_SUMMARY_2026-04-24.md` remains latest validated full-pack evidence until a real rerun updates it.
+
 ### PRD v1.6 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_6.md`
