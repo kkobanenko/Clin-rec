@@ -1416,7 +1416,7 @@ def page_kb():
                         "claim_previews": "\n\n".join(item.get("claim_previews", [])),
                     }
                 )
-            st.dataframe(pd.DataFrame(conflict_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(conflict_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No KB conflicts detected"))
 
