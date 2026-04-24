@@ -112,9 +112,11 @@ def format_artifact_option_label(item: dict[str, Any]) -> str:
 
 
 def format_entity_option_label(item: dict[str, Any]) -> str:
-    return (
-        f"#{item.get('id')} | {tr(item.get('entity_type') or 'Unknown')} | "
-        f"{item.get('canonical_name') or tr('Untitled entity')}"
+    return tr(
+        "#{id} | {entity_type} | {name}",
+        id=item.get("id"),
+        entity_type=tr(item.get("entity_type") or "Unknown"),
+        name=item.get("canonical_name") or tr("Untitled entity"),
     )
 
 
