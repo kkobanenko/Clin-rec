@@ -1232,18 +1232,21 @@ def page_kb():
         tr("Artifact Type Filter"),
         ["", "source_digest", "entity_page", "glossary_term", "open_question", "master_index"],
         index=0,
+        format_func=format_pipeline_stage_option,
         key="kb_artifact_type_filter",
     )
     artifact_status_filter = filter_col2.selectbox(
         tr("Artifact Status Filter"),
         ["", "draft", "active", "archived"],
         index=0,
+        format_func=format_pipeline_stage_option,
         key="kb_artifact_status_filter",
     )
     artifact_review_filter = filter_col3.selectbox(
         tr("Artifact Review Filter"),
         ["", "draft", "auto", "needs_review", "approved", "rejected"],
         index=0,
+        format_func=format_pipeline_stage_option,
         key="kb_artifact_review_filter",
     )
     artifact_generator_filter = filter_col4.text_input(
