@@ -377,7 +377,7 @@ def render_entity_detail(detail: dict) -> None:
     st.caption(tr("Entity #{id}", id=detail.get("id")))
     meta1, meta2, meta3 = st.columns(3)
     meta1.metric(tr("Type"), translate_value_or_fallback(detail.get("entity_type")))
-    meta2.metric(tr("Status"), tr(detail.get("status") or "n/a"))
+    meta2.metric(tr("Status"), translate_value_or_fallback(detail.get("status")))
     meta3.metric(tr("Aliases"), len(detail.get("aliases_json") or {}))
     st.subheader(detail.get("canonical_name") or tr("Untitled entity"))
 
