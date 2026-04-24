@@ -72,6 +72,10 @@ def format_pipeline_stage_option(stage: str) -> str:
     return tr("All") if not stage else tr(stage)
 
 
+def format_option_value(value: str) -> str:
+    return tr(value)
+
+
 def format_review_evidence_option(item: dict[str, Any]) -> str:
     return tr(
         "#{id} | {relation_type} | {score}",
@@ -1044,16 +1048,23 @@ def page_outputs():
     st.header(tr("Outputs"))
 
     out_col1, out_col2, out_col3, out_col4, out_col5 = st.columns(5)
-    output_type_filter = out_col1.selectbox(tr("Output Type Filter"), ["", "memo"], index=0)
+    output_type_filter = out_col1.selectbox(
+        tr("Output Type Filter"),
+        ["", "memo"],
+        index=0,
+        format_func=format_pipeline_stage_option,
+    )
     file_back_filter = out_col2.selectbox(
         tr("File-Back Filter"),
         ["", "accepted", "rejected", "needs_review"],
         index=0,
+        format_func=format_pipeline_stage_option,
     )
     review_status_filter = out_col3.selectbox(
         tr("Review Status Filter"),
         ["", "draft", "auto", "needs_review", "approved", "rejected"],
         index=0,
+        format_func=format_pipeline_stage_option,
     )
     generator_version_filter = out_col4.text_input(tr("Generator Version Filter"))
     output_artifact_id = out_col5.number_input(
@@ -1136,7 +1147,7 @@ def page_outputs():
 
     st.subheader(tr("Generate Output"))
     with st.form("output_generate_form"):
-        output_type = st.selectbox(tr("Output Type"), ["memo"])
+        output_type = st.selectbox(tr("Output Type"), ["memo"], format_func=format_option_value)
         title = st.text_input(tr("Title"))
         if st.form_submit_button(tr("Queue Generation")):
             result = api_post(
@@ -1164,7 +1175,11 @@ def page_outputs():
             key="current_file_back_output_id",
         )
         output_id = st.number_input(tr("Output ID"), min_value=1, step=1)
-        file_back_status = st.selectbox(tr("File Back Status"), ["accepted", "rejected", "needs_review"])
+        file_back_status = st.selectbox(
+            tr("File Back Status"),
+            ["accepted", "rejected", "needs_review"],
+            format_func=format_option_value,
+        )
         if st.form_submit_button(tr("Queue File Back")):
             result = api_post(
                 f"/outputs/file-back/{resolve_output_id(output_id, selected_file_back_output_id)}",
