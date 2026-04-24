@@ -182,6 +182,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Captured explicit translation hardening across dashboard status copy, KB detail/filter surfaces, outputs filter surfaces, fallback empty-state copy and document raw-artifact actions.
 - Confirmed the tranche stayed additive: narrow compile checks and live Streamlit smoke on affected pages remained the primary validation path.
 
+### Phase-2 Operator Hardening Sync (2026-04-24, operator summary localization refresh)
+
+**Files:** `PRD_CR_Intelligence_Platform_v1_6.md`, `TZ_CR_Intelligence_Platform_v1_5.md`, `docs/TZ_PRD_PHASE2_BACKLOG.md`, `VERSIONING.md`
+
+**Changelog:**
+- Synced canon docs to the latest operator-hardening head after localized table-header follow-up across the main Streamlit operator tables.
+- Narrowed the next tranche from broad control-level i18n to remaining detail-renderer labels, compact summaries and helper-level display polish.
+- Kept the stage classification unchanged: `release-ready MVP` with active `phase-2 operator hardening`.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`

@@ -59,7 +59,7 @@
 
 ## UI (TZ §21)
 
-- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, compact reviewer queue/history surfaces, scoring diff summary tables, KB master-index preview, KB artifact type/status/review/generator/body-search, KB claims list/type/review/conflicted filters with conflict flags, KB conflict summaries with artifact/review scoping and artifact ids, KB entity type/status/canonical+alias+refs search/detail, compact KB artifact/entity/output tables with richer KB artifact/entity/output detail, backward-compatible RU/EN language switch с persisted preference для admin/operator UI, recent UI task tracking на async workflows, pipeline run detail picker, pipeline stage filter, matrix list/detail filters, review quick-pick controls для queue/history/submit follow-up, Tasks-page quick-pick/origin-filter/label-search/sort controls и explicit translation hardening для dashboard/documents/outputs/KB/tasks/review/scoring action/detail/filter labels. Полная productized health dashboard, единый linkage-view и перевод framework-provided Streamlit chrome остаются вне текущего tranche.
+- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, compact reviewer queue/history surfaces, scoring diff summary tables, KB master-index preview, KB artifact type/status/review/generator/body-search, KB claims list/type/review/conflicted filters with conflict flags, KB conflict summaries with artifact/review scoping and artifact ids, KB entity type/status/canonical+alias+refs search/detail, compact KB artifact/entity/output tables with richer KB artifact/entity/output detail, backward-compatible RU/EN language switch с persisted preference для admin/operator UI, recent UI task tracking на async workflows, pipeline run detail picker, pipeline stage filter, matrix list/detail filters, review quick-pick controls для queue/history/submit follow-up, Tasks-page quick-pick/origin-filter/label-search/sort controls, explicit translation hardening для dashboard/documents/outputs/KB/tasks/review/scoring action/detail/filter labels и localized table headers across the main operator tables. Полная productized health dashboard, единый linkage-view и перевод framework-provided Streamlit chrome остаются вне текущего tranche.
 
 ## Текущая стадия проекта
 
@@ -70,7 +70,7 @@
 ## Ближайшие шаги
 
 - Расширять async follow-up и cross-surface linkage между pipeline, tasks, outputs, KB и review.
-- Дозакрыть оставшиеся plain display/action strings и helper-level polish в Streamlit admin UI без изменения API semantics.
+- Дозакрыть remaining detail-renderer labels, compact picker summaries, helper-level polish и неохваченные table-like blocks в Streamlit admin UI без изменения API semantics.
 - Держать PRD/TZ/VERSIONING/backlog синхронными с validated head после каждого заметного tranche.
 - Оставлять full dashboard redesign, gap suggestions и более глубокую Streamlit chrome localization в post-MVP polish.
 
@@ -80,4 +80,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-24 — после full-pack release-ready sync и последующего operator-hardening tranche с recent task tracking, pipeline run detail picker, pipeline stage filter, matrix/outputs/KB compact filters, review quick-pick controls, Tasks-page quick-pick/filter/search/sort follow-up и ongoing multilingual display-layer hardening across dashboard/documents/outputs/KB/review/scoring/tasks surfaces; предыдущие operator-surface closure items сохранены.*
+*Последнее обновление: 2026-04-24 — после повторного operator-hardening sync, в котором multilingual display-layer polish уже включает localized table headers across dashboard/documents/pipeline/matrix/reviews/scoring/outputs/KB/tasks surfaces; следующий cheap path смещен к detail renderers, compact summaries и linkage follow-up.*
