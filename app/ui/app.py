@@ -896,7 +896,7 @@ def page_reviews():
 # --- Page: Scoring Models ---
 
 def page_scoring_models():
-    st.header("Scoring Models")
+    st.header(tr("Scoring Models"))
 
     models = api_get("/matrix/models")
     if isinstance(models, list) and models:
@@ -933,7 +933,7 @@ def page_scoring_models():
         model_options = {
             f"#{model['id']} {model['version_label']}": model["id"] for model in models
         }
-        selected_label = st.selectbox("Selected Model", list(model_options.keys()))
+        selected_label = st.selectbox(tr("Selected Model"), list(model_options.keys()))
         selected_model_id = model_options[selected_label]
 
         summary = api_get(f"/matrix/models/{selected_model_id}/summary")
@@ -946,8 +946,8 @@ def page_scoring_models():
 
         st.subheader("Model Actions")
         with st.form("model_refresh_form"):
-            refresh_scope_type = st.selectbox("Refresh Scope Type", ["global"], key="refresh_scope_type")
-            refresh_scope_id = st.text_input("Refresh Scope ID", value="", key="refresh_scope_id")
+            refresh_scope_type = st.selectbox(tr("Refresh Scope Type"), ["global"], key="refresh_scope_type")
+            refresh_scope_id = st.text_input(tr("Refresh Scope ID"), value="", key="refresh_scope_id")
             if st.form_submit_button("Refresh Model"):
                 payload = {
                     "scope_type": refresh_scope_type,
@@ -964,7 +964,7 @@ def page_scoring_models():
                     )
 
         with st.form("model_activate_form"):
-            activate_author = st.text_input("Activation Author", key="activate_author")
+            activate_author = st.text_input(tr("Activation Author"), key="activate_author")
             activate_force = st.checkbox("Force Activate", value=False)
             if st.form_submit_button("Activate Model"):
                 result = api_post(
@@ -978,8 +978,8 @@ def page_scoring_models():
         diff_options = {
             f"#{model['id']} {model['version_label']}": model["id"] for model in models
         }
-        diff_left = st.selectbox("Old Version", list(diff_options.keys()), key="diff_left")
-        diff_right = st.selectbox("New Version", list(diff_options.keys()), key="diff_right")
+        diff_left = st.selectbox(tr("Old Version"), list(diff_options.keys()), key="diff_left")
+        diff_right = st.selectbox(tr("New Version"), list(diff_options.keys()), key="diff_right")
         if st.button("Load Diff"):
             diff = api_get(
                 "/matrix/models/diff",
@@ -1006,7 +1006,7 @@ def page_scoring_models():
     # Create new model
     st.subheader("Create Scoring Model Version")
     with st.form("model_form"):
-        label = st.text_input("Version Label", "v1.0")
+        label = st.text_input(tr("Version Label"), "v1.0")
         weights_str = st.text_area(
             "Weights JSON",
             '{"role": 0.2, "text": 0.25, "population": 0.15, "parity": 0.15, "practical": 0.1, "penalty": 0.15}',
