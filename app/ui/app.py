@@ -1375,10 +1375,7 @@ def page_kb():
 
     st.subheader(tr("Entity Detail"))
     current_entity_options = {
-        item["id"]: (
-            f"#{item['id']} | {tr(item.get('entity_type') or 'Unknown')} | "
-            f"{item.get('canonical_name') or tr('Untitled entity')}"
-        )
+        item["id"]: format_entity_option_label(item)
         for item in items
         if item.get("id") is not None
     }
