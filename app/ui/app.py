@@ -960,9 +960,7 @@ def page_scoring_models():
                 )
             )
 
-        model_options = {
-            f"#{model['id']} {model['version_label']}": model["id"] for model in models
-        }
+        model_options = {format_model_option_label(model): model["id"] for model in models}
         selected_label = st.selectbox(tr("Selected Model"), list(model_options.keys()))
         selected_model_id = model_options[selected_label]
 
