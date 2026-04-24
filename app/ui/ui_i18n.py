@@ -218,7 +218,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Changed": {"ru": "Изменено", "en": "Changed"},
     "Create Scoring Model Version": {"ru": "Создать версию скоринговой модели", "en": "Create Scoring Model Version"},
     "Version Label": {"ru": "Метка версии", "en": "Version Label"},
-    "Weights JSON": {"ru": "Weights JSON", "en": "Weights JSON"},
+    "Weights JSON": {"ru": "JSON весов", "en": "Weights JSON"},
     "Create": {"ru": "Создать", "en": "Create"},
     "Invalid JSON": {"ru": "Невалидный JSON", "en": "Invalid JSON"},
     "Model created: ID {id}": {"ru": "Модель создана: ID {id}", "en": "Model created: ID {id}"},
