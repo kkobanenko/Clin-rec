@@ -2,6 +2,7 @@ from app.ui.app import (
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
     build_matrix_query_params,
+    filter_document_artifacts,
     filter_document_items,
     filter_recent_tasks,
     resolve_artifact_id,
@@ -211,3 +212,15 @@ def test_sort_document_items_supports_oldest_first() -> None:
     document_items = [{"id": 1}, {"id": 3}, {"id": 2}]
 
     assert [item["id"] for item in sort_document_items(document_items, "oldest")] == [1, 2, 3]
+
+
+def test_filter_document_artifacts_returns_all_when_filter_empty() -> None:
+    artifacts = [{"id": 1, "artifact_type": "pdf"}, {"id": 2, "artifact_type": "html"}]
+
+    assert filter_document_artifacts(artifacts, "") == artifacts
+
+
+def test_filter_document_artifacts_keeps_only_matching_type() -> None:
+    artifacts = [{"id": 1, "artifact_type": "pdf"}, {"id": 2, "artifact_type": "html"}]
+
+    assert filter_document_artifacts(artifacts, "pdf") == [{"id": 1, "artifact_type": "pdf"}]

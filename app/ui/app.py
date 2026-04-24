@@ -192,6 +192,12 @@ def sort_document_items(document_items: list[dict[str, Any]], sort_order: str) -
     )
 
 
+def filter_document_artifacts(artifacts: list[dict[str, Any]], artifact_type_filter: str) -> list[dict[str, Any]]:
+    if not artifact_type_filter:
+        return artifacts
+    return [artifact for artifact in artifacts if str(artifact.get("artifact_type", "")) == artifact_type_filter]
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -528,7 +534,17 @@ def page_documents():
         artifacts = api_get(f"/documents/{resolved_doc_id}/artifacts")
         st.subheader("Raw Source Artifacts")
         if isinstance(artifacts, dict) and artifacts.get("artifacts"):
-            for artifact in artifacts.get("artifacts", []):
+            artifact_items = artifacts.get("artifacts", [])
+            artifact_type_options = [""] + sorted(
+                {str(artifact.get("artifact_type", "")) for artifact in artifact_items if artifact.get("artifact_type")}
+            )
+            selected_artifact_type = st.selectbox(
+                tr("Artifact Type Filter"),
+                artifact_type_options,
+                format_func=lambda value: tr("All") if not value else tr(value),
+                key=f"document_artifact_type_filter_{resolved_doc_id}",
+            )
+            for artifact in filter_document_artifacts(artifact_items, selected_artifact_type):
                 col1, col2, col3 = st.columns([2, 1, 1])
                 col1.write(
                     f"#{artifact.get('id')} {artifact.get('artifact_type')} "
