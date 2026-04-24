@@ -297,7 +297,7 @@ def render_kb_artifact_detail(detail: dict) -> None:
     meta1, meta2, meta3, meta4, meta5, meta6 = st.columns(6)
     meta1.metric(tr("Artifact ID"), detail.get("id"))
     meta2.metric(tr("Type"), translate_value_or_fallback(detail.get("artifact_type")))
-    meta3.metric(tr("Status"), tr(detail.get("status") or "n/a"))
+    meta3.metric(tr("Status"), translate_value_or_fallback(detail.get("status")))
     meta4.metric(tr("Review"), tr(detail.get("review_status") or "n/a"))
     meta5.metric(tr("Claims"), len(detail.get("claims") or []))
     meta6.metric(tr("Sources"), len(source_links))
