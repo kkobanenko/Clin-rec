@@ -128,6 +128,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Moved the primary i18n implementation under `app/ui/ui_i18n.py` so the Streamlit script can import it safely, and left `app/ui_i18n.py` as a compatibility shim for package-style imports.
 - Added focused regression coverage for translation helpers and preference round-trip, plus live compose-backed smoke verification for RU->EN->RU switching.
 
+### Release Evidence Sync (2026-04-24, late-stage rerun)
+
+**Files:** `VERSIONING.md`, `.artifacts/release_checks/20260424_084150`
+
+**Changelog:**
+- Captured late-stage rerun on head `20bcdb9` after multilingual Streamlit UI hardening and widget-state repair.
+- Confirmed compose-backed regression pack remained green: review API `10 passed`, matrix model ops `10 passed`, outputs API `13 passed`, document outcomes API `5 passed`, aux routes `2 passed`, KB integration `2 passed`.
+- Preserved structural/quality smoke evidence boundary from the last full pack while refreshing late-stage operator/API confidence for the current tranche.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
