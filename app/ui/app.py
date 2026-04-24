@@ -1482,7 +1482,7 @@ def page_kb():
                         "text": item.get("claim_text"),
                     }
                 )
-            st.dataframe(pd.DataFrame(claim_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(claim_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No KB claims available"))
 
