@@ -152,6 +152,10 @@ def resolve_entity_id(manual_entity_id: int, selected_entity_id: int | None) -> 
     return selected_entity_id or manual_entity_id
 
 
+def resolve_task_id(manual_task_id: str, selected_task_id: str | None) -> str:
+    return selected_task_id or manual_task_id.strip()
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -1350,13 +1354,29 @@ def page_tasks():
     else:
         st.info("No tracked tasks in this session")
 
+    selected_task_id = st.selectbox(
+        tr("Current Task"),
+        [""] + [item["task_id"] for item in recent_tasks],
+        format_func=lambda task_value: tr("Manual Task ID")
+        if not task_value
+        else next(
+            (
+                f"{item['task_id']} | {tr(item['label'])} | {tr(item['origin'])}"
+                for item in recent_tasks
+                if item["task_id"] == task_value
+            ),
+            task_value,
+        ),
+        key="current_task_id",
+    )
     task_id = st.text_input("Task ID")
     include_result = st.checkbox("Include Result", value=True)
     if st.button("Load Task Status"):
-        if not task_id.strip():
+        resolved_task_id = resolve_task_id(task_id, selected_task_id or None)
+        if not resolved_task_id:
             st.warning("Enter a task ID")
         else:
-            status = api_get(f"/tasks/{task_id.strip()}", {"include_result": include_result})
+            status = api_get(f"/tasks/{resolved_task_id}", {"include_result": include_result})
             if status:
                 st.json(status)
 

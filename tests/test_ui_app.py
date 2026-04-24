@@ -8,6 +8,7 @@ from app.ui.app import (
     resolve_history_target_id,
     resolve_output_id,
     resolve_review_target_id,
+    resolve_task_id,
 )
 
 
@@ -131,3 +132,11 @@ def test_resolve_entity_id_prefers_current_list_selection() -> None:
 
 def test_resolve_entity_id_falls_back_to_manual_value() -> None:
     assert resolve_entity_id(3, None) == 3
+
+
+def test_resolve_task_id_prefers_current_selection() -> None:
+    assert resolve_task_id("manual-task", "queued-task") == "queued-task"
+
+
+def test_resolve_task_id_strips_manual_value() -> None:
+    assert resolve_task_id("  manual-task  ", None) == "manual-task"
