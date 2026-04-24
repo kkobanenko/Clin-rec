@@ -118,6 +118,10 @@ def format_task_option_label(item: dict[str, Any]) -> str:
     return f"{item.get('task_id')} | {tr(item.get('label') or 'Unknown')} | {tr(item.get('origin') or 'Unknown')}"
 
 
+def translate_value_or_fallback(value: Any, *, fallback: str = "n/a") -> str:
+    return tr(str(value)) if value not in (None, "") else tr(fallback)
+
+
 def localize_dataframe_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
     return dataframe.rename(columns=lambda column: tr(str(column)))
 
