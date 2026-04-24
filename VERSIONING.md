@@ -137,6 +137,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Confirmed compose-backed regression pack remained green: review API `10 passed`, matrix model ops `10 passed`, outputs API `13 passed`, document outcomes API `5 passed`, aux routes `2 passed`, KB integration `2 passed`.
 - Preserved structural/quality smoke evidence boundary from the last full pack while refreshing late-stage operator/API confidence for the current tranche.
 
+### Release Evidence Sync (2026-04-24, full rerun refresh)
+
+**Files:** `docs/RELEASE_SUMMARY_2026-04-24.md`, `VERSIONING.md`, `.artifacts/release_checks/20260424_084308`
+
+**Changelog:**
+- Refreshed current composite release summary to validated head `0fbb1bf` after multilingual Streamlit UI hardening tranche.
+- Captured current full release-ready rerun with structural smoke run `77`, quality smoke run `78`, generated outputs `36` and `37`, and green review/matrix/outputs/document outcomes/aux/KB regression pack.
+- Reconfirmed release-ready compose-backed runtime after RU/EN display-layer switch, persisted preference and widget-state repair without reopening prior operator/API blockers.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
