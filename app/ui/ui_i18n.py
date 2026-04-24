@@ -204,7 +204,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Refresh Scope Type": {"ru": "Тип области обновления", "en": "Refresh Scope Type"},
     "Refresh Scope ID": {"ru": "ID области обновления", "en": "Refresh Scope ID"},
     "Refresh Model": {"ru": "Обновить модель", "en": "Refresh Model"},
-    "Refreshed: {pair_scores} pair scores, {matrix_cells} matrix cells": {"ru": "Обновлено: {pair_scores} pair scores, {matrix_cells} matrix cells", "en": "Refreshed: {pair_scores} pair scores, {matrix_cells} matrix cells"},
+    "Refreshed: {pair_scores} pair scores, {matrix_cells} matrix cells": {"ru": "Обновлено: оценок пар {pair_scores}, ячеек матрицы {matrix_cells}", "en": "Refreshed: {pair_scores} pair scores, {matrix_cells} matrix cells"},
     "Activation Author": {"ru": "Автор активации", "en": "Activation Author"},
     "Force Activate": {"ru": "Принудительная активация", "en": "Force Activate"},
     "Activate Model": {"ru": "Активировать модель", "en": "Activate Model"},
