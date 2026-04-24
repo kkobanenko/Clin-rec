@@ -1437,7 +1437,7 @@ def page_kb():
 # --- Page: Tasks ---
 
 def page_tasks():
-    st.header("Tasks")
+    st.header(tr("Tasks"))
 
     recent_tasks = st.session_state.get("recent_tasks") or []
     task_origin_options = [""] + sorted(
@@ -1463,11 +1463,11 @@ def page_tasks():
         ),
         task_sort_order,
     )
-    st.subheader("Recent UI Tasks")
+    st.subheader(tr("Recent UI Tasks"))
     if filtered_recent_tasks:
         st.dataframe(pd.DataFrame(filtered_recent_tasks), width="stretch", hide_index=True)
         selected_task_id = st.selectbox(
-            "Tracked Task",
+            tr("Tracked Task"),
             [item["task_id"] for item in filtered_recent_tasks],
             format_func=lambda task_value: next(
                 (
@@ -1479,12 +1479,12 @@ def page_tasks():
             ),
             key="tracked_task_id",
         )
-        if st.button("Load Selected Task"):
+        if st.button(tr("Load Selected Task")):
             status = api_get(f"/tasks/{selected_task_id}", {"include_result": True})
             if status:
                 st.json(status)
     else:
-        st.info("No tracked tasks in this session")
+        st.info(tr("No tracked tasks in this session"))
 
     selected_task_id = st.selectbox(
         tr("Current Task"),
@@ -1501,12 +1501,12 @@ def page_tasks():
         ),
         key="current_task_id",
     )
-    task_id = st.text_input("Task ID")
-    include_result = st.checkbox("Include Result", value=True)
-    if st.button("Load Task Status"):
+    task_id = st.text_input(tr("Task ID"))
+    include_result = st.checkbox(tr("Include Result"), value=True)
+    if st.button(tr("Load Task Status")):
         resolved_task_id = resolve_task_id(task_id, selected_task_id or None)
         if not resolved_task_id:
-            st.warning("Enter a task ID")
+            st.warning(tr("Enter a task ID"))
         else:
             status = api_get(f"/tasks/{resolved_task_id}", {"include_result": include_result})
             if status:
