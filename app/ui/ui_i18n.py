@@ -172,7 +172,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "No evidence awaiting review": {"ru": "Нет элементов доказательств, ожидающих ревью", "en": "No evidence awaiting review"},
     "Recent Review Actions": {"ru": "Последние действия ревью", "en": "Recent Review Actions"},
     "History Target From Queue": {"ru": "Цель истории из текущей очереди", "en": "History Target From Queue"},
-    "Manual History Target": {"ru": "Ввести target истории вручную", "en": "Manual History Target"},
+    "Manual History Target": {"ru": "Ввести цель истории вручную", "en": "Manual History Target"},
     "History Target Type": {"ru": "Тип target в истории", "en": "History Target Type"},
     "History Target ID": {"ru": "ID target в истории", "en": "History Target ID"},
     "0 means no target filter": {"ru": "0 означает отсутствие target-фильтра", "en": "0 means no target filter"},
