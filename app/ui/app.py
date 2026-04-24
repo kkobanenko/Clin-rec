@@ -493,11 +493,11 @@ def page_dashboard():
 # --- Page: Documents ---
 
 def page_documents():
-    st.header("Document Registry")
+    st.header(tr("Document Registry"))
 
     col1, col2 = st.columns(2)
-    search = col1.text_input("Search", "")
-    specialty = col2.text_input("Specialty filter", "")
+    search = col1.text_input(tr("Search"), "")
+    specialty = col2.text_input(tr("Specialty filter"), "")
 
     params = {"page": 1, "page_size": 50}
     if search:
@@ -540,7 +540,7 @@ def page_documents():
     st.dataframe(df[display_cols], width="stretch")
 
     # Document detail
-    st.subheader("Document Detail")
+    st.subheader(tr("Document Detail"))
     current_document_options = {
         item["id"]: f"#{item['id']} | {item.get('title')}"
         for item in filtered_items
@@ -551,8 +551,8 @@ def page_documents():
         [None, *list(current_document_options)],
         format_func=lambda value: tr("Manual Document ID") if value is None else current_document_options[value],
     )
-    doc_id = st.number_input("Document ID", min_value=1, step=1)
-    if st.button("Load Document"):
+    doc_id = st.number_input(tr("Document ID"), min_value=1, step=1)
+    if st.button(tr("Load Document")):
         resolved_doc_id = resolve_document_id(doc_id, selected_document_id)
         detail = api_get(f"/documents/{resolved_doc_id}")
         if detail:
