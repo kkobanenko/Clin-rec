@@ -1353,7 +1353,7 @@ def page_kb():
                         "external_ref_count": len(item.get("external_refs_json") or {}),
                     }
                 )
-            st.dataframe(pd.DataFrame(entity_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(entity_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No KB entities available"))
 
