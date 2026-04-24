@@ -104,7 +104,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "All systems operational": {"ru": "Все системы работают штатно", "en": "All systems operational"},
     "Status: {status}": {"ru": "Статус: {status}", "en": "Status: {status}"},
     "DB: {error}": {"ru": "БД: {error}", "en": "DB: {error}"},
-    "Release Gate Snapshot": {"ru": "Срез release-gate", "en": "Release Gate Snapshot"},
+    "Release Gate Snapshot": {"ru": "Сводка контрольных проверок релиза", "en": "Release Gate Snapshot"},
     "Latest Pipeline Runs": {"ru": "Последние прогоны пайплайна", "en": "Latest Pipeline Runs"},
     "No pipeline runs available": {"ru": "Прогоны пайплайна не найдены", "en": "No pipeline runs available"},
     "Latest Outputs": {"ru": "Последние выходы", "en": "Latest Outputs"},
