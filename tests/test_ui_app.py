@@ -4,6 +4,7 @@ from app.ui.app import (
     build_matrix_query_params,
     filter_document_artifacts,
     filter_document_items,
+    filter_document_sections,
     filter_recent_tasks,
     resolve_artifact_id,
     resolve_document_id,
@@ -224,3 +225,20 @@ def test_filter_document_artifacts_keeps_only_matching_type() -> None:
     artifacts = [{"id": 1, "artifact_type": "pdf"}, {"id": 2, "artifact_type": "html"}]
 
     assert filter_document_artifacts(artifacts, "pdf") == [{"id": 1, "artifact_type": "pdf"}]
+
+
+def test_filter_document_sections_returns_all_when_query_empty() -> None:
+    sections = [{"section_title": "Intro", "fragments": [{"fragment_text": "Alpha"}]}]
+
+    assert filter_document_sections(sections, "") == sections
+
+
+def test_filter_document_sections_matches_title_or_fragment_text() -> None:
+    sections = [
+        {"section_title": "Intro", "fragments": [{"fragment_text": "Alpha"}]},
+        {"section_title": "Treatment", "fragments": [{"fragment_text": "Beta insulin"}]},
+    ]
+
+    assert filter_document_sections(sections, "insulin") == [
+        {"section_title": "Treatment", "fragments": [{"fragment_text": "Beta insulin"}]}
+    ]

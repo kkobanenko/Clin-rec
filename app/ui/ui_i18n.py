@@ -98,6 +98,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Download": {"ru": "Скачать", "en": "Download"},
     "Preview": {"ru": "Предпросмотр", "en": "Preview"},
     "No valid raw artifacts available for current version": {"ru": "Нет валидных сырых артефактов для текущей версии", "en": "No valid raw artifacts available for current version"},
+    "Section Search": {"ru": "Поиск по разделам", "en": "Section Search"},
     "Section": {"ru": "Раздел", "en": "Section"},
     "Pipeline Management": {"ru": "Управление пайплайном", "en": "Pipeline Management"},
     "Run Full Sync": {"ru": "Запустить полный sync", "en": "Run Full Sync"},

@@ -198,6 +198,27 @@ def filter_document_artifacts(artifacts: list[dict[str, Any]], artifact_type_fil
     return [artifact for artifact in artifacts if str(artifact.get("artifact_type", "")) == artifact_type_filter]
 
 
+def filter_document_sections(sections: list[dict[str, Any]], section_search: str) -> list[dict[str, Any]]:
+    stripped_query = section_search.strip().lower()
+    if not stripped_query:
+        return sections
+    filtered_sections: list[dict[str, Any]] = []
+    for section in sections:
+        title = str(section.get("section_title", "")).lower()
+        fragments = section.get("fragments", [])
+        if stripped_query in title:
+            filtered_sections.append(section)
+            continue
+        matched_fragments = [
+            fragment
+            for fragment in fragments
+            if stripped_query in str(fragment.get("fragment_text", "")).lower()
+        ]
+        if matched_fragments:
+            filtered_sections.append({**section, "fragments": matched_fragments})
+    return filtered_sections
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -557,7 +578,11 @@ def page_documents():
 
         content = api_get(f"/documents/{resolved_doc_id}/content")
         if content:
-            sections = content.get("sections", [])
+            section_search = st.text_input(
+                tr("Section Search"),
+                key=f"document_section_search_{resolved_doc_id}",
+            )
+            sections = filter_document_sections(content.get("sections", []), section_search)
             for sec in sections:
                 with st.expander(sec.get("section_title", "Section")):
                     fragments = sec.get("fragments", [])
