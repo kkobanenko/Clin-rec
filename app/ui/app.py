@@ -938,7 +938,7 @@ def page_scoring_models():
                         "low_confidence_ratio": readiness.get("low_confidence_ratio"),
                     }
                 )
-            st.dataframe(pd.DataFrame(overview_rows), width="stretch")
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(overview_rows)), width="stretch")
         else:
             st.dataframe(pd.DataFrame(models), width="stretch")
 
