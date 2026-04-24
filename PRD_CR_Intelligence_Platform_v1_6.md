@@ -29,6 +29,7 @@ CR Intelligence Platform должна обеспечивать не только
 - Runtime pipeline и queue routing работают в согласованном приложении и worker-контуре.
 - Основные operator surfaces уже реализованы: pipeline, matrix, outputs, KB, tasks, review/scoring endpoints.
 - Admin UI покрывает ключевые operator сценарии.
+- Admin UI должен оставаться обратносовместимым и поддерживать мультиязычность display-layer как operator requirement первой очереди.
 - Для документов доступен user-facing path к valid raw artifacts текущей версии: download primary, preview secondary.
 - Structural и quality smoke уже существуют и отделены друг от друга.
 - После extract уже доступны candidate generation, scoring и matrix build path.
@@ -113,6 +114,8 @@ CR Intelligence Platform должна обеспечивать не только
 6. Operator должен иметь возможность скачать valid raw artifacts текущей версии документа через additive UI/API path, не полагаясь на misleading external rubricator URLs.
 
 7. Каждое решение stop/go должно быть объяснимо через API, smoke summary и documented criteria.
+
+8. Admin UI должен поддерживать мультиязычность display-layer как минимум для `RU` и `EN`, с мгновенным переключением языка в интерфейсе и без изменения internal keys, API payloads и существующей логики operator workflows.
 
 # 9. Release contract версии
 

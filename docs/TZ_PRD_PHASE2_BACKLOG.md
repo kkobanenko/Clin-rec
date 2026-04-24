@@ -59,7 +59,7 @@
 
 ## UI (TZ §21)
 
-- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, compact reviewer queue/history surfaces, scoring diff summary tables, KB master-index preview, KB artifact type/status/review/generator/body-search, KB claims list/type/review/conflicted filters with conflict flags, KB conflict summaries with artifact/review scoping and artifact ids, KB entity type/status/canonical+alias+refs search/detail и compact KB artifact/entity/output tables with richer KB artifact/entity/output detail, но не full productized health dashboard.
+- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, compact reviewer queue/history surfaces, scoring diff summary tables, KB master-index preview, KB artifact type/status/review/generator/body-search, KB claims list/type/review/conflicted filters with conflict flags, KB conflict summaries with artifact/review scoping and artifact ids, KB entity type/status/canonical+alias+refs search/detail, compact KB artifact/entity/output tables with richer KB artifact/entity/output detail, а также backward-compatible RU/EN language switch с persisted preference для admin/operator UI. Полная productized health dashboard и перевод framework-provided Streamlit chrome остаются вне текущего tranche.
 
 ## Версионирование документов
 
@@ -67,4 +67,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-23 — после закрытия ORM FTS gap, dashboard release snapshot, scoring explanation ids, output artifact linkage, document_version stage versions, discovery metrics/max-record guard, compiler auto-claims/frontmatter, compact reviewer/scoring/KB/output operator tables, KB/output detail UI, KB/output review-state filters, released/generator-version/scope/file filters, KB conflict summaries, entity alias/ref search и синхронизации versioning/release evidence.*
+*Последнее обновление: 2026-04-24 — после multilingual Streamlit UI tranche с backward-compatible RU/EN switch, persisted language preference, i18n helper shim и live-smoke на compose runtime; предыдущие operator-surface closure items сохранены.*

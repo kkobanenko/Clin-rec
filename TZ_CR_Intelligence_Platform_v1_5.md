@@ -25,6 +25,7 @@ CR Intelligence Platform — техническая фиксация tranche р�
 - Downstream после extract включает candidate generation, scoring и matrix build.
 - Есть operator/admin surfaces для review, scoring models, outputs, KB и tasks.
 - Есть additive documents path для valid raw artifacts текущей версии: API download/preview и UI buttons без изменения старых payloads.
+- Первая версия multilingual support должна покрывать Streamlit admin/operator UI (`RU`/`EN`) без изменения API contracts и internal keys.
 
 ## 2.2 Подтвержденные ограничения
 
@@ -55,6 +56,7 @@ CR Intelligence Platform — техническая фиксация tranche р�
 | Downstream verification | Проверка extract -> candidate -> scoring -> matrix на фактических данных |
 | KB/output workflow closure | Проверка compile/lint/output/task visibility как части release contour |
 | Raw document access | Additive API/UI path для скачивания valid current-version artifacts с фильтрацией SPA-shell/fake-PDF |
+| UI multilinguality | Backward-compatible language switch в Streamlit UI с мгновенным rerender и сохранением выбора языка |
 | Release procedure | Rehearsal, summary, risk capture, go/no-go checklist |
 
 ## 4.2 Out of scope
@@ -191,7 +193,9 @@ CR Intelligence Platform — техническая фиксация tranche р�
 | `app/api/kb.py` | KB operator workflows |
 | `app/api/outputs.py` | Output generation/file-back workflows |
 | `app/api/tasks.py` | Task visibility для background workflows |
-| `app/ui/app.py` | Admin/operator UI path для release-critical actions и raw artifact download/preview |
+| `app/ui/app.py` | Admin/operator UI path для release-critical actions, raw artifact download/preview и language switch |
+| `app/ui/ui_i18n.py` | Primary lightweight i18n layer, persistence и display translation helpers |
+| `app/ui_i18n.py` | Backward-compatible shim for existing imports |
 | `tests/test_pipeline_review_api.py` | Review API regression |
 | `tests/test_matrix_model_ops_api.py` | Scoring model/operator regression |
 | `tests/test_outputs_api.py` | Outputs regression |

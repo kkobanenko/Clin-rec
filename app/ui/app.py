@@ -4,6 +4,25 @@ import httpx
 import pandas as pd
 import streamlit as st
 
+try:
+    from app.ui.ui_i18n import (
+        LANGUAGE_OPTIONS,
+        init_language_state,
+        install_streamlit_i18n,
+        language_label,
+        persist_language,
+        tr,
+    )
+except ModuleNotFoundError:
+    from ui_i18n import (  # type: ignore[no-redef]
+        LANGUAGE_OPTIONS,
+        init_language_state,
+        install_streamlit_i18n,
+        language_label,
+        persist_language,
+        tr,
+    )
+
 API_BASE = "http://app:8000"
 
 
@@ -20,18 +39,18 @@ def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
 
 
 def render_kb_artifact_detail(detail: dict) -> None:
-    st.markdown(f"**{detail.get('title', 'KB Artifact')}**")
+    st.markdown(f"**{detail.get('title', tr('KB Artifact'))}**")
     source_links = detail.get("source_links") or []
     meta1, meta2, meta3, meta4, meta5, meta6 = st.columns(6)
-    meta1.metric("Artifact ID", detail.get("id"))
-    meta2.metric("Type", detail.get("artifact_type") or "n/a")
-    meta3.metric("Status", detail.get("status") or "n/a")
-    meta4.metric("Review", detail.get("review_status") or "n/a")
-    meta5.metric("Claims", len(detail.get("claims") or []))
-    meta6.metric("Sources", len(source_links))
+    meta1.metric(tr("Artifact ID"), detail.get("id"))
+    meta2.metric(tr("Type"), tr(detail.get("artifact_type") or "n/a"))
+    meta3.metric(tr("Status"), tr(detail.get("status") or "n/a"))
+    meta4.metric(tr("Review"), tr(detail.get("review_status") or "n/a"))
+    meta5.metric(tr("Claims"), len(detail.get("claims") or []))
+    meta6.metric(tr("Sources"), len(source_links))
 
     if detail.get("generator_version"):
-        st.caption(f"generator={detail.get('generator_version')}")
+        st.caption(tr("generator={value}", value=detail.get("generator_version")))
 
     if detail.get("summary"):
         st.caption(detail.get("summary"))
@@ -73,18 +92,21 @@ def render_kb_artifact_detail(detail: dict) -> None:
 
 
 def render_output_detail(detail: dict) -> None:
-    st.markdown(f"**{detail.get('title', 'Output')}**")
+    st.markdown(f"**{detail.get('title', tr('Output'))}**")
     meta1, meta2, meta3, meta4, meta5 = st.columns(5)
-    meta1.metric("Output ID", detail.get("id"))
-    meta2.metric("Type", detail.get("output_type") or "n/a")
-    meta3.metric("File-Back", detail.get("file_back_status") or "n/a")
-    meta4.metric("Review", detail.get("review_status") or "n/a")
-    meta5.metric("Artifact", detail.get("artifact_id") or "none")
+    meta1.metric(tr("Output ID"), detail.get("id"))
+    meta2.metric(tr("Type"), tr(detail.get("output_type") or "n/a"))
+    meta3.metric(tr("File-Back"), tr(detail.get("file_back_status") or "n/a"))
+    meta4.metric(tr("Review"), tr(detail.get("review_status") or "n/a"))
+    meta5.metric(tr("Artifact"), tr(str(detail.get("artifact_id"))) if detail.get("artifact_id") else tr("none"))
 
     if detail.get("released_at") or detail.get("generator_version"):
         st.caption(
-            f"released_at={detail.get('released_at') or 'n/a'} | "
-            f"generator={detail.get('generator_version') or 'n/a'}"
+            tr(
+                "released_at={released_at} | generator={generator}",
+                released_at=detail.get("released_at") or tr("n/a"),
+                generator=detail.get("generator_version") or tr("n/a"),
+            )
         )
 
     if detail.get("scope_json"):
@@ -99,12 +121,12 @@ def render_output_detail(detail: dict) -> None:
 
 
 def render_entity_detail(detail: dict) -> None:
-    st.caption(f"Entity #{detail.get('id')}")
+    st.caption(tr("Entity #{id}", id=detail.get("id")))
     meta1, meta2, meta3 = st.columns(3)
-    meta1.metric("Type", detail.get("entity_type") or "n/a")
-    meta2.metric("Status", detail.get("status") or "n/a")
-    meta3.metric("Aliases", len(detail.get("aliases_json") or {}))
-    st.subheader(detail.get("canonical_name") or "Untitled entity")
+    meta1.metric(tr("Type"), tr(detail.get("entity_type") or "n/a"))
+    meta2.metric(tr("Status"), tr(detail.get("status") or "n/a"))
+    meta3.metric(tr("Aliases"), len(detail.get("aliases_json") or {}))
+    st.subheader(detail.get("canonical_name") or tr("Untitled entity"))
 
     aliases = detail.get("aliases_json") or {}
     if aliases:
@@ -133,7 +155,7 @@ def api_get(
         resp.raise_for_status()
         return resp.json()
     except httpx.HTTPError as e:
-        st.error(f"API error: {e}")
+        st.error(tr("API error: {error}", error=e))
         return None
 
 
@@ -144,7 +166,7 @@ def api_post(path: str, json: dict | None = None) -> dict | None:
         resp.raise_for_status()
         return resp.json()
     except httpx.HTTPError as e:
-        st.error(f"API error: {e}")
+        st.error(tr("API error: {error}", error=e))
         return None
 
 
@@ -158,27 +180,27 @@ def page_dashboard():
     # Documents stats
     docs = api_get("/documents", {"page_size": 1})
     if docs:
-        col1.metric("Documents", docs.get("total", 0))
+        col1.metric(tr("Documents"), docs.get("total", 0))
 
     # Matrix stats
     matrix = api_get("/matrix", {"page_size": 1})
     if matrix:
-        col2.metric("Matrix Cells", matrix.get("total", 0))
+        col2.metric(tr("Matrix Cells"), matrix.get("total", 0))
 
     # Pipeline runs
     runs = api_get("/runs", {"page_size": 1})
     if runs:
-        col3.metric("Pipeline Runs", runs.get("total", 0))
+        col3.metric(tr("Pipeline Runs"), runs.get("total", 0))
 
     # Output releases
     outputs = api_get("/outputs", {"page_size": 1})
     if outputs:
-        col4.metric("Outputs", outputs.get("total", 0))
+        col4.metric(tr("Outputs"), outputs.get("total", 0))
 
     # Knowledge artifacts
     kb_artifacts = api_get("/kb/artifacts", {"page_size": 1})
     if kb_artifacts:
-        col5.metric("KB Artifacts", kb_artifacts.get("total", 0))
+        col5.metric(tr("KB Artifacts"), kb_artifacts.get("total", 0))
 
     # Health check
     st.subheader("System Health")
@@ -188,9 +210,9 @@ def page_dashboard():
         if status == "ok":
             st.success("All systems operational")
         else:
-            st.warning(f"Status: {status}")
+            st.warning(tr("Status: {status}", status=status))
             if health.get("db_error"):
-                st.error(f"DB: {health['db_error']}")
+                st.error(tr("DB: {error}", error=health["db_error"]))
 
     st.subheader("Release Gate Snapshot")
 
@@ -239,15 +261,22 @@ def page_dashboard():
         st.markdown("**Release-Critical Operator Surfaces**")
         if isinstance(active_model, dict):
             st.success(
-                f"Active scoring model: #{active_model.get('id')} {active_model.get('version_label')}"
+                tr(
+                    "Active scoring model: #{id} {label}",
+                    id=active_model.get("id"),
+                    label=active_model.get("version_label"),
+                )
             )
         else:
             st.warning("No active scoring model")
 
         if isinstance(kb_master, dict):
             st.success(
-                "KB master index available: "
-                f"artifact #{kb_master.get('artifact_id')} ({kb_master.get('format')})"
+                tr(
+                    "KB master index available: artifact #{id} ({fmt})",
+                    id=kb_master.get("artifact_id"),
+                    fmt=kb_master.get("format"),
+                )
             )
         else:
             st.warning("KB master index unavailable")
@@ -332,12 +361,12 @@ def page_pipeline():
     if col1.button("Run Full Sync", type="primary"):
         result = api_post("/sync/full")
         if result:
-            st.success(f"Pipeline run started: ID {result.get('run_id')}")
+            st.success(tr("Pipeline run started: ID {run_id}", run_id=result.get("run_id")))
 
     if col2.button("Run Incremental Sync"):
         result = api_post("/sync/incremental")
         if result:
-            st.success(f"Pipeline run started: ID {result.get('run_id')}")
+            st.success(tr("Pipeline run started: ID {run_id}", run_id=result.get("run_id")))
 
     # Recent runs
     st.subheader("Recent Pipeline Runs")
@@ -380,7 +409,7 @@ def page_matrix():
     st.subheader("Export Matrix")
     fmt = st.selectbox("Format", ["csv", "jsonl"])
     if st.button("Download"):
-        st.info(f"Use API endpoint: GET /matrix/export?format={fmt}")
+        st.info(tr("Use API endpoint: GET /matrix/export?format={fmt}", fmt=fmt))
 
     # Cell detail
     st.subheader("Cell Detail")
@@ -402,9 +431,9 @@ def page_reviews():
     if isinstance(stats, dict):
         counts = stats.get("counts", {})
         col1, col2, col3 = st.columns(3)
-        col1.metric("Auto", counts.get("auto", 0))
-        col2.metric("Approved", counts.get("approved", 0))
-        col3.metric("Rejected", counts.get("rejected", 0))
+        col1.metric(tr("Auto"), counts.get("auto", 0))
+        col2.metric(tr("Approved"), counts.get("approved", 0))
+        col3.metric(tr("Rejected"), counts.get("rejected", 0))
 
     st.subheader("Queue")
     queue_document_version_id = st.number_input(
@@ -492,7 +521,9 @@ def page_reviews():
                     {"evidence_ids": evidence_ids, "author": bulk_author},
                 )
                 if result:
-                    st.success(f"Approved {result.get('approved_count', 0)} evidence items")
+                    st.success(
+                        tr("Approved {count} evidence items", count=result.get("approved_count", 0))
+                    )
 
     # Submit review
     st.subheader("Submit Review")
@@ -551,7 +582,11 @@ def page_scoring_models():
         active_model = api_get("/matrix/models/active", allow_statuses={404})
         if isinstance(active_model, dict):
             st.success(
-                f"Active model: #{active_model.get('id')} {active_model.get('version_label')}"
+                tr(
+                    "Active scoring model: #{id} {label}",
+                    id=active_model.get("id"),
+                    label=active_model.get("version_label"),
+                )
             )
 
         model_options = {
@@ -564,9 +599,9 @@ def page_scoring_models():
         if isinstance(summary, dict):
             readiness = summary.get("readiness", {})
             col1, col2, col3 = st.columns(3)
-            col1.metric("Ready", "yes" if readiness.get("ready") else "no")
-            col2.metric("Cells", readiness.get("cell_count", 0))
-            col3.metric("Pair Scores", readiness.get("pcs_count", 0))
+            col1.metric(tr("Ready"), tr("yes") if readiness.get("ready") else tr("no"))
+            col2.metric(tr("Cells"), readiness.get("cell_count", 0))
+            col3.metric(tr("Pair Scores"), readiness.get("pcs_count", 0))
 
         st.subheader("Model Actions")
         with st.form("model_refresh_form"):
@@ -580,8 +615,11 @@ def page_scoring_models():
                 result = api_post(f"/matrix/models/{selected_model_id}/refresh", payload)
                 if result:
                     st.success(
-                        f"Refreshed: {result.get('pair_context_scores', 0)} pair scores, "
-                        f"{result.get('matrix_cells', 0)} matrix cells"
+                        tr(
+                            "Refreshed: {pair_scores} pair scores, {matrix_cells} matrix cells",
+                            pair_scores=result.get("pair_context_scores", 0),
+                            matrix_cells=result.get("matrix_cells", 0),
+                        )
                     )
 
         with st.form("model_activate_form"):
@@ -593,7 +631,7 @@ def page_scoring_models():
                     {"author": activate_author, "force": activate_force},
                 )
                 if result:
-                    st.success(f"Activated model {result.get('version_label')}")
+                    st.success(tr("Activated model {label}", label=result.get("version_label")))
 
         st.subheader("Model Diff")
         diff_options = {
@@ -611,15 +649,15 @@ def page_scoring_models():
             )
             if isinstance(diff, dict):
                 diff_col1, diff_col2, diff_col3 = st.columns(3)
-                diff_col1.metric("Added", diff.get("added", 0))
-                diff_col2.metric("Removed", diff.get("removed", 0))
-                diff_col3.metric("Changed", diff.get("changed", 0))
+                diff_col1.metric(tr("Added"), diff.get("added", 0))
+                diff_col2.metric(tr("Removed"), diff.get("removed", 0))
+                diff_col3.metric(tr("Changed"), diff.get("changed", 0))
 
                 details = diff.get("details", {})
                 for section in ("added", "changed", "removed"):
                     rows = details.get(section) or []
                     if rows:
-                        st.markdown(f"**{section.title()}**")
+                        st.markdown(f"**{tr(section.title())}**")
                         st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     else:
         st.info("No scoring models defined")
@@ -643,7 +681,7 @@ def page_scoring_models():
 
             result = api_post("/matrix/models", {"version_label": label, "weights_json": weights})
             if result:
-                st.success(f"Model created: ID {result.get('id')}")
+                st.success(tr("Model created: ID {id}", id=result.get("id")))
 
 
 # --- Page: Outputs ---
@@ -721,7 +759,7 @@ def page_outputs():
             render_output_detail(detail)
             artifact_id = detail.get("artifact_id")
             if artifact_id:
-                st.success(f"Linked KB artifact: #{artifact_id}")
+                st.success(tr("Linked KB artifact: #{id}", id=artifact_id))
                 if st.button("Load Linked Artifact", key=f"load_output_artifact_{artifact_id}"):
                     artifact = api_get(f"/kb/artifacts/{artifact_id}")
                     if artifact:
@@ -737,7 +775,7 @@ def page_outputs():
                 {"output_type": output_type, "title": title or None, "scope_json": None},
             )
             if result:
-                st.success(f"Generation queued: {result.get('task_id')}")
+                st.success(tr("Generation queued: {task_id}", task_id=result.get("task_id")))
 
     st.subheader("File Back Output")
     with st.form("output_file_back_form"):
@@ -749,7 +787,7 @@ def page_outputs():
                 {"file_back_status": file_back_status},
             )
             if result:
-                st.success(f"File-back queued: {result.get('task_id')}")
+                st.success(tr("File-back queued: {task_id}", task_id=result.get("task_id")))
 
 
 # --- Page: Knowledge Base ---
@@ -761,19 +799,23 @@ def page_kb():
     if col1.button("Compile KB"):
         result = api_post("/kb/compile")
         if result:
-            st.success(f"KB compile queued: {result.get('task_id')}")
+            st.success(tr("KB compile queued: {task_id}", task_id=result.get("task_id")))
 
     if col2.button("Lint KB"):
         result = api_post("/kb/lint")
         if result:
-            st.success(f"KB lint queued: {result.get('task_id')}")
+            st.success(tr("KB lint queued: {task_id}", task_id=result.get("task_id")))
 
     st.subheader("Master Index")
     master_index = api_get("/kb/indexes/master", allow_statuses={404})
     if isinstance(master_index, dict):
         if master_index.get("artifact_id"):
             st.success(
-                f"artifact #{master_index.get('artifact_id')} {master_index.get('canonical_slug')}"
+                tr(
+                    "artifact #{id} {slug}",
+                    id=master_index.get("artifact_id"),
+                    slug=master_index.get("canonical_slug"),
+                )
             )
             if master_index.get("manifest_json"):
                 with st.expander("Master Manifest", expanded=False):
@@ -1020,24 +1062,49 @@ def page_tasks():
 
 # --- Main ---
 
+def _on_language_change() -> None:
+    persist_language(st.session_state["ui_language_selector"])
+
 def main():
-    st.set_page_config(page_title="CR Intelligence Platform", layout="wide")
-    st.title("CR Intelligence Platform")
+    current_language = init_language_state()
+    install_streamlit_i18n()
+
+    st.set_page_config(page_title=tr("CR Intelligence Platform"), layout="wide")
+
+    with st.sidebar:
+        selected_language = st.selectbox(
+            tr("Language"),
+            options=list(LANGUAGE_OPTIONS),
+            index=list(LANGUAGE_OPTIONS).index(current_language),
+            format_func=language_label,
+            key="ui_language_selector",
+            on_change=_on_language_change,
+        )
+
+    if selected_language != current_language:
+        persist_language(selected_language)
+
+    st.title(tr("CR Intelligence Platform"))
 
     pages = {
-        "Dashboard": page_dashboard,
-        "Documents": page_documents,
-        "Pipeline": page_pipeline,
-        "Matrix": page_matrix,
-        "Reviews": page_reviews,
-        "Scoring Models": page_scoring_models,
-        "Knowledge Base": page_kb,
-        "Tasks": page_tasks,
-        "Outputs": page_outputs,
+        "dashboard": ("Dashboard", page_dashboard),
+        "documents": ("Documents", page_documents),
+        "pipeline": ("Pipeline", page_pipeline),
+        "matrix": ("Matrix", page_matrix),
+        "reviews": ("Reviews", page_reviews),
+        "scoring_models": ("Scoring Models", page_scoring_models),
+        "knowledge_base": ("Knowledge Base", page_kb),
+        "tasks": ("Tasks", page_tasks),
+        "outputs": ("Outputs", page_outputs),
     }
 
-    page = st.sidebar.radio("Navigation", list(pages.keys()))
-    pages[page]()
+    page = st.sidebar.radio(
+        tr("Navigation"),
+        list(pages.keys()),
+        format_func=lambda page_key: tr(pages[page_key][0]),
+        key="navigation_page",
+    )
+    pages[page][1]()
 
 
 if __name__ == "__main__":

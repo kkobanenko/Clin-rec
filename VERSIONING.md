@@ -119,6 +119,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Captured latest late-stage rerun on head `574e19c` after compact review history/queue UI and scoring diff summary follow-up.
 - Confirmed review API, matrix model ops, outputs API, document outcomes API, aux routes and KB Postgres integration remained green on same compose-backed runtime profile.
 
+### UI Multilinguality Tranche (2026-04-24)
+
+**Files:** `app/ui/app.py`, `app/ui/ui_i18n.py`, `app/ui_i18n.py`, `tests/test_ui_i18n.py`, `TZ_CR_Intelligence_Platform_v1_5.md`, `PRD_CR_Intelligence_Platform_v1_6.md`, `docs/TZ_PRD_PHASE2_BACKLOG.md`
+
+**Changelog:**
+- Added backward-compatible Streamlit display-layer i18n for `RU`/`EN` with persisted language preference in `var/ui_preferences.json`.
+- Moved the primary i18n implementation under `app/ui/ui_i18n.py` so the Streamlit script can import it safely, and left `app/ui_i18n.py` as a compatibility shim for package-style imports.
+- Added focused regression coverage for translation helpers and preference round-trip, plus live compose-backed smoke verification for RU->EN->RU switching.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
