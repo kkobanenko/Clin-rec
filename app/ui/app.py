@@ -732,7 +732,7 @@ def page_matrix():
 # --- Page: Reviews ---
 
 def page_reviews():
-    st.header("Reviewer Queue")
+    st.header(tr("Reviewer Queue"))
 
     stats = api_get("/review/stats")
     if isinstance(stats, dict):
@@ -742,12 +742,12 @@ def page_reviews():
         col2.metric(tr("Approved"), counts.get("approved", 0))
         col3.metric(tr("Rejected"), counts.get("rejected", 0))
 
-    st.subheader("Queue")
+    st.subheader(tr("Queue"))
     queue_document_version_id = st.number_input(
-        "Queue Document Version ID",
+        tr("Queue Document Version ID"),
         min_value=0,
         step=1,
-        help="0 means no document filter",
+        help=tr("0 means no document filter"),
     )
     queue_params = {"status": "auto", "page_size": 50}
     if queue_document_version_id > 0:
@@ -776,10 +776,10 @@ def page_reviews():
         items = []
 
     # Review history
-    st.subheader("Recent Review Actions")
+    st.subheader(tr("Recent Review Actions"))
     history_col1, history_col2 = st.columns(2)
     history_target_type = history_col1.selectbox(
-        "History Target Type",
+        tr("History Target Type"),
         ["", "pair_evidence"],
         index=0,
     )
@@ -794,10 +794,10 @@ def page_reviews():
         format_func=lambda value: tr("Manual History Target") if value is None else queued_history_options[value],
     )
     history_target_id = history_col2.number_input(
-        "History Target ID",
+        tr("History Target ID"),
         min_value=0,
         step=1,
-        help="0 means no target filter",
+        help=tr("0 means no target filter"),
     )
     history_params = {"page_size": 50}
     if history_target_type:
@@ -826,9 +826,9 @@ def page_reviews():
         else:
             st.info("No review actions yet")
 
-    st.subheader("Bulk Approve")
+    st.subheader(tr("Bulk Approve"))
     with st.form("bulk_review_form"):
-        bulk_ids = st.text_input("Evidence IDs (comma-separated)")
+        bulk_ids = st.text_input(tr("Evidence IDs (comma-separated)"))
         queued_evidence_options = {
             item["id"]: f"#{item['id']} | {item.get('relation_type')} | {item.get('final_fragment_score')}"
             for item in items
@@ -840,9 +840,9 @@ def page_reviews():
             format_func=lambda evidence_id: queued_evidence_options[evidence_id],
             help=tr("Optional quick-pick from current review queue"),
         )
-        bulk_author = st.text_input("Bulk Approve Author")
-        st.caption("Use the filtered queue above to identify evidence IDs for bulk approval.")
-        if st.form_submit_button("Bulk Approve"):
+        bulk_author = st.text_input(tr("Bulk Approve Author"))
+        st.caption(tr("Use the filtered queue above to identify evidence IDs for bulk approval."))
+        if st.form_submit_button(tr("Bulk Approve")):
             evidence_ids = build_bulk_approve_evidence_ids(bulk_ids, selected_evidence_ids)
             if not evidence_ids:
                 st.warning("Enter at least one evidence ID")
