@@ -1033,21 +1033,21 @@ def page_outputs():
     out_col1, out_col2, out_col3, out_col4, out_col5 = st.columns(5)
     output_type_filter = out_col1.selectbox(tr("Output Type Filter"), ["", "memo"], index=0)
     file_back_filter = out_col2.selectbox(
-        "File-Back Filter",
+        tr("File-Back Filter"),
         ["", "accepted", "rejected", "needs_review"],
         index=0,
     )
     review_status_filter = out_col3.selectbox(
-        "Review Status Filter",
+        tr("Review Status Filter"),
         ["", "draft", "auto", "needs_review", "approved", "rejected"],
         index=0,
     )
     generator_version_filter = out_col4.text_input(tr("Generator Version Filter"))
     output_artifact_id = out_col5.number_input(
-        "Artifact ID Filter",
+        tr("Artifact ID Filter"),
         min_value=0,
         step=1,
-        help="0 means no artifact filter",
+        help=tr("0 means no artifact filter"),
     )
     output_search = st.text_input(tr("Output Search"))
     released_only = st.checkbox(tr("Released Outputs Only"))
