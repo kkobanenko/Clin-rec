@@ -173,6 +173,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Added Tasks-page quick-pick, origin filter, label search and sort controls on recent tracked tasks to reduce manual task-id lookup.
 - Kept delivery additive: focused helper tests, narrow compile checks and live Streamlit smoke on affected page.
 
+### Phase-2 Operator Hardening Sync (2026-04-24, multilingual operator polish continuation)
+
+**Files:** `PRD_CR_Intelligence_Platform_v1_6.md`, `TZ_CR_Intelligence_Platform_v1_5.md`, `docs/TZ_PRD_PHASE2_BACKLOG.md`, `VERSIONING.md`, `app/ui/app.py`
+
+**Changelog:**
+- Synced canon docs to the current operator-hardening head after dashboard/documents/outputs/KB multilingual follow-up slices.
+- Captured explicit translation hardening across dashboard status copy, KB detail/filter surfaces, outputs filter surfaces, fallback empty-state copy and document raw-artifact actions.
+- Confirmed the tranche stayed additive: narrow compile checks and live Streamlit smoke on affected pages remained the primary validation path.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
