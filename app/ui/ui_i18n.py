@@ -77,6 +77,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Specialty filter": {"ru": "Фильтр по специальности", "en": "Specialty filter"},
     "No documents found": {"ru": "Документы не найдены", "en": "No documents found"},
     "Document Detail": {"ru": "Детали документа", "en": "Document Detail"},
+    "Current Document": {"ru": "Документ из текущего списка", "en": "Current Document"},
+    "Manual Document ID": {"ru": "Ввести ID документа вручную", "en": "Manual Document ID"},
     "Document ID": {"ru": "ID документа", "en": "Document ID"},
     "Load Document": {"ru": "Загрузить документ", "en": "Load Document"},
     "Raw Source Artifacts": {"ru": "Сырые исходные артефакты", "en": "Raw Source Artifacts"},

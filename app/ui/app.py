@@ -136,6 +136,10 @@ def resolve_history_target_id(manual_target_id: int, queued_target_id: int | Non
     return queued_target_id or manual_target_id
 
 
+def resolve_document_id(manual_document_id: int, selected_document_id: int | None) -> int:
+    return selected_document_id or manual_document_id
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -432,13 +436,24 @@ def page_documents():
 
     # Document detail
     st.subheader("Document Detail")
+    current_document_options = {
+        item["id"]: f"#{item['id']} | {item.get('title')}"
+        for item in items
+        if item.get("id") is not None
+    }
+    selected_document_id = st.selectbox(
+        tr("Current Document"),
+        [None, *list(current_document_options)],
+        format_func=lambda value: tr("Manual Document ID") if value is None else current_document_options[value],
+    )
     doc_id = st.number_input("Document ID", min_value=1, step=1)
     if st.button("Load Document"):
-        detail = api_get(f"/documents/{doc_id}")
+        resolved_doc_id = resolve_document_id(doc_id, selected_document_id)
+        detail = api_get(f"/documents/{resolved_doc_id}")
         if detail:
             st.json(detail)
 
-        artifacts = api_get(f"/documents/{doc_id}/artifacts")
+        artifacts = api_get(f"/documents/{resolved_doc_id}/artifacts")
         st.subheader("Raw Source Artifacts")
         if isinstance(artifacts, dict) and artifacts.get("artifacts"):
             for artifact in artifacts.get("artifacts", []):
@@ -452,7 +467,7 @@ def page_documents():
         else:
             st.info("No valid raw artifacts available for current version")
 
-        content = api_get(f"/documents/{doc_id}/content")
+        content = api_get(f"/documents/{resolved_doc_id}/content")
         if content:
             sections = content.get("sections", [])
             for sec in sections:

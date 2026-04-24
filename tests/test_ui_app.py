@@ -2,6 +2,7 @@ from app.ui.app import (
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
     build_matrix_query_params,
+    resolve_document_id,
     resolve_history_target_id,
     resolve_review_target_id,
 )
@@ -95,3 +96,11 @@ def test_resolve_history_target_id_prefers_queue_selection() -> None:
 
 def test_resolve_history_target_id_falls_back_to_manual_value() -> None:
     assert resolve_history_target_id(3, None) == 3
+
+
+def test_resolve_document_id_prefers_current_list_selection() -> None:
+    assert resolve_document_id(4, 15) == 15
+
+
+def test_resolve_document_id_falls_back_to_manual_value() -> None:
+    assert resolve_document_id(4, None) == 4
