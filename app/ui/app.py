@@ -63,7 +63,7 @@ def remember_task(task_id: str | None, *, label: str, origin: str) -> None:
 
 def format_pipeline_run_label(run: dict) -> str:
     return (
-        f"#{run.get('id')} | {run.get('stage')} | "
+        f"#{run.get('id')} | {tr(run.get('stage') or 'Unknown')} | "
         f"{run.get('run_type')} | {run.get('status')}"
     )
 
