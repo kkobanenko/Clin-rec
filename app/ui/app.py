@@ -358,7 +358,7 @@ def render_output_detail(detail: dict) -> None:
             tr(
                 "released_at={released_at} | generator={generator}",
                 released_at=translate_value_or_fallback(detail.get("released_at")),
-                generator=detail.get("generator_version") or tr("n/a"),
+                generator=translate_value_or_fallback(detail.get("generator_version")),
             )
         )
 
