@@ -2,6 +2,7 @@ from app.ui.app import (
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
     build_matrix_query_params,
+    resolve_review_target_id,
 )
 
 
@@ -77,3 +78,11 @@ def test_build_bulk_approve_evidence_ids_skips_empty_values() -> None:
     evidence_ids = build_bulk_approve_evidence_ids("  ,  ", [])
 
     assert evidence_ids == []
+
+
+def test_resolve_review_target_id_prefers_queue_selection() -> None:
+    assert resolve_review_target_id(5, 11) == 11
+
+
+def test_resolve_review_target_id_falls_back_to_manual_value() -> None:
+    assert resolve_review_target_id(5, None) == 5

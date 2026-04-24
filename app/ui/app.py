@@ -128,6 +128,10 @@ def build_bulk_approve_evidence_ids(manual_ids: str, selected_ids: list[int]) ->
     return evidence_ids
 
 
+def resolve_review_target_id(manual_target_id: int, queued_target_id: int | None) -> int:
+    return queued_target_id or manual_target_id
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -701,6 +705,16 @@ def page_reviews():
     st.subheader("Submit Review")
     with st.form("review_form"):
         target_type = st.selectbox("Target Type", ["pair_evidence"])
+        queued_target_options = {
+            item["id"]: f"#{item['id']} | {item.get('relation_type')} | {item.get('final_fragment_score')}"
+            for item in items
+            if item.get("id") is not None
+        }
+        selected_queue_target_id = st.selectbox(
+            tr("Queued Evidence Target"),
+            [None, *list(queued_target_options)],
+            format_func=lambda value: tr("Manual Target ID") if value is None else queued_target_options[value],
+        )
         target_id = st.number_input("Target ID", min_value=1, step=1)
         action = st.selectbox("Action", ["approve", "reject", "override"])
         reason = st.text_area("Reason")
@@ -712,7 +726,7 @@ def page_reviews():
         if st.form_submit_button("Submit"):
             payload = {
                 "target_type": target_type,
-                "target_id": target_id,
+                "target_id": resolve_review_target_id(target_id, selected_queue_target_id),
                 "action": action,
                 "reason": reason,
                 "author": author,
