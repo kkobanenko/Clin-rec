@@ -209,7 +209,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Force Activate": {"ru": "Принудительная активация", "en": "Force Activate"},
     "Activate Model": {"ru": "Активировать модель", "en": "Activate Model"},
     "Activated model {label}": {"ru": "Модель активирована: {label}", "en": "Activated model {label}"},
-    "Model Diff": {"ru": "Diff моделей", "en": "Model Diff"},
+    "Model Diff": {"ru": "Сравнение моделей", "en": "Model Diff"},
     "Old Version": {"ru": "Старая версия", "en": "Old Version"},
     "New Version": {"ru": "Новая версия", "en": "New Version"},
     "Load Diff": {"ru": "Загрузить diff", "en": "Load Diff"},
