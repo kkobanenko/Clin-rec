@@ -658,7 +658,7 @@ def page_pipeline():
         items = filter_pipeline_runs(runs.get("items", []), pipeline_status_filter)
         if items:
             df = pd.DataFrame(items)
-            st.dataframe(df, width="stretch")
+            st.dataframe(localize_dataframe_columns(df), width="stretch")
 
             st.subheader(tr("Run Detail"))
             recent_run_map = {item["id"]: item for item in items if item.get("id") is not None}
