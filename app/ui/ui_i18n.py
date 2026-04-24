@@ -184,7 +184,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Queued Evidence Target": {"ru": "Цель из текущей очереди доказательств", "en": "Queued Evidence Target"},
     "Manual Target ID": {"ru": "Ввести ID цели вручную", "en": "Manual Target ID"},
     "Bulk Approve Author": {"ru": "Автор массового подтверждения", "en": "Bulk Approve Author"},
-    "Use the filtered queue above to identify evidence IDs for bulk approval.": {"ru": "Используйте отфильтрованную очередь выше для выбора ID evidence для bulk approve.", "en": "Use the filtered queue above to identify evidence IDs for bulk approval."},
+    "Use the filtered queue above to identify evidence IDs for bulk approval.": {"ru": "Используйте отфильтрованную очередь выше, чтобы выбрать ID доказательств для массового подтверждения.", "en": "Use the filtered queue above to identify evidence IDs for bulk approval."},
     "Enter at least one evidence ID": {"ru": "Введите хотя бы один ID evidence", "en": "Enter at least one evidence ID"},
     "Approved {count} evidence items": {"ru": "Подтверждено {count} элементов evidence", "en": "Approved {count} evidence items"},
     "Submit Review": {"ru": "Отправить ревью", "en": "Submit Review"},
