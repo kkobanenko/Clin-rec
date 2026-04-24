@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     discovery_concurrency: int = 2
     discovery_request_delay: float = 2.0
     discovery_max_records: int = 20
+    discovery_mode: str = "smoke"
 
     # Sentry
     sentry_dsn: str = ""

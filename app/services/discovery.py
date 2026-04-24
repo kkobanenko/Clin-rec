@@ -77,8 +77,12 @@ class DiscoveryService:
                 records, discovery_stats = self._discover_documents()
                 deduplicated_records = self._deduplicate_records(records)
                 duplicates_removed = max(0, len(records) - len(deduplicated_records))
+                records_with_external_id = sum(1 for rec in records if rec.get("external_id"))
+                records_without_external_id = max(0, len(records) - records_with_external_id)
 
-                max_n = settings.discovery_max_records if mode == "full" else 0
+                discovery_mode = str(getattr(settings, "discovery_mode", "smoke") or "smoke").lower()
+                max_n = settings.discovery_max_records if mode == "full" and discovery_mode == "smoke" else 0
+                limit_applied = max_n > 0 and len(deduplicated_records) > max_n
                 if max_n > 0:
                     deduplicated_records = deduplicated_records[:max_n]
 
@@ -114,6 +118,21 @@ class DiscoveryService:
 
                     # Strategy and source metrics
                     **discovery_stats,
+                    "discovery_strategy_report": {
+                        "strategy_used": discovery_stats.get("strategy", "unknown"),
+                        "api_attempted": bool(discovery_stats.get("api_attempted", False)),
+                        "api_status": discovery_stats.get("api_status", "not_attempted"),
+                        "api_records": int(discovery_stats.get("api_records", 0)),
+                        "dom_attempted": bool(discovery_stats.get("dom_attempted", False)),
+                        "dom_records": int(discovery_stats.get("dom_records", 0)),
+                        "fallback_attempted": bool(discovery_stats.get("fallback_attempted", False)),
+                        "fallback_reason": discovery_stats.get("fallback_reason"),
+                        "records_with_external_id": records_with_external_id,
+                        "records_without_external_id": records_without_external_id,
+                        "dedupe_count": duplicates_removed,
+                        "limit_applied": bool(limit_applied),
+                        "completeness_mode": discovery_mode if discovery_mode in {"smoke", "corpus"} else "smoke",
+                    },
                 }
                 session.commit()
                 logger.info(
@@ -144,14 +163,20 @@ class DiscoveryService:
         records: list[dict] = []
         stats: dict = {
             "strategy": "unknown",
+            "api_attempted": False,
+            "api_status": "not_attempted",
             "api_payloads": 0,
             "api_records": 0,
+            "dom_attempted": False,
             "dom_records": 0,
             "runtime_records": 0,
+            "fallback_attempted": False,
+            "fallback_reason": None,
         }
 
         # API-first strategy for stability when frontend DOM changes.
-        api_records = self._discover_from_backend_api()
+        api_records, api_report = self._discover_from_backend_api()
+        stats.update(api_report)
         if api_records:
             records.extend(api_records)
             stats["strategy"] = "backend_api"
@@ -216,15 +241,23 @@ class DiscoveryService:
 
         # Try to extract from JS runtime as additional fallback for SPA state stores.
         if not records:
+            stats["fallback_attempted"] = True
+            stats["fallback_reason"] = "api_unavailable_or_empty"
             runtime_records = self._discover_from_runtime_state()
             records.extend(runtime_records)
             stats["runtime_records"] = len(runtime_records)
 
         # Fallback: if no API payloads captured, try DOM parsing
         if not records:
+            stats["fallback_attempted"] = True
+            stats["dom_attempted"] = True
+            if not stats.get("fallback_reason"):
+                stats["fallback_reason"] = "playwright_payload_empty"
             dom_records = self._discover_from_dom()
             records = dom_records
             stats["dom_records"] = len(dom_records)
+            if stats["dom_records"] > 0 and stats.get("fallback_reason") == "playwright_payload_empty":
+                stats["fallback_reason"] = "playwright_payload_empty_dom_recovered"
 
         records = self._deduplicate_records(records)
         if records and stats["strategy"] == "unknown":
@@ -232,9 +265,14 @@ class DiscoveryService:
         logger.info("Discovered %d document records", len(records))
         return records, stats
 
-    def _discover_from_backend_api(self) -> list[dict]:
+    def _discover_from_backend_api(self) -> tuple[list[dict], dict]:
         """Query rubricator backend API directly when available."""
         all_records: list[dict] = []
+        report: dict = {
+            "api_attempted": True,
+            "api_status": "not_attempted",
+            "api_records": 0,
+        }
         page = 1
         max_pages = 200
         page_size = max(1, settings.rubricator_api_page_size)
@@ -276,13 +314,20 @@ class DiscoveryService:
                         headers=headers,
                     )
                     response.raise_for_status()
+                except httpx.HTTPStatusError as api_http_err:
+                    status_code = api_http_err.response.status_code if api_http_err.response is not None else None
+                    report["api_status"] = "451" if status_code == 451 else "error"
+                    logger.warning("Backend API request failed on page %d: %s", page, api_http_err)
+                    break
                 except Exception as api_err:
+                    report["api_status"] = "error"
                     logger.warning("Backend API request failed on page %d: %s", page, api_err)
                     break
 
                 try:
                     payload = response.json()
                 except Exception as json_err:
+                    report["api_status"] = "error"
                     logger.warning("Backend API returned invalid JSON on page %d: %s", page, json_err)
                     break
 
@@ -291,9 +336,11 @@ class DiscoveryService:
 
                 page_records = self._extract_records_from_payload({"url": str(response.url), "data": payload})
                 if not page_records:
+                    report["api_status"] = "empty"
                     break
 
                 all_records.extend(page_records)
+                report["api_status"] = "success"
 
                 # Stop when last page appears incomplete.
                 if len(page_records) < page_size:
@@ -306,7 +353,11 @@ class DiscoveryService:
                 if page_delay > 0:
                     time.sleep(page_delay)
 
-        return self._deduplicate_records(all_records)
+        deduped = self._deduplicate_records(all_records)
+        report["api_records"] = len(deduped)
+        if deduped and report["api_status"] in {"not_attempted", "empty"}:
+            report["api_status"] = "success"
+        return deduped, report
 
     def _trigger_spa_activity(self, page) -> None:
         """Trigger typical SPA interactions to force list/XHR loading."""
