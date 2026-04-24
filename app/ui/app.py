@@ -293,7 +293,7 @@ def render_kb_artifact_detail(detail: dict) -> None:
                     "text": claim.get("claim_text"),
                 }
             )
-        st.dataframe(pd.DataFrame(claim_rows), width="stretch", hide_index=True)
+        st.dataframe(localize_dataframe_columns(pd.DataFrame(claim_rows)), width="stretch", hide_index=True)
 
     frontmatter, body = _split_frontmatter(detail.get("content_md"))
     if frontmatter:
