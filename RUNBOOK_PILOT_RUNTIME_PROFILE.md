@@ -45,6 +45,14 @@ Minimum env vars for pilot profile:
 - `CRIN_S3_SECRET_KEY`
 - `CRIN_S3_BUCKET`
 
+Auth controls for non-local pilot deployment:
+
+- `CRIN_API_AUTH_ENABLED=true` enables API key enforcement on all non-health endpoints.
+- `CRIN_API_KEY=<strong-random-key>` sets required key value.
+- Clients must pass header `X-CRIN-API-Key: <key>`.
+- `/health` remains unauthenticated by design for probes.
+- Streamlit internal calls may use the same `CRIN_API_KEY` via container env.
+
 Current compose defaults should resolve to:
 
 - broker: `redis://redis:6379/0`

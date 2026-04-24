@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8000
     log_level: str = "INFO"
+    api_auth_enabled: bool = False
+    api_key: str = ""
 
     # Celery
     celery_broker_url: str = "redis://localhost:6380/0"

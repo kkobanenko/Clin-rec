@@ -110,3 +110,29 @@ Release impact:
 Residual risks:
 - `duplicate_canonical_slug` lint check remains mostly sentinel-level because DB unique constraint already prevents duplicates in normal writes.
 - Full pilot-grade KB lint policy can still grow (e.g., richer stale-source heuristics and severity taxonomy).
+
+## 2026-04-25 — Milestone F security/access minimum (partial complete)
+
+Changed:
+- Confirmed baseline risk: API had no authentication/authorization gate for non-local pilot deployment.
+- Added opt-in API key auth settings in config:
+	- `CRIN_API_AUTH_ENABLED` (default `false`),
+	- `CRIN_API_KEY` (default empty).
+- Added auth dependency `require_api_key`:
+	- no-op when auth disabled (preserves local release-ready behavior),
+	- rejects missing/invalid key when enabled,
+	- returns explicit `503` if auth enabled but key is not configured.
+- Applied auth dependency to all non-health API routers and root endpoint.
+- Kept `/health` open for probes regardless of auth mode.
+- Added Streamlit internal API key header support via env (`X-CRIN-API-Key`).
+- Updated pilot runbook with auth env/header policy for non-local deployment.
+
+Tests:
+- command: `.venv/bin/pytest -q tests/test_api_health.py tests/test_auth.py`
+- result: pass (`5 passed`)
+
+Release impact:
+- non-blocker hardening for pilot; backward-compatible default mode (`auth disabled`) keeps local flows intact.
+
+Residual risks:
+- Current gate is single shared API key (no per-user authz, rotation workflow or audit attribution yet).

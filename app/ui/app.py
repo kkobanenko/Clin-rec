@@ -1,6 +1,7 @@
 """CR Intelligence Platform — Streamlit Admin UI."""
 
 from datetime import datetime, timezone
+import os
 from typing import Any
 
 import httpx
@@ -27,6 +28,13 @@ except ModuleNotFoundError:
     )
 
 API_BASE = "http://app:8000"
+
+
+def _api_headers() -> dict[str, str]:
+    api_key = (os.getenv("CRIN_API_KEY") or "").strip()
+    if not api_key:
+        return {}
+    return {"X-CRIN-API-Key": api_key}
 
 
 def append_recent_task(
@@ -416,7 +424,7 @@ def api_get(
 ) -> dict | list | None:
     """Make GET request to backend API."""
     try:
-        resp = httpx.get(f"{API_BASE}{path}", params=params, timeout=30)
+        resp = httpx.get(f"{API_BASE}{path}", params=params, headers=_api_headers(), timeout=30)
         if allow_statuses and resp.status_code in allow_statuses:
             return None
         resp.raise_for_status()
@@ -429,7 +437,7 @@ def api_get(
 def api_post(path: str, json: dict | None = None) -> dict | None:
     """Make POST request to backend API."""
     try:
-        resp = httpx.post(f"{API_BASE}{path}", json=json, timeout=60)
+        resp = httpx.post(f"{API_BASE}{path}", json=json, headers=_api_headers(), timeout=60)
         resp.raise_for_status()
         return resp.json()
     except httpx.HTTPError as e:
