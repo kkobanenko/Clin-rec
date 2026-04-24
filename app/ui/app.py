@@ -407,7 +407,7 @@ def page_dashboard():
     if health:
         status = health.get("status", "unknown")
         if status == "ok":
-            st.success("All systems operational")
+            st.success(tr("All systems operational"))
         else:
             st.warning(tr("Status: {status}", status=status))
             if health.get("db_error"):
@@ -423,7 +423,7 @@ def page_dashboard():
     kb_master = api_get("/kb/indexes/master", allow_statuses={404})
 
     with snapshot_col1:
-        st.markdown("**Latest Pipeline Runs**")
+        st.markdown(f"**{tr('Latest Pipeline Runs')}**")
         if isinstance(latest_runs, dict) and latest_runs.get("items"):
             run_rows = []
             for item in latest_runs.get("items", [])[:5]:
@@ -438,9 +438,9 @@ def page_dashboard():
                 )
             st.dataframe(pd.DataFrame(run_rows), width="stretch", hide_index=True)
         else:
-            st.info("No pipeline runs available")
+            st.info(tr("No pipeline runs available"))
 
-        st.markdown("**Latest Outputs**")
+        st.markdown(f"**{tr('Latest Outputs')}**")
         if isinstance(latest_outputs, dict) and latest_outputs.get("items"):
             output_rows = []
             for item in latest_outputs.get("items", [])[:5]:
@@ -454,10 +454,10 @@ def page_dashboard():
                 )
             st.dataframe(pd.DataFrame(output_rows), width="stretch", hide_index=True)
         else:
-            st.info("No outputs available")
+            st.info(tr("No outputs available"))
 
     with snapshot_col2:
-        st.markdown("**Release-Critical Operator Surfaces**")
+        st.markdown(f"**{tr('Release-Critical Operator Surfaces')}**")
         if isinstance(active_model, dict):
             st.success(
                 tr(
@@ -467,7 +467,7 @@ def page_dashboard():
                 )
             )
         else:
-            st.warning("No active scoring model")
+            st.warning(tr("No active scoring model"))
 
         if isinstance(kb_master, dict):
             st.success(
@@ -478,9 +478,9 @@ def page_dashboard():
                 )
             )
         else:
-            st.warning("KB master index unavailable")
+            st.warning(tr("KB master index unavailable"))
 
-        st.caption("Quick operator checks")
+        st.caption(tr("Quick operator checks"))
         st.code(
             "GET /health\n"
             "GET /outputs?page=1\n"
