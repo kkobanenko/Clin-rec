@@ -80,6 +80,7 @@ def test_append_recent_task_deduplicates_and_keeps_latest_first() -> None:
 
 
 def test_format_pipeline_run_label_includes_core_run_fields() -> None:
+    set_current_language("en")
     label = format_pipeline_run_label(
         {"id": 17, "stage": "discovery", "run_type": "full", "status": "success"}
     )

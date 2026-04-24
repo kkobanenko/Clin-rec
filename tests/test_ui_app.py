@@ -20,6 +20,7 @@ from app.ui.app import (
     sort_recent_tasks,
     translate_value_or_fallback,
 )
+from app.ui.ui_i18n import set_current_language
 
 
 def test_build_matrix_query_params_omits_empty_optional_filters() -> None:
@@ -260,16 +261,19 @@ def test_filter_pipeline_runs_keeps_only_matching_status() -> None:
 
 
 def test_translate_value_or_fallback_uses_localized_default_for_empty_value() -> None:
+    set_current_language("en")
     assert translate_value_or_fallback(None) == "n/a"
 
 
 def test_format_output_option_label_uses_fallback_title() -> None:
+    set_current_language("en")
     formatted = format_output_option_label({"id": 7, "output_type": "memo", "title": None})
 
     assert formatted == "#7 | memo | Untitled"
 
 
 def test_format_output_option_label_uses_unknown_type_fallback() -> None:
+    set_current_language("en")
     formatted = format_output_option_label({"id": 8, "output_type": None, "title": "Demo"})
 
     assert formatted == "#8 | Unknown | Demo"
