@@ -286,7 +286,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Claim Type Filter": {"ru": "Фильтр по типу утверждения", "en": "Claim Type Filter"},
     "Claim Review Filter": {"ru": "Фильтр по статусу ревью утверждения", "en": "Claim Review Filter"},
     "Claims Page Size": {"ru": "Размер страницы утверждений", "en": "Claims Page Size"},
-    "Claim Search": {"ru": "Поиск по claims", "en": "Claim Search"},
+    "Claim Search": {"ru": "Поиск по утверждениям", "en": "Claim Search"},
     "Conflicted Claims Only": {"ru": "Только конфликтные claims", "en": "Conflicted Claims Only"},
     "No KB claims available": {"ru": "KB claims не найдены", "en": "No KB claims available"},
     "Task ID": {"ru": "ID задачи", "en": "Task ID"},
