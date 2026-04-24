@@ -59,7 +59,19 @@
 
 ## UI (TZ §21)
 
-- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, compact reviewer queue/history surfaces, scoring diff summary tables, KB master-index preview, KB artifact type/status/review/generator/body-search, KB claims list/type/review/conflicted filters with conflict flags, KB conflict summaries with artifact/review scoping and artifact ids, KB entity type/status/canonical+alias+refs search/detail, compact KB artifact/entity/output tables with richer KB artifact/entity/output detail, а также backward-compatible RU/EN language switch с persisted preference для admin/operator UI. Полная productized health dashboard и перевод framework-provided Streamlit chrome остаются вне текущего tranche.
+- Нет единого linkage-view и gap suggestions; Streamlit теперь покрывает базовые operator сценарии, system health, release-gate snapshot, compact reviewer queue/history surfaces, scoring diff summary tables, KB master-index preview, KB artifact type/status/review/generator/body-search, KB claims list/type/review/conflicted filters with conflict flags, KB conflict summaries with artifact/review scoping and artifact ids, KB entity type/status/canonical+alias+refs search/detail, compact KB artifact/entity/output tables with richer KB artifact/entity/output detail, backward-compatible RU/EN language switch с persisted preference для admin/operator UI, recent UI task tracking на async workflows, pipeline run detail picker и pipeline stage filter. Полная productized health dashboard, единый linkage-view и перевод framework-provided Streamlit chrome остаются вне текущего tranche.
+
+## Текущая стадия проекта
+
+- Текущий статус: **release-ready MVP подтвержден**, активная стадия работ — **phase-2 operator hardening**.
+- Full-pack compose-backed validation уже зафиксирован в `docs/RELEASE_SUMMARY_2026-04-24.md`; текущие backlog items больше не трактуются как release blockers по умолчанию.
+- Ближайший фокус: additive UI/API follow-up, уменьшающий operator friction без ломки release contract.
+
+## Ближайшие шаги
+
+- Расширять async follow-up и cross-surface linkage между pipeline, tasks, outputs, KB и review.
+- Держать PRD/TZ/VERSIONING/backlog синхронными с validated head после каждого заметного tranche.
+- Оставлять full dashboard redesign, gap suggestions и более глубокую Streamlit chrome localization в post-MVP polish.
 
 ## Версионирование документов
 
@@ -67,4 +79,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-24 — после multilingual Streamlit UI tranche с backward-compatible RU/EN switch, persisted language preference, i18n helper shim и live-smoke на compose runtime; предыдущие operator-surface closure items сохранены.*
+*Последнее обновление: 2026-04-24 — после full-pack release-ready sync и последующего operator-hardening tranche с recent task tracking, pipeline run detail picker и pipeline stage filter; предыдущие operator-surface closure items сохранены.*

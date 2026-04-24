@@ -146,6 +146,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Captured current full release-ready rerun with structural smoke run `77`, quality smoke run `78`, generated outputs `36` and `37`, and green review/matrix/outputs/document outcomes/aux/KB regression pack.
 - Reconfirmed release-ready compose-backed runtime after RU/EN display-layer switch, persisted preference and widget-state repair without reopening prior operator/API blockers.
 
+### Phase-2 Operator Hardening Sync (2026-04-24)
+
+**Files:** `PRD_CR_Intelligence_Platform_v1_6.md`, `TZ_CR_Intelligence_Platform_v1_5.md`, `docs/TZ_PRD_PHASE2_BACKLOG.md`, `VERSIONING.md`, `app/ui/app.py`, `app/ui/ui_i18n.py`, `tests/test_ui_i18n.py`, `app/api/sync.py`, `app/schemas/pipeline.py`, `tests/test_api_health.py`
+
+**Changelog:**
+- Reclassified current implementation stage as `release-ready MVP` with active `phase-2 operator hardening`, instead of pre-release transition.
+- Synced PRD/TZ/backlog with the post-release plan: async follow-up, compact linkage and operator-observability polish as the next additive tranche.
+- Added recent UI task tracking, surfaced sync task ids, added pipeline run detail picker and pipeline stage filter, all validated with focused tests and live Streamlit smoke.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`

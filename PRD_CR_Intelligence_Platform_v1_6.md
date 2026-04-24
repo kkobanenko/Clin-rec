@@ -4,15 +4,15 @@ CR Intelligence Platform
 
 | Версия | v1.6 |
 | --- | --- |
-| Дата | 21.04.2026 |
-| Статус | Рабочая версия |
-| Назначение | Продуктовая фиксация плана перехода от quality-capable implementation к release-ready MVP |
+| Дата | 24.04.2026 |
+| Статус | Рабочая версия, актуализирована после release-ready validation |
+| Назначение | Продуктовая фиксация достигнутого release-ready MVP и следующего tranche phase-2 operator hardening |
 
 > **Supersedes:** [PRD_CR_Intelligence_Platform_v1_5.md](PRD_CR_Intelligence_Platform_v1_5.md).
 
-> **Alignment note:** knowledge-compilation контур, compiled KB и downstream KB/output-концепция сохраняются и описаны в [PRD_CR_Intelligence_Platform_v1_3_kb.md](PRD_CR_Intelligence_Platform_v1_3_kb.md). Настоящая версия не заменяет knowledge roadmap, а фиксирует ближайший продуктовый tranche: перевести уже собранную платформу в release-ready MVP с управляемыми acceptance gates и release discipline.
+> **Alignment note:** knowledge-compilation контур, compiled KB и downstream KB/output-концепция сохраняются и описаны в [PRD_CR_Intelligence_Platform_v1_3_kb.md](PRD_CR_Intelligence_Platform_v1_3_kb.md). Настоящая версия не заменяет knowledge roadmap, а фиксирует два состояния одновременно: release-ready MVP уже подтвержден, а ближайший продуктовый tranche смещён в сторону phase-2 operator hardening без снятия release discipline.
 
-> Документ описывает ближайшую продуктовую цель: перевести CR Intelligence Platform из состояния late integration / pre-release hardening в состояние, где runtime validation, operator workflows, downstream checks и KB/output workflows образуют управляемый release process с явным go/no-go решением.
+> Документ описывает текущее продуктовое состояние: CR Intelligence Platform уже находится в состоянии release-ready MVP по compose-backed validation, а ближайшая цель — уменьшать operator friction и расширять observability, не размывая сформированный go/no-go release process.
 
 # 1. Видение версии
 
@@ -33,23 +33,25 @@ CR Intelligence Platform должна обеспечивать не только
 - Для документов доступен user-facing path к valid raw artifacts текущей версии: download primary, preview secondary.
 - Structural и quality smoke уже существуют и отделены друг от друга.
 - После extract уже доступны candidate generation, scoring и matrix build path.
+- Composite release-ready pack уже подтвержден: compose-backed runtime, structural smoke, quality smoke, targeted API regression и KB integration зафиксированы как green в актуальном release summary.
+- Admin UI уже поддерживает persisted `RU`/`EN` language switch и несколько additive operator follow-up surfaces: recent UI tasks, pipeline run detail picker и pipeline stage filter.
 
 ## 2.2 Где находится главный разрыв
 
-- Проект уже не страдает от нехватки surface area; главный риск теперь в release discipline.
-- Не все acceptance gates формализованы как обязательный release barrier.
-- Regression pack еще недостаточно оформлен как канонический go/no-go набор.
-- Reviewer/scoring governance и KB/output workflow существуют, но еще не сведены в единый release contour.
+- Проект уже не находится в зоне главного риска по release discipline: базовый release contract и composite evidence зафиксированы.
+- Основной разрыв сместился в operator productivity и day-2 usability: быстрый follow-up для async workflows, cross-surface linkage и компактная observability все еще расширяются итеративно.
+- Часть phase-2 backlog теперь относится не к blocker-gap, а к post-release hardening: linkage-view, gap suggestions, richer health dashboard и более глубокая productization operator surfaces.
+- Release evidence и документация теперь должны обновляться синхронно с каждым заметным operator-surface tranche, чтобы не образовывался новый разрыв между текущей реализацией и каноническими документами.
 
 # 3. Проблема версии
 
-Пока система выглядит функционально широкой, но не полностью release-governed. Команда может видеть работающий runtime и доступные operator surfaces, но без четкой процедуры release verification сохраняется риск ложного green: поверхности существуют, однако решение о готовности MVP к выпуску остается частично неформализованным.
+Release-ready проблема базового уровня закрыта, но продукт по-прежнему не полностью operator-efficient. Команда уже может выпускать MVP на зафиксированном runtime profile, однако ежедневная работа оператора все еще требует локальных follow-up улучшений: проще находить свежие async tasks, быстрее проваливаться в run details, сокращать ручной контекстный поиск между pipeline, tasks, outputs и KB surfaces.
 
 # 4. Цель версии
 
 ## 4.1 Главная цель
 
-Зафиксировать и реализовать переход к release-ready MVP, в котором успешный статус проекта означает не только наличие рабочих API и quality-capable pipeline, но и формализованный набор acceptance gates, regression checks, operator governance и release decision criteria.
+Удержать уже достигнутый release-ready MVP и продолжить phase-2 operator hardening, в котором каждый следующий tranche уменьшает operator friction, улучшает observability и сохраняет совместимость с действующим release contract.
 
 ## 4.2 Измеримый результат версии
 
@@ -60,6 +62,7 @@ CR Intelligence Platform должна обеспечивать не только
 | Operator governance | Reviewer/scoring/output actions трактуются как управляемый release workflow, а не набор разрозненных endpoint-ов. |
 | Downstream readiness | Evidence/matrix/KB/output path проверяется как фактический downstream результат, а не как декларативная готовность. |
 | Release observability | Причины stop/go и состояние ключевых стадий доступны без чтения исходного кода и ручной трассировки worker logs. |
+| Operator efficiency | Асинхронные workflow и pipeline follow-up доступны через additive UI controls без ручного поиска id и повторного контекстного переключения. |
 
 # 5. Non-goals версии
 
@@ -143,24 +146,25 @@ CR Intelligence Platform должна обеспечивать не только
 
 | Приоритет | Направление | Ожидаемый результат |
 | --- | --- | --- |
-| P0 | Release contract и scope freeze | Команда одинаково трактует, что значит release-ready MVP. |
-| P0 | Runtime preflight и acceptance barriers | Structural/quality gates и profile checks обязательны перед release decision. |
-| P0 | Regression pack baseline | Собран канонический набор smoke и API regression для go/no-go. |
+| P0 | Release evidence/doc sync | PRD/TZ/VERSIONING/backlog остаются синхронными с текущим validated head и новыми operator-surface tranche. |
+| P0 | Async workflow follow-up | Task/run visibility в UI расширяется additive controls без изменения API compatibility. |
+| P0 | Narrow regression discipline | Каждый additive operator change закрывается focused validation и не размывает canonical release pack. |
 
 ## 10.2 P1
 
 | Приоритет | Направление | Ожидаемый результат |
 | --- | --- | --- |
-| P1 | Downstream integration hardening | Evidence/matrix path и KB/output workflows подтверждены на фактических данных. |
-| P1 | Governance completion | Reviewer/scoring/release actions сведены в управляемый operator contour. |
-| P1 | Release observability | Причины stop/go и статус workflow прозрачны через API и documented procedures. |
+| P1 | Cross-surface linkage | Operator быстрее переходит между pipeline, tasks, outputs, KB и review без ручного поиска идентификаторов. |
+| P1 | Release observability polish | Release-gate snapshot, task status и run details становятся доступнее через компактные admin surfaces. |
+| P1 | Governance polish | Reviewer/scoring/output/KB surfaces продолжают выравниваться как единый operator contour без full productization. |
 
 ## 10.3 P2
 
 | Приоритет | Направление | Ожидаемый результат |
 | --- | --- | --- |
-| P2 | Release rehearsal | Проведен controlled release rehearsal в одном runtime profile. |
-| P2 | MVP exit decision | Сформирован formal summary: что входит в release, что остается post-MVP. |
+| P2 | Productized health dashboard | Более богатый operator health/release cockpit без изменения release semantics. |
+| P2 | Streamlit chrome polish | Перевод framework-provided chrome и более цельный multilingual UX остаются post-MVP polish. |
+| P2 | Broader operator productization | Linkage-view, gap suggestions и расширенный admin UX остаются следующей, а не блокирующей фазой. |
 
 # 11. Критерии готовности к MVP release
 
@@ -177,15 +181,16 @@ MVP release считается допустимым, когда одноврем
 5. Downstream integration checks для evidence/matrix, KB/output workflows и valid raw current-version artifacts проходят.
 
 6. Остающиеся риски зафиксированы и явно отнесены к post-MVP scope, а не к скрытым блокерам текущего release.
+7. Новые operator-surface улучшения не ломают действующий release-ready contract и подтверждаются focused validation.
 
 # 12. Риски версии
 
 | Риск | Описание | Мера снижения |
 | --- | --- | --- |
-| Ложный release green | Наличие широкого surface ошибочно трактуется как готовность к выпуску | Формальный release contract и go/no-go review |
-| Разрыв между smoke и реальным workflow | Smoke зеленый, но operator path не собран в единый контур | Проверять KB/output/tasks/review/matrix как единый regression pack |
-| Scope creep | Команда начнет full productization до закрытия release hardening | Жестко отделить immediate release scope от post-MVP |
-| Непрозрачный residual risk | Неочевидно, что еще осталось незавершенным | Ввести formal release summary и risk register |
+| Регрессия release-ready статуса | Небольшие operator изменения могут незаметно нарушить validated contour | Узкий regression-first цикл и периодические full-pack rerun для release-facing tranche |
+| Разрыв между docs и head | Код продолжит двигаться быстрее, чем канонические PRD/TZ/backlog записи | Синхронизировать docs/versioning при каждом заметном tranche |
+| Scope creep | Команда начнет full productization вместо additive operator hardening | Жестко держать small-slice delivery и post-MVP boundaries |
+| Непрозрачный operator friction | Формально все green, но day-2 сценарии остаются неудобными | Приоритизировать async follow-up, linkage и compact observability |
 
 # 13. Операционные ограничения
 
@@ -205,3 +210,4 @@ MVP release считается допустимым, когда одноврем
 4. Scope post-MVP productization явно отделен от immediate release goals.
 
 5. Версия служит формальной точкой перехода от quality-capable implementation к release-ready MVP.
+6. Актуализированный документ фиксирует, что текущая стадия проекта — release-ready MVP с активным phase-2 operator hardening tranche.
