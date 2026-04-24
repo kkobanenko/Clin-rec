@@ -383,7 +383,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "origin": {"ru": "источник", "en": "origin"},
     "queued_at": {"ru": "поставлено в очередь", "en": "queued_at"},
     "sync_full": {"ru": "полная синхронизация", "en": "sync_full"},
-    "sync_incremental": {"ru": "инкрементальный sync", "en": "sync_incremental"},
+    "sync_incremental": {"ru": "инкрементальная синхронизация", "en": "sync_incremental"},
     "output_generate": {"ru": "генерация выхода", "en": "output_generate"},
     "output_file_back": {"ru": "файлинг выхода", "en": "output_file_back"},
     "kb_compile": {"ru": "сборка KB", "en": "kb_compile"},
