@@ -1134,10 +1134,7 @@ def page_outputs():
 
     st.subheader(tr("Output Detail"))
     current_output_options = {
-        item["id"]: (
-            f"#{item['id']} | {tr(item.get('output_type') or 'Unknown')} | "
-            f"{item.get('title') or tr('Untitled')}"
-        )
+        item["id"]: format_output_option_label(item)
         for item in items
         if item.get("id") is not None
     }
