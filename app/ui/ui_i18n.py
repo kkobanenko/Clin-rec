@@ -199,7 +199,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Selected Model": {"ru": "Выбранная модель", "en": "Selected Model"},
     "Ready": {"ru": "Готово", "en": "Ready"},
     "Cells": {"ru": "Ячейки", "en": "Cells"},
-    "Pair Scores": {"ru": "Pair scores", "en": "Pair Scores"},
+    "Pair Scores": {"ru": "Оценки пар", "en": "Pair Scores"},
     "Model Actions": {"ru": "Действия модели", "en": "Model Actions"},
     "Refresh Scope Type": {"ru": "Тип refresh scope", "en": "Refresh Scope Type"},
     "Refresh Scope ID": {"ru": "ID refresh scope", "en": "Refresh Scope ID"},
