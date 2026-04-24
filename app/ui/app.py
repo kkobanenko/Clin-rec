@@ -658,7 +658,7 @@ def page_pipeline():
 # --- Page: Matrix ---
 
 def page_matrix():
-    st.header("Substitution Matrix")
+    st.header(tr("Substitution Matrix"))
 
     col1, col2, col3, col4, col5 = st.columns(5)
     scope_type = col1.selectbox(tr("Scope"), ["global", "disease"], format_func=tr)
@@ -698,16 +698,16 @@ def page_matrix():
     st.dataframe(df, width="stretch")
 
     # Export
-    st.subheader("Export Matrix")
-    fmt = st.selectbox("Format", ["csv", "jsonl"])
-    if st.button("Download"):
+    st.subheader(tr("Export Matrix"))
+    fmt = st.selectbox(tr("Format"), ["csv", "jsonl"])
+    if st.button(tr("Download")):
         st.info(tr("Use API endpoint: GET /matrix/export?format={fmt}", fmt=fmt))
 
     # Cell detail
-    st.subheader("Cell Detail")
+    st.subheader(tr("Cell Detail"))
     col1, col2, col3, col4 = st.columns(4)
-    mol_from = col1.number_input("Molecule From ID", min_value=1, step=1)
-    mol_to = col2.number_input("Molecule To ID", min_value=1, step=1)
+    mol_from = col1.number_input(tr("Molecule From ID"), min_value=1, step=1)
+    mol_to = col2.number_input(tr("Molecule To ID"), min_value=1, step=1)
     cell_scope_type = col3.selectbox(tr("Cell Scope"), ["global", "disease"], format_func=tr)
     detail_model_version_id = col4.number_input(
         tr("Cell Model Version ID"),
