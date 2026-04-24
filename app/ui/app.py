@@ -1003,9 +1003,7 @@ def page_scoring_models():
                     st.success(tr("Activated model {label}", label=result.get("version_label")))
 
         st.subheader(tr("Model Diff"))
-        diff_options = {
-            f"#{model['id']} {model['version_label']}": model["id"] for model in models
-        }
+        diff_options = {format_model_option_label(model): model["id"] for model in models}
         diff_left = st.selectbox(tr("Old Version"), list(diff_options.keys()), key="diff_left")
         diff_right = st.selectbox(tr("New Version"), list(diff_options.keys()), key="diff_right")
         if st.button(tr("Load Diff")):
