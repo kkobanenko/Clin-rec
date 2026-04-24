@@ -1287,7 +1287,7 @@ def page_kb():
                         "generator_version": item.get("generator_version"),
                     }
                 )
-            st.dataframe(pd.DataFrame(artifact_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(artifact_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No KB artifacts available"))
 
