@@ -169,7 +169,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Queue": {"ru": "Очередь", "en": "Queue"},
     "Queue Document Version ID": {"ru": "ID версии документа для очереди", "en": "Queue Document Version ID"},
     "0 means no document filter": {"ru": "0 означает отсутствие фильтра по документу", "en": "0 means no document filter"},
-    "No evidence awaiting review": {"ru": "Нет evidence, ожидающих ревью", "en": "No evidence awaiting review"},
+    "No evidence awaiting review": {"ru": "Нет элементов доказательств, ожидающих ревью", "en": "No evidence awaiting review"},
     "Recent Review Actions": {"ru": "Последние действия ревью", "en": "Recent Review Actions"},
     "History Target From Queue": {"ru": "Target истории из текущей очереди", "en": "History Target From Queue"},
     "Manual History Target": {"ru": "Ввести target истории вручную", "en": "Manual History Target"},
