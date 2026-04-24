@@ -395,11 +395,13 @@ def page_pipeline():
     if col1.button("Run Full Sync", type="primary"):
         result = api_post("/sync/full")
         if result:
+            remember_task(result.get("task_id"), label="sync_full", origin="pipeline")
             st.success(tr("Pipeline run started: ID {run_id}", run_id=result.get("run_id")))
 
     if col2.button("Run Incremental Sync"):
         result = api_post("/sync/incremental")
         if result:
+            remember_task(result.get("task_id"), label="sync_incremental", origin="pipeline")
             st.success(tr("Pipeline run started: ID {run_id}", run_id=result.get("run_id")))
 
     # Recent runs

@@ -9,6 +9,7 @@ class SyncRequest(BaseModel):
 
 class SyncResponse(BaseModel):
     run_id: int
+    task_id: str | None = None
     status: str
     message: str
 

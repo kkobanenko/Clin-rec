@@ -16,8 +16,13 @@ async def full_sync(db: AsyncSession = Depends(get_db)):
     await db.flush()
     run_id = run.id
     await db.commit()
-    run_full_sync.delay(run_id)
-    return SyncResponse(run_id=run_id, status="pending", message="Full sync queued")
+    async_result = run_full_sync.delay(run_id)
+    return SyncResponse(
+        run_id=run_id,
+        task_id=async_result.id,
+        status="pending",
+        message="Full sync queued",
+    )
 
 
 @router.post("/incremental", response_model=SyncResponse, status_code=202)
@@ -27,5 +32,10 @@ async def incremental_sync(db: AsyncSession = Depends(get_db)):
     await db.flush()
     run_id = run.id
     await db.commit()
-    run_incremental_sync.delay(run_id)
-    return SyncResponse(run_id=run_id, status="pending", message="Incremental sync queued")
+    async_result = run_incremental_sync.delay(run_id)
+    return SyncResponse(
+        run_id=run_id,
+        task_id=async_result.id,
+        status="pending",
+        message="Incremental sync queued",
+    )
