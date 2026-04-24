@@ -94,9 +94,11 @@ def format_model_option_label(model: dict[str, Any]) -> str:
 
 
 def format_output_option_label(item: dict[str, Any]) -> str:
-    return (
-        f"#{item.get('id')} | {tr(item.get('output_type') or 'Unknown')} | "
-        f"{item.get('title') or tr('Untitled')}"
+    return tr(
+        "#{id} | {output_type} | {title}",
+        id=item.get("id"),
+        output_type=tr(item.get("output_type") or "Unknown"),
+        title=item.get("title") or tr("Untitled"),
     )
 
 
