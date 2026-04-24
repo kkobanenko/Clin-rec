@@ -857,9 +857,9 @@ def page_reviews():
                     )
 
     # Submit review
-    st.subheader("Submit Review")
+    st.subheader(tr("Submit Review"))
     with st.form("review_form"):
-        target_type = st.selectbox("Target Type", ["pair_evidence"])
+        target_type = st.selectbox(tr("Target Type"), ["pair_evidence"])
         queued_target_options = {
             item["id"]: f"#{item['id']} | {item.get('relation_type')} | {item.get('final_fragment_score')}"
             for item in items
@@ -870,15 +870,15 @@ def page_reviews():
             [None, *list(queued_target_options)],
             format_func=lambda value: tr("Manual Target ID") if value is None else queued_target_options[value],
         )
-        target_id = st.number_input("Target ID", min_value=1, step=1)
-        action = st.selectbox("Action", ["approve", "reject", "override"])
-        reason = st.text_area("Reason")
-        author = st.text_input("Author")
+        target_id = st.number_input(tr("Target ID"), min_value=1, step=1)
+        action = st.selectbox(tr("Action"), ["approve", "reject", "override"])
+        reason = st.text_area(tr("Reason"))
+        author = st.text_input(tr("Author"))
         override_score = None
         if action == "override":
-            override_score = st.number_input("Override Score", min_value=0.0, max_value=1.0, step=0.01)
+            override_score = st.number_input(tr("Override Score"), min_value=0.0, max_value=1.0, step=0.01)
 
-        if st.form_submit_button("Submit"):
+        if st.form_submit_button(tr("Submit")):
             payload = {
                 "target_type": target_type,
                 "target_id": resolve_review_target_id(target_id, selected_queue_target_id),
@@ -890,7 +890,7 @@ def page_reviews():
                 payload["new_value_json"] = {"final_fragment_score": override_score}
             result = api_post("/review", payload)
             if result:
-                st.success("Review submitted")
+                st.success(tr("Review submitted"))
 
 
 # --- Page: Scoring Models ---
