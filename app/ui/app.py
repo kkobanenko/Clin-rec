@@ -799,6 +799,7 @@ def page_reviews():
         tr("History Target Type"),
         ["", "pair_evidence"],
         index=0,
+        format_func=format_pipeline_stage_option,
     )
     queued_history_options = {
         item["id"]: format_review_evidence_option(item)
@@ -876,7 +877,7 @@ def page_reviews():
     # Submit review
     st.subheader(tr("Submit Review"))
     with st.form("review_form"):
-        target_type = st.selectbox(tr("Target Type"), ["pair_evidence"])
+        target_type = st.selectbox(tr("Target Type"), ["pair_evidence"], format_func=format_option_value)
         queued_target_options = {
             item["id"]: format_review_evidence_option(item)
             for item in items
@@ -888,7 +889,7 @@ def page_reviews():
             format_func=lambda value: tr("Manual Target ID") if value is None else queued_target_options[value],
         )
         target_id = st.number_input(tr("Target ID"), min_value=1, step=1)
-        action = st.selectbox(tr("Action"), ["approve", "reject", "override"])
+        action = st.selectbox(tr("Action"), ["approve", "reject", "override"], format_func=format_option_value)
         reason = st.text_area(tr("Reason"))
         author = st.text_input(tr("Author"))
         override_score = None
