@@ -27,7 +27,7 @@ CR Intelligence Platform — техническая фиксация tranche р�
 - Есть additive documents path для valid raw artifacts текущей версии: API download/preview и UI buttons без изменения старых payloads.
 - Первая версия multilingual support должна покрывать Streamlit admin/operator UI (`RU`/`EN`) без изменения API contracts и internal keys.
 - Full compose-backed release pack подтвержден: structural smoke, quality smoke, targeted API regression и KB integration green на текущем release summary.
-- Additive operator follow-up уже расширен recent UI task tracking, pipeline run detail picker, pipeline stage filter, matrix list/detail filters и review quick-pick controls без изменения compatibility contract.
+- Additive operator follow-up уже расширен recent UI task tracking, pipeline run detail picker, pipeline stage filter, matrix list/detail filters, review quick-pick controls и compact Tasks-page quick-pick/filter/search/sort controls без изменения compatibility contract.
 
 ## 2.2 Подтвержденные ограничения
 
@@ -207,7 +207,7 @@ CR Intelligence Platform — техническая фиксация tranche р�
 - UI сохраняет recent async task ids для background workflows.
 - Pipeline surfaces возвращают и используют task visibility, если workflow фактически уходит в Celery.
 - Additive run/task detail controls появляются без ломки существующих API payloads.
-- Review и matrix surfaces продолжают получать compact quick-pick/filter controls, сокращающие ручной перенос id между operator flows.
+- Review, matrix и Tasks surfaces продолжают получать compact quick-pick/filter/search controls, сокращающие ручной перенос id между operator flows.
 
 ## 6.8 Task H — Cross-surface operator linkage
 

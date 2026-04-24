@@ -34,7 +34,7 @@ CR Intelligence Platform должна обеспечивать не только
 - Structural и quality smoke уже существуют и отделены друг от друга.
 - После extract уже доступны candidate generation, scoring и matrix build path.
 - Composite release-ready pack уже подтвержден: compose-backed runtime, structural smoke, quality smoke, targeted API regression и KB integration зафиксированы как green в актуальном release summary.
-- Admin UI уже поддерживает persisted `RU`/`EN` language switch и несколько additive operator follow-up surfaces: recent UI tasks, pipeline run detail picker, pipeline stage filter, matrix list/detail filters и quick-pick review controls для queue/history/submit flows.
+- Admin UI уже поддерживает persisted `RU`/`EN` language switch и несколько additive operator follow-up surfaces: recent UI tasks, pipeline run detail picker, pipeline stage filter, matrix list/detail filters, quick-pick review controls для queue/history/submit flows и compact Tasks-page controls для quick-pick/filter/search/sort по recent tasks.
 
 ## 2.2 Где находится главный разрыв
 

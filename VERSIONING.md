@@ -164,6 +164,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Added matrix list/detail filters plus review queue/history/submit quick-pick controls to reduce manual ID transfer across operator flows.
 - Kept delivery additive: focused helper tests, narrow compile checks and live Streamlit smoke on affected pages.
 
+### Phase-2 Operator Hardening Sync (2026-04-24, tasks follow-up)
+
+**Files:** `PRD_CR_Intelligence_Platform_v1_6.md`, `TZ_CR_Intelligence_Platform_v1_5.md`, `docs/TZ_PRD_PHASE2_BACKLOG.md`, `VERSIONING.md`, `app/ui/app.py`, `app/ui/ui_i18n.py`, `tests/test_ui_app.py`
+
+**Changelog:**
+- Synced canon docs to latest operator-hardening head after Tasks-page follow-up tranche.
+- Added Tasks-page quick-pick, origin filter, label search and sort controls on recent tracked tasks to reduce manual task-id lookup.
+- Kept delivery additive: focused helper tests, narrow compile checks and live Streamlit smoke on affected page.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
