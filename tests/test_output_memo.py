@@ -12,6 +12,10 @@ def test_build_memo_with_explicit_slugs():
             raise AssertionError("не должны ходить в БД при переданных digest_slugs")
 
     body, manifest = _build_memo_markdown(_NoDb(), 42, {"digest_slugs": ["digest/v7", "digest/v8"]})
+    assert body.startswith("---\n")
+    assert "review_status: pending_review" in body
+    assert "Internal analytical draft. Not a medical recommendation." in body
+    assert "Requires human review before release." in body
     assert "[[digest/v7]]" in body
     assert "[[digest/v8]]" in body
     assert manifest["digest_slugs"] == ["digest/v7", "digest/v8"]
@@ -24,7 +28,7 @@ def test_apply_file_back_creates_artifact_for_accepted_output(monkeypatch):
         title="Demo memo",
         artifact_id=None,
         file_pointer="/tmp/memo_42.md",
-        review_status="pending",
+        review_status="pending_review",
         generator_version="0.2.0",
         released_at=None,
         file_back_status="pending",
@@ -64,7 +68,7 @@ def test_apply_file_back_creates_artifact_for_accepted_output(monkeypatch):
     assert result["artifact_created"] is True
     assert result["artifact_id"] == 500
     assert row.artifact_id == 500
-    assert row.review_status == "accepted"
+    assert row.review_status == "approved"
 
 
 def test_apply_file_back_skips_artifact_when_output_has_no_file(monkeypatch):
@@ -74,7 +78,7 @@ def test_apply_file_back_skips_artifact_when_output_has_no_file(monkeypatch):
         title="Draft memo",
         artifact_id=None,
         file_pointer=None,
-        review_status="pending",
+        review_status="pending_review",
         generator_version="0.2.0",
         released_at=None,
         file_back_status="pending",

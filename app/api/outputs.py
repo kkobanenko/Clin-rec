@@ -20,6 +20,18 @@ from app.workers.tasks.kb import generate_outputs as generate_outputs_task
 router = APIRouter(prefix="/outputs", tags=["outputs"])
 
 
+def _apply_review_status_filter(query, review_status: str):
+    aliases = {
+        "pending_review": ("pending_review", "pending", "needs_review"),
+        "approved": ("approved", "accepted"),
+        "released": ("released",),
+    }
+    values = aliases.get(review_status)
+    if values:
+        return query.where(OutputRelease.review_status.in_(values))
+    return query.where(OutputRelease.review_status == review_status)
+
+
 @router.post("/generate", status_code=202)
 async def generate_output(body: OutputGenerateRequest):
     """Постановка в очередь: worker создаёт строку output_release (черновик)."""
@@ -89,8 +101,8 @@ async def list_outputs(
         q = q.where(OutputRelease.file_back_status == file_back_status)
         count_q = count_q.where(OutputRelease.file_back_status == file_back_status)
     if review_status:
-        q = q.where(OutputRelease.review_status == review_status)
-        count_q = count_q.where(OutputRelease.review_status == review_status)
+        q = _apply_review_status_filter(q, review_status)
+        count_q = _apply_review_status_filter(count_q, review_status)
     if generator_version:
         q = q.where(OutputRelease.generator_version == generator_version)
         count_q = count_q.where(OutputRelease.generator_version == generator_version)

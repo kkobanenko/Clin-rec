@@ -57,3 +57,25 @@ Release impact:
 
 Residual risks:
 - Preflight uses container-level bucket directory check (`/data/cr-artifacts`) as practical signal; deeper S3 API-level bucket audit still optional hardening.
+
+## 2026-04-25 — Milestone D output governance hardening (partial complete)
+
+Changed:
+- Added governance frontmatter and operator disclaimer to generated memo markdown (`output_release_id`, `generator_version`, `generated_at`, `review_status`, `source_artifacts`).
+- Updated output lifecycle defaults in service layer: new outputs use `review_status=pending_review`; accepted file-back maps to `review_status=approved`.
+- Added backward-compatible review-status handling:
+	- API list filter aliasing (`pending_review` includes legacy `pending`/`needs_review`; `approved` includes legacy `accepted`).
+	- response schema normalizes legacy statuses (`pending -> pending_review`, `accepted -> approved`).
+- Updated Outputs UI review-status filter options to include `pending_review` and `released` semantics.
+- Added i18n labels for `pending_review` and `released`.
+- Updated/expanded output tests for governance memo header/disclaimer and status alias normalization behavior.
+
+Tests:
+- command: `.venv/bin/pytest -q tests/test_outputs_api.py tests/test_output_memo.py`
+- result: pending (run after patch)
+
+Release impact:
+- additive governance hardening; backward-compatible status aliasing preserved for legacy rows.
+
+Residual risks:
+- Dedicated `release` endpoint/status transition guard is still not implemented in this slice.

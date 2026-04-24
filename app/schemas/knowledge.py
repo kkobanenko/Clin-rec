@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ArtifactSourceLinkOut(BaseModel):
@@ -108,5 +108,16 @@ class OutputReleaseOut(BaseModel):
     review_status: str | None = None
     released_at: datetime | None = None
     file_back_status: str | None = None
+
+    @field_validator("review_status", mode="before")
+    @classmethod
+    def _normalize_review_status(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        aliases = {
+            "pending": "pending_review",
+            "accepted": "approved",
+        }
+        return aliases.get(value, value)
 
     model_config = {"from_attributes": True}

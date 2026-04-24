@@ -52,14 +52,15 @@ def _build_memo_markdown(
     Простой Markdown-memo: список последних дайджестов или slug из scope_json.
     Возвращает (текст файла, memo_manifest для scope_json).
     """
+    generated_at = datetime.now(timezone.utc).isoformat()
     lines: list[str] = [
-        "# Analytic memo",
-        "",
-        f"- `output_release_id`: `{output_id}`",
-        f"- `generator_version`: `{GENERATOR_VERSION}`",
-        "",
-        "## Ссылки на дайджесты (source_digest)",
-        "",
+        "---",
+        "output_type: memo",
+        f"output_release_id: {output_id}",
+        f"generator_version: {GENERATOR_VERSION}",
+        f"generated_at: {generated_at}",
+        "review_status: pending_review",
+        "source_artifacts:",
     ]
     manifest: dict = {"generator_version": GENERATOR_VERSION, "digest_slugs": []}
     scope = scope_json or {}
@@ -67,7 +68,7 @@ def _build_memo_markdown(
     if scope.get("digest_slugs"):
         for slug in scope["digest_slugs"]:
             manifest["digest_slugs"].append(slug)
-            lines.append(f"- [[{slug}]]")
+            lines.append(f"  - {slug}")
     else:
         rows = session.execute(
             select(KnowledgeArtifact.canonical_slug, KnowledgeArtifact.title)
@@ -77,7 +78,22 @@ def _build_memo_markdown(
         ).all()
         for slug, title in rows:
             manifest["digest_slugs"].append(str(slug))
-            lines.append(f"- [{title}]({slug})")
+            lines.append(f"  - {slug}")
+    lines.extend(
+        [
+            "---",
+            "",
+            "> Internal analytical draft. Not a medical recommendation.",
+            "> Requires human review before release.",
+            "",
+            "# Analytic memo",
+            "",
+            "## Source digest links",
+            "",
+        ]
+    )
+    for slug in manifest["digest_slugs"]:
+        lines.append(f"- [[{slug}]]")
     body = "\n".join(lines) + "\n"
     return body, manifest
 
@@ -108,7 +124,7 @@ def create_pending_output(
             title=safe_title,
             scope_json=scope_json,
             generator_version=generator_version,
-            review_status="pending",
+            review_status="pending_review",
             file_back_status="pending",
         )
         session.add(row)
@@ -146,13 +162,13 @@ def apply_file_back(output_id: int, file_back_status: str) -> dict:
         row.file_back_status = file_back_status
         if file_back_status == "accepted":
             row.released_at = datetime.now(timezone.utc)
-            row.review_status = "accepted"
+            row.review_status = "approved"
             artifact = _ensure_output_artifact(session, row)
         elif file_back_status == "rejected":
             row.review_status = "rejected"
             artifact = None
         else:
-            row.review_status = "needs_review"
+            row.review_status = "pending_review"
             artifact = None
 
         session.commit()

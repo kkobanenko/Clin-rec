@@ -1114,7 +1114,7 @@ def page_outputs():
     )
     review_status_filter = out_col3.selectbox(
         tr("Review Status Filter"),
-        ["", "draft", "auto", "needs_review", "approved", "rejected"],
+        ["", "pending_review", "approved", "released", "rejected", "needs_review"],
         index=0,
         format_func=format_pipeline_stage_option,
     )

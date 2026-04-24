@@ -183,6 +183,49 @@ async def test_list_outputs_applies_review_status_filter():
 
 
 @pytest.mark.asyncio
+async def test_list_outputs_applies_pending_review_alias_filter():
+    fake_session = FakeAsyncSession(
+        [
+            FakeScalarResult(1),
+            FakeRowsResult(
+                [
+                    SimpleNamespace(
+                        id=15,
+                        output_type="memo",
+                        title="Legacy pending memo",
+                        artifact_id=None,
+                        file_pointer=None,
+                        scope_json=None,
+                        generator_version="v2",
+                        review_status="pending",
+                        released_at=None,
+                        file_back_status="needs_review",
+                    )
+                ]
+            ),
+        ]
+    )
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/outputs?page=1&page_size=50&review_status=pending_review")
+
+        assert resp.status_code == 200
+        compiled_count = fake_session.queries[0].compile()
+        compiled_rows = fake_session.queries[1].compile()
+        for compiled in (compiled_count, compiled_rows):
+            sql = str(compiled)
+            assert "output_release.review_status IN" in sql
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_released_only_filter():
     fake_session = FakeAsyncSession(
         [
@@ -388,6 +431,40 @@ async def test_get_output_returns_row():
 
         assert resp.status_code == 200
         assert resp.json()["id"] == 5
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_get_output_normalizes_legacy_review_status():
+    async def override_get_db():
+        yield FakeAsyncSession(
+            [
+                FakeScalarResult(
+                    SimpleNamespace(
+                        id=6,
+                        output_type="memo",
+                        title="Legacy review memo",
+                        artifact_id=None,
+                        file_pointer=None,
+                        scope_json=None,
+                        generator_version="v1",
+                        review_status="pending",
+                        released_at=None,
+                        file_back_status="pending",
+                    )
+                )
+            ]
+        )
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/outputs/6")
+
+        assert resp.status_code == 200
+        assert resp.json()["review_status"] == "pending_review"
     finally:
         app.dependency_overrides.pop(get_db, None)
 
