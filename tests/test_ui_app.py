@@ -11,6 +11,7 @@ from app.ui.app import (
     resolve_review_target_id,
     resolve_task_id,
     search_recent_tasks,
+    sort_recent_tasks,
 )
 
 
@@ -166,3 +167,21 @@ def test_search_recent_tasks_filters_case_insensitively() -> None:
     recent_tasks = [{"task_id": "1", "label": "Sync Task"}, {"task_id": "2", "label": "Review Task"}]
 
     assert search_recent_tasks(recent_tasks, "sync") == [{"task_id": "1", "label": "Sync Task"}]
+
+
+def test_sort_recent_tasks_defaults_to_newest_first() -> None:
+    recent_tasks = [
+        {"task_id": "1", "queued_at": "2026-04-24T10:00:00+00:00"},
+        {"task_id": "2", "queued_at": "2026-04-24T10:05:00+00:00"},
+    ]
+
+    assert [item["task_id"] for item in sort_recent_tasks(recent_tasks, "newest")] == ["2", "1"]
+
+
+def test_sort_recent_tasks_supports_oldest_first() -> None:
+    recent_tasks = [
+        {"task_id": "1", "queued_at": "2026-04-24T10:00:00+00:00"},
+        {"task_id": "2", "queued_at": "2026-04-24T10:05:00+00:00"},
+    ]
+
+    assert [item["task_id"] for item in sort_recent_tasks(recent_tasks, "oldest")] == ["1", "2"]

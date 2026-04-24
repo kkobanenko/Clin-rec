@@ -170,6 +170,14 @@ def search_recent_tasks(recent_tasks: list[dict[str, Any]], search_query: str) -
     return [item for item in recent_tasks if stripped_query in str(item.get("label", "")).lower()]
 
 
+def sort_recent_tasks(recent_tasks: list[dict[str, Any]], sort_order: str) -> list[dict[str, Any]]:
+    return sorted(
+        recent_tasks,
+        key=lambda item: str(item.get("queued_at", "")),
+        reverse=sort_order != "oldest",
+    )
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -1355,9 +1363,18 @@ def page_tasks():
         key="task_origin_filter",
     )
     task_label_search = st.text_input(tr("Task Label Search"), key="task_label_search")
-    filtered_recent_tasks = search_recent_tasks(
-        filter_recent_tasks(recent_tasks, selected_origin),
-        task_label_search,
+    task_sort_order = st.selectbox(
+        tr("Task Sort Order"),
+        ["newest", "oldest"],
+        format_func=lambda sort_value: tr("Newest First") if sort_value == "newest" else tr("Oldest First"),
+        key="task_sort_order",
+    )
+    filtered_recent_tasks = sort_recent_tasks(
+        search_recent_tasks(
+            filter_recent_tasks(recent_tasks, selected_origin),
+            task_label_search,
+        ),
+        task_sort_order,
     )
     st.subheader("Recent UI Tasks")
     if filtered_recent_tasks:
