@@ -574,8 +574,12 @@ def page_documents():
             for artifact in filter_document_artifacts(artifact_items, selected_artifact_type):
                 col1, col2, col3 = st.columns([2, 1, 1])
                 col1.write(
-                    f"#{artifact.get('id')} {artifact.get('artifact_type')} "
-                    f"({artifact.get('content_type') or 'application/octet-stream'})"
+                    tr(
+                        "Artifact #{id} {artifact_type} ({content_type})",
+                        id=artifact.get("id"),
+                        artifact_type=tr(artifact.get("artifact_type") or "Unknown"),
+                        content_type=artifact.get("content_type") or tr("application/octet-stream"),
+                    )
                 )
                 col2.link_button(tr("Download"), f"{API_BASE}{artifact.get('download_url')}")
                 col3.link_button(tr("Preview"), f"{API_BASE}{artifact.get('preview_url')}")
@@ -1094,7 +1098,10 @@ def page_outputs():
 
     st.subheader(tr("Output Detail"))
     current_output_options = {
-        item["id"]: f"#{item['id']} | {item.get('output_type')} | {item.get('title') or 'untitled'}"
+        item["id"]: (
+            f"#{item['id']} | {tr(item.get('output_type') or 'Unknown')} | "
+            f"{item.get('title') or tr('Untitled')}"
+        )
         for item in items
         if item.get("id") is not None
     }
@@ -1134,7 +1141,10 @@ def page_outputs():
     st.subheader(tr("File Back Output"))
     with st.form("output_file_back_form"):
         file_back_output_options = {
-            item["id"]: f"#{item['id']} | {item.get('output_type')} | {item.get('title') or 'untitled'}"
+            item["id"]: (
+                f"#{item['id']} | {tr(item.get('output_type') or 'Unknown')} | "
+                f"{item.get('title') or tr('Untitled')}"
+            )
             for item in items
             if item.get("id") is not None
         }
@@ -1251,7 +1261,10 @@ def page_kb():
 
     st.subheader(tr("Artifact Detail"))
     current_artifact_options = {
-        item["id"]: f"#{item['id']} | {item.get('artifact_type')} | {item.get('title') or 'untitled'}"
+        item["id"]: (
+            f"#{item['id']} | {tr(item.get('artifact_type') or 'Unknown')} | "
+            f"{item.get('title') or tr('Untitled')}"
+        )
         for item in items
         if item.get("id") is not None
     }
@@ -1312,7 +1325,10 @@ def page_kb():
 
     st.subheader(tr("Entity Detail"))
     current_entity_options = {
-        item["id"]: f"#{item['id']} | {item.get('entity_type')} | {item.get('canonical_name') or 'unnamed'}"
+        item["id"]: (
+            f"#{item['id']} | {tr(item.get('entity_type') or 'Unknown')} | "
+            f"{item.get('canonical_name') or tr('Untitled entity')}"
+        )
         for item in items
         if item.get("id") is not None
     }
