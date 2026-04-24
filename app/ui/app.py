@@ -178,6 +178,12 @@ def sort_recent_tasks(recent_tasks: list[dict[str, Any]], sort_order: str) -> li
     )
 
 
+def filter_document_items(document_items: list[dict[str, Any]], status_filter: str) -> list[dict[str, Any]]:
+    if not status_filter:
+        return document_items
+    return [item for item in document_items if str(item.get("status", "")) == status_filter]
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -467,7 +473,21 @@ def page_documents():
         st.info("No documents found")
         return
 
-    df = pd.DataFrame(items)
+    document_status_options = [""] + sorted(
+        {str(item.get("status", "")) for item in items if item.get("status")}
+    )
+    selected_status = st.selectbox(
+        tr("Document Status Filter"),
+        document_status_options,
+        format_func=lambda value: tr("All Statuses") if not value else tr(value),
+        key="document_status_filter",
+    )
+    filtered_items = filter_document_items(items, selected_status)
+    if not filtered_items:
+        st.info("No documents found")
+        return
+
+    df = pd.DataFrame(filtered_items)
     display_cols = ["id", "title", "specialty", "status", "external_id"]
     display_cols = [c for c in display_cols if c in df.columns]
     st.dataframe(df[display_cols], width="stretch")
@@ -476,7 +496,7 @@ def page_documents():
     st.subheader("Document Detail")
     current_document_options = {
         item["id"]: f"#{item['id']} | {item.get('title')}"
-        for item in items
+        for item in filtered_items
         if item.get("id") is not None
     }
     selected_document_id = st.selectbox(

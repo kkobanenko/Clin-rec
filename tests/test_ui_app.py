@@ -2,6 +2,7 @@ from app.ui.app import (
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
     build_matrix_query_params,
+    filter_document_items,
     filter_recent_tasks,
     resolve_artifact_id,
     resolve_document_id,
@@ -185,3 +186,15 @@ def test_sort_recent_tasks_supports_oldest_first() -> None:
     ]
 
     assert [item["task_id"] for item in sort_recent_tasks(recent_tasks, "oldest")] == ["1", "2"]
+
+
+def test_filter_document_items_returns_all_when_status_empty() -> None:
+    document_items = [{"id": 1, "status": "ready"}, {"id": 2, "status": "draft"}]
+
+    assert filter_document_items(document_items, "") == document_items
+
+
+def test_filter_document_items_keeps_only_matching_status() -> None:
+    document_items = [{"id": 1, "status": "ready"}, {"id": 2, "status": "draft"}]
+
+    assert filter_document_items(document_items, "ready") == [{"id": 1, "status": "ready"}]

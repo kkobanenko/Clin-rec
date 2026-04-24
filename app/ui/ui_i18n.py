@@ -90,6 +90,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Current Document": {"ru": "Документ из текущего списка", "en": "Current Document"},
     "Manual Document ID": {"ru": "Ввести ID документа вручную", "en": "Manual Document ID"},
     "Document ID": {"ru": "ID документа", "en": "Document ID"},
+    "Document Status Filter": {"ru": "Фильтр статуса документа", "en": "Document Status Filter"},
+    "All Statuses": {"ru": "Все статусы", "en": "All Statuses"},
     "Load Document": {"ru": "Загрузить документ", "en": "Load Document"},
     "Raw Source Artifacts": {"ru": "Сырые исходные артефакты", "en": "Raw Source Artifacts"},
     "Download": {"ru": "Скачать", "en": "Download"},
