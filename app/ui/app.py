@@ -121,7 +121,12 @@ def format_entity_option_label(item: dict[str, Any]) -> str:
 
 
 def format_task_option_label(item: dict[str, Any]) -> str:
-    return f"{item.get('task_id')} | {tr(item.get('label') or 'Unknown')} | {tr(item.get('origin') or 'Unknown')}"
+    return tr(
+        "{task_id} | {label} | {origin}",
+        task_id=item.get("task_id"),
+        label=tr(item.get("label") or "Unknown"),
+        origin=tr(item.get("origin") or "Unknown"),
+    )
 
 
 def translate_value_or_fallback(value: Any, *, fallback: str = "n/a") -> str:
