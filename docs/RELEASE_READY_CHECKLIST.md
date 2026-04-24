@@ -63,8 +63,8 @@
 
 ## 8. Source of Truth
 
-- Product contract: `PRD_CR_Intelligence_Platform_v1_6.md`
-- Technical tranche: `TZ_CR_Intelligence_Platform_v1_5.md`
+- Product contract: `PRD_CR_Intelligence_Platform_v1_7.md`
+- Technical tranche: `TZ_CR_Intelligence_Platform_v1_6.md`
 - Runtime procedure: `RUNBOOK_RUNTIME_PROFILE.md`
 - Live rehearsal record: `docs/RELEASE_REHEARSAL_2026-04-22.md`
 - Final release summary: `docs/RELEASE_SUMMARY_2026-04-22.md`

@@ -64,8 +64,8 @@
 
 ## 8. Sources of Truth
 
-- `PRD_CR_Intelligence_Platform_v1_6.md`
-- `TZ_CR_Intelligence_Platform_v1_5.md`
+- `PRD_CR_Intelligence_Platform_v1_7.md`
+- `TZ_CR_Intelligence_Platform_v1_6.md`
 - `RUNBOOK_RUNTIME_PROFILE.md`
 - `docs/RELEASE_READY_CHECKLIST.md`
 - `DOD_MVP.md`

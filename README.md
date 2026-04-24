@@ -4,10 +4,14 @@
 
 ## Current Release Docs
 
-- `PRD_CR_Intelligence_Platform_v1_6.md`: текущий продуктовый contract для transition к release-ready MVP
-- `TZ_CR_Intelligence_Platform_v1_5.md`: текущий технический tranche release hardening
+- `PRD_CR_Intelligence_Platform_v1_7.md`: текущий продуктовый contract для перехода `release-ready MVP -> pilot hardening`
+- `TZ_CR_Intelligence_Platform_v1_6.md`: текущий технический plan pilot hardening без ломки validated release contract
+- `DOD_MVP_PILOT_v1.md`: pilot-ready DoD поверх baseline release-ready MVP
 - `RUNBOOK_RUNTIME_PROFILE.md`: runtime profile, smoke semantics и release verification sequence
 - `docs/RELEASE_READY_CHECKLIST.md`: операторский go/no-go checklist для MVP release decision
+- `docs/ROADMAP_PILOT_HARDENING_v1.md`: pilot-hardening roadmap
+- `docs/OPERATOR_RUNBOOK_PILOT_v1.md`: operator runbook для pilot stage
+- `docs/DISCOVERY_COMPLETENESS_PLAN_v1.md`: plan отделения smoke discovery от completeness claims
 - `docs/RELEASE_REHEARSAL_2026-04-23.md`: current clean full-pack rehearsal record для compose-backed runtime после raw-artifact access и model-health fix
 - `docs/RELEASE_SUMMARY_2026-04-23.md`: current clean full-pack go/no-go summary для rehearsal 2026-04-23
 - `docs/RELEASE_REHEARSAL_2026-04-22.md`: clean full-pack rehearsal record для текущего compose-backed runtime
@@ -18,10 +22,10 @@
 
 ## Current Implementation Stage
 
-- Stage: `release-ready MVP`
-- Active tranche: `phase-2 operator hardening`
+- Stage: `release-ready MVP -> pilot hardening`
+- Active tranche: `pilot hardening`
 - Latest validated full-pack evidence: `docs/RELEASE_SUMMARY_2026-04-24.md`
-- Immediate focus: canonical doc sync, helper-level regression expansion, remaining detail-renderer polish, and additive cross-surface handoff between pipeline, tasks, outputs, KB and review surfaces without reopening release-contract risk
+- Immediate focus: milestone-driven pilot hardening (canonical docs, discovery completeness report, pilot runtime profile, output governance, KB lint expansion) without reopening validated release-contract risk
 
 ## VS Code Tasks
 

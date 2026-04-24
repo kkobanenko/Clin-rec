@@ -67,6 +67,25 @@
 - Full-pack compose-backed validation уже зафиксирован в `docs/RELEASE_SUMMARY_2026-04-24.md`; текущие backlog items больше не трактуются как release blockers по умолчанию.
 - Ближайший фокус: additive UI/API follow-up, уменьшающий operator friction без ломки release contract.
 
+## Release blockers
+
+- Нет открытых release blockers для уже зафиксированного `release-ready MVP` на profile `docker-compose-only`.
+- Любое повторное объявление release blocker требует новой фактической evidence-проверки (full-pack или явно scoped rerun), а не doc-only интерпретации.
+
+## Pilot blockers
+
+- Discovery completeness не отделен до конца от smoke semantics в operator-facing reporting (`discovery_strategy_report`, explicit completeness mode, fallback reasons, smoke vs corpus claims).
+- Pilot runtime profile и preflight дисциплина еще не зафиксированы отдельным runbook/script набором.
+- Output governance hardening (status semantics/disclaimer/header enforcement) остается частично незавершенным.
+- KB lint/frontmatter расширение до pilot-ready quality floor остается неполным.
+- Минимальный non-local access control policy/implementation пока не формализован как pilot-ready gate.
+
+## Post-MVP polish
+
+- Full dashboard redesign, единый linkage-view и gap suggestions.
+- Глубокая локализация framework-provided Streamlit chrome.
+- Широкая productization beyond operator-centric pilot scope.
+
 ## Ближайшие шаги
 
 - P0. Держать PRD/TZ/VERSIONING/backlog синхронными с validated head и не выдавать старую release evidence baseline за новый rerun.
