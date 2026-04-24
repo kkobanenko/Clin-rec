@@ -1113,7 +1113,7 @@ def page_outputs():
             artifact_id = detail.get("artifact_id")
             if artifact_id:
                 st.success(tr("Linked KB artifact: #{id}", id=artifact_id))
-                if st.button("Load Linked Artifact", key=f"load_output_artifact_{artifact_id}"):
+                if st.button(tr("Load Linked Artifact"), key=f"load_output_artifact_{artifact_id}"):
                     artifact = api_get(f"/kb/artifacts/{artifact_id}")
                     if artifact:
                         render_kb_artifact_detail(artifact)
