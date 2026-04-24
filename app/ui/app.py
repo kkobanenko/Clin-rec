@@ -1021,7 +1021,7 @@ def page_scoring_models():
                     rows = details.get(section) or []
                     if rows:
                         st.markdown(f"**{tr(section.title())}**")
-                        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+                        st.dataframe(localize_dataframe_columns(pd.DataFrame(rows)), width="stretch", hide_index=True)
     else:
         st.info(tr("No scoring models defined"))
 
