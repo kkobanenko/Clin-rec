@@ -1028,10 +1028,10 @@ def page_scoring_models():
 # --- Page: Outputs ---
 
 def page_outputs():
-    st.header("Outputs")
+    st.header(tr("Outputs"))
 
     out_col1, out_col2, out_col3, out_col4, out_col5 = st.columns(5)
-    output_type_filter = out_col1.selectbox("Output Type Filter", ["", "memo"], index=0)
+    output_type_filter = out_col1.selectbox(tr("Output Type Filter"), ["", "memo"], index=0)
     file_back_filter = out_col2.selectbox(
         "File-Back Filter",
         ["", "accepted", "rejected", "needs_review"],
@@ -1042,16 +1042,16 @@ def page_outputs():
         ["", "draft", "auto", "needs_review", "approved", "rejected"],
         index=0,
     )
-    generator_version_filter = out_col4.text_input("Generator Version Filter")
+    generator_version_filter = out_col4.text_input(tr("Generator Version Filter"))
     output_artifact_id = out_col5.number_input(
         "Artifact ID Filter",
         min_value=0,
         step=1,
         help="0 means no artifact filter",
     )
-    output_search = st.text_input("Output Search")
-    released_only = st.checkbox("Released Outputs Only")
-    has_file_pointer = st.checkbox("Outputs With Files Only")
+    output_search = st.text_input(tr("Output Search"))
+    released_only = st.checkbox(tr("Released Outputs Only"))
+    has_file_pointer = st.checkbox(tr("Outputs With Files Only"))
     params = {"page_size": 50}
     if output_type_filter:
         params["output_type"] = output_type_filter
@@ -1090,9 +1090,9 @@ def page_outputs():
                 )
             st.dataframe(pd.DataFrame(output_rows), width="stretch", hide_index=True)
         else:
-            st.info("No outputs available")
+            st.info(tr("No outputs available"))
 
-    st.subheader("Output Detail")
+    st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: f"#{item['id']} | {item.get('output_type')} | {item.get('title') or 'untitled'}"
         for item in items
@@ -1104,8 +1104,8 @@ def page_outputs():
         format_func=lambda value: tr("Manual Output ID") if value is None else current_output_options[value],
         key="current_output_id",
     )
-    detail_output_id = st.number_input("Detail Output ID", min_value=1, step=1, key="detail_output_id")
-    if st.button("Load Output Detail"):
+    detail_output_id = st.number_input(tr("Detail Output ID"), min_value=1, step=1, key="detail_output_id")
+    if st.button(tr("Load Output Detail")):
         resolved_output_id = resolve_output_id(detail_output_id, selected_output_id)
         detail = api_get(f"/outputs/{resolved_output_id}")
         if detail:
