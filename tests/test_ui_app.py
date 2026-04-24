@@ -267,3 +267,9 @@ def test_format_output_option_label_uses_fallback_title() -> None:
     formatted = format_output_option_label({"id": 7, "output_type": "memo", "title": None})
 
     assert formatted == "#7 | memo | Untitled"
+
+
+def test_format_output_option_label_uses_unknown_type_fallback() -> None:
+    formatted = format_output_option_label({"id": 8, "output_type": None, "title": "Demo"})
+
+    assert formatted == "#8 | Unknown | Demo"
