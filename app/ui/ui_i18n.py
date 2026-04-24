@@ -255,7 +255,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Lint KB": {"ru": "Проверить KB", "en": "Lint KB"},
     "KB compile queued: {task_id}": {"ru": "Сборка KB поставлена в очередь: {task_id}", "en": "KB compile queued: {task_id}"},
     "KB lint queued: {task_id}": {"ru": "Lint KB поставлен в очередь: {task_id}", "en": "KB lint queued: {task_id}"},
-    "Master Index": {"ru": "Master index", "en": "Master Index"},
+    "Master Index": {"ru": "Главный индекс", "en": "Master Index"},
     "artifact #{id} {slug}": {"ru": "артефакт #{id} {slug}", "en": "artifact #{id} {slug}"},
     "No master index artifact yet": {"ru": "Артефакта master index пока нет", "en": "No master index artifact yet"},
     "Master Manifest": {"ru": "Манифест master index", "en": "Master Manifest"},
