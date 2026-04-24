@@ -599,16 +599,16 @@ def page_documents():
 # --- Page: Pipeline ---
 
 def page_pipeline():
-    st.header("Pipeline Management")
+    st.header(tr("Pipeline Management"))
 
     col1, col2 = st.columns(2)
-    if col1.button("Run Full Sync", type="primary"):
+    if col1.button(tr("Run Full Sync"), type="primary"):
         result = api_post("/sync/full")
         if result:
             remember_task(result.get("task_id"), label="sync_full", origin="pipeline")
             st.success(tr("Pipeline run started: ID {run_id}", run_id=result.get("run_id")))
 
-    if col2.button("Run Incremental Sync"):
+    if col2.button(tr("Run Incremental Sync")):
         result = api_post("/sync/incremental")
         if result:
             remember_task(result.get("task_id"), label="sync_incremental", origin="pipeline")
@@ -628,7 +628,7 @@ def page_pipeline():
     )
 
     # Recent runs
-    st.subheader("Recent Pipeline Runs")
+    st.subheader(tr("Recent Pipeline Runs"))
     run_params = {"page_size": 20}
     if stage_filter:
         run_params["stage"] = stage_filter
