@@ -1429,12 +1429,14 @@ def page_kb():
         tr("Claim Type Filter"),
         ["", "fact", "inference", "hypothesis"],
         index=0,
+        format_func=format_pipeline_stage_option,
         key="kb_claim_type_filter",
     )
     claim_review_filter = claim_col3.selectbox(
         tr("Claim Review Filter"),
         ["", "auto", "needs_review", "approved", "rejected"],
         index=0,
+        format_func=format_pipeline_stage_option,
         key="kb_claim_review_filter",
     )
     claim_page_size = claim_col4.number_input(
