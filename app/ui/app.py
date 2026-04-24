@@ -301,6 +301,55 @@ def filter_pipeline_runs(run_items: list[dict[str, Any]], status_filter: str) ->
     return [item for item in run_items if str(item.get("status", "")) == status_filter]
 
 
+def resolve_current_document_version_id(document_detail: dict[str, Any] | None) -> int | None:
+    if not isinstance(document_detail, dict):
+        return None
+    versions = document_detail.get("versions")
+    if not isinstance(versions, list):
+        return None
+    current_version = next((item for item in versions if item.get("is_current") is True), None)
+    if isinstance(current_version, dict) and isinstance(current_version.get("id"), int):
+        return int(current_version["id"])
+    version_ids = [int(item["id"]) for item in versions if isinstance(item, dict) and isinstance(item.get("id"), int)]
+    if not version_ids:
+        return None
+    return max(version_ids)
+
+
+def extract_source_document_version_ids(artifact_detail: dict[str, Any] | None) -> list[int]:
+    if not isinstance(artifact_detail, dict):
+        return []
+    found_ids: set[int] = set()
+    source_links = artifact_detail.get("source_links")
+    if isinstance(source_links, list):
+        for link in source_links:
+            if not isinstance(link, dict):
+                continue
+            if link.get("source_kind") != "document_version":
+                continue
+            source_id = link.get("source_id")
+            if isinstance(source_id, int):
+                found_ids.add(source_id)
+    manifest = artifact_detail.get("manifest_json")
+    if isinstance(manifest, dict):
+        version_ids = manifest.get("source_document_version_ids")
+        if isinstance(version_ids, list):
+            for value in version_ids:
+                if isinstance(value, int):
+                    found_ids.add(value)
+    return sorted(found_ids)
+
+
+def extract_matrix_pair_from_diff_row(diff_row: dict[str, Any] | None) -> tuple[int, int] | None:
+    if not isinstance(diff_row, dict):
+        return None
+    mol_from = diff_row.get("from")
+    mol_to = diff_row.get("to")
+    if not isinstance(mol_from, int) or not isinstance(mol_to, int):
+        return None
+    return mol_from, mol_to
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -631,6 +680,7 @@ def page_documents():
     if st.button(tr("Load Document")):
         resolved_doc_id = resolve_document_id(doc_id, selected_document_id)
         detail = api_get(f"/documents/{resolved_doc_id}")
+        current_version_id = resolve_current_document_version_id(detail if isinstance(detail, dict) else None)
         if detail:
             st.json(detail)
 
@@ -674,6 +724,26 @@ def page_documents():
                     fragments = sec.get("fragments", [])
                     for frag in fragments:
                         st.text(frag.get("fragment_text", "")[:500])
+
+        st.subheader(tr("Document Linkage"))
+        if current_version_id:
+            st.caption(tr("Current document version ID: {id}", id=current_version_id))
+            if st.button(tr("Load Evidence For Current Version"), key=f"document_link_evidence_{resolved_doc_id}"):
+                evidence = api_get(
+                    "/matrix/pair-evidence",
+                    {"document_version_id": current_version_id, "page_size": 20},
+                )
+                if isinstance(evidence, dict):
+                    st.caption(tr("Evidence rows: {count}", count=evidence.get("total", 0)))
+                    evidence_rows = evidence.get("items", [])
+                    if evidence_rows:
+                        st.dataframe(
+                            localize_dataframe_columns(pd.DataFrame(evidence_rows)),
+                            width="stretch",
+                            hide_index=True,
+                        )
+        else:
+            st.info(tr("Current document version is unavailable for linkage"))
 
 
 # --- Page: Pipeline ---
@@ -731,6 +801,29 @@ def page_pipeline():
                 detail = api_get(f"/runs/{selected_run_id}")
                 if detail:
                     st.json(detail)
+                    stats_json = detail.get("stats_json") if isinstance(detail, dict) else None
+                    doc_ids = []
+                    if isinstance(stats_json, dict):
+                        for key in ("document_ids", "registry_ids", "processed_document_ids"):
+                            value = stats_json.get(key)
+                            if isinstance(value, list):
+                                doc_ids = [item for item in value if isinstance(item, int)]
+                                if doc_ids:
+                                    break
+                    st.subheader(tr("Run Linkage"))
+                    if doc_ids:
+                        st.caption(tr("Run touched document IDs: {ids}", ids=", ".join(str(item) for item in doc_ids[:20])))
+                    else:
+                        st.caption(tr("Run touched document IDs are not available"))
+                    if st.button(tr("Load Latest Outputs For Run Follow-Up"), key=f"run_link_outputs_{selected_run_id}"):
+                        linked_outputs = api_get("/outputs", {"page_size": 10})
+                        if isinstance(linked_outputs, dict) and linked_outputs.get("items"):
+                            st.dataframe(
+                                localize_dataframe_columns(pd.DataFrame(linked_outputs.get("items", []))),
+                                width="stretch",
+                                hide_index=True,
+                            )
+                    st.caption(tr("Use Tasks page with pipeline origin filter to inspect related task states"))
         else:
             st.info(tr("No pipeline runs yet"))
 
@@ -1077,6 +1170,37 @@ def page_scoring_models():
                     if rows:
                         st.markdown(f"**{tr(section.title())}**")
                         st.dataframe(localize_dataframe_columns(pd.DataFrame(rows)), width="stretch", hide_index=True)
+
+                changed_rows = details.get("changed") or []
+                if changed_rows:
+                    st.subheader(tr("Diff Linkage"))
+                    pair_options = {
+                        index: tr("Pair {from_id}->{to_id}", from_id=row.get("from"), to_id=row.get("to"))
+                        for index, row in enumerate(changed_rows)
+                        if extract_matrix_pair_from_diff_row(row)
+                    }
+                    if pair_options:
+                        selected_pair_index = st.selectbox(
+                            tr("Changed Pair"),
+                            list(pair_options),
+                            format_func=lambda value: pair_options[value],
+                            key="model_diff_pair_index",
+                        )
+                        pair = extract_matrix_pair_from_diff_row(changed_rows[selected_pair_index])
+                        if pair and st.button(tr("Load Evidence For Changed Pair"), key="load_changed_pair_evidence"):
+                            pair_evidence = api_get(
+                                "/matrix/pair-evidence",
+                                {"molecule_from_id": pair[0], "molecule_to_id": pair[1], "page_size": 20},
+                            )
+                            if isinstance(pair_evidence, dict):
+                                st.caption(tr("Evidence rows: {count}", count=pair_evidence.get("total", 0)))
+                                rows = pair_evidence.get("items", [])
+                                if rows:
+                                    st.dataframe(
+                                        localize_dataframe_columns(pd.DataFrame(rows)),
+                                        width="stretch",
+                                        hide_index=True,
+                                    )
     else:
         st.info(tr("No scoring models defined"))
 
@@ -1201,6 +1325,35 @@ def page_outputs():
                     artifact = api_get(f"/kb/artifacts/{artifact_id}")
                     if artifact:
                         render_kb_artifact_detail(artifact)
+                        source_version_ids = extract_source_document_version_ids(artifact)
+                        st.subheader(tr("Output Linkage"))
+                        if source_version_ids:
+                            st.caption(
+                                tr(
+                                    "Linked source document versions: {ids}",
+                                    ids=", ".join(str(item) for item in source_version_ids),
+                                )
+                            )
+                            first_version_id = source_version_ids[0]
+                            if st.button(
+                                tr("Load Evidence For Linked Source Version"),
+                                key=f"output_link_evidence_{artifact_id}_{first_version_id}",
+                            ):
+                                evidence = api_get(
+                                    "/matrix/pair-evidence",
+                                    {"document_version_id": first_version_id, "page_size": 20},
+                                )
+                                if isinstance(evidence, dict):
+                                    st.caption(tr("Evidence rows: {count}", count=evidence.get("total", 0)))
+                                    evidence_rows = evidence.get("items", [])
+                                    if evidence_rows:
+                                        st.dataframe(
+                                            localize_dataframe_columns(pd.DataFrame(evidence_rows)),
+                                            width="stretch",
+                                            hide_index=True,
+                                        )
+                        else:
+                            st.info(tr("No source document versions linked to this artifact"))
 
     st.subheader(tr("Generate Output"))
     with st.form("output_generate_form"):
@@ -1526,6 +1679,55 @@ def page_kb():
                     }
                 )
             st.dataframe(localize_dataframe_columns(pd.DataFrame(claim_rows)), width="stretch", hide_index=True)
+
+            st.subheader(tr("Claim Linkage"))
+            claim_option_map = {
+                item["id"]: tr(
+                    "#{id} | artifact {artifact_id} | {claim_type}",
+                    id=item.get("id"),
+                    artifact_id=item.get("artifact_id"),
+                    claim_type=tr(item.get("claim_type") or "Unknown"),
+                )
+                for item in items
+                if item.get("id") is not None
+            }
+            selected_claim_id = st.selectbox(
+                tr("Current Claim"),
+                [None, *list(claim_option_map)],
+                format_func=lambda value: tr("Manual Claim ID") if value is None else claim_option_map[value],
+                key="kb_current_claim_id",
+            )
+            if selected_claim_id is not None:
+                selected_claim = next((item for item in items if item.get("id") == selected_claim_id), None)
+                if isinstance(selected_claim, dict):
+                    linked_artifact_id = selected_claim.get("artifact_id")
+                    if isinstance(linked_artifact_id, int):
+                        if st.button(tr("Load Claim Artifact"), key=f"load_claim_artifact_{selected_claim_id}"):
+                            linked_artifact = api_get(f"/kb/artifacts/{linked_artifact_id}")
+                            if linked_artifact:
+                                render_kb_artifact_detail(linked_artifact)
+                                linked_version_ids = extract_source_document_version_ids(linked_artifact)
+                                if linked_version_ids:
+                                    first_version_id = linked_version_ids[0]
+                                    if st.button(
+                                        tr("Load Evidence For Claim Source Version"),
+                                        key=f"claim_link_evidence_{selected_claim_id}_{first_version_id}",
+                                    ):
+                                        linked_evidence = api_get(
+                                            "/matrix/pair-evidence",
+                                            {"document_version_id": first_version_id, "page_size": 20},
+                                        )
+                                        if isinstance(linked_evidence, dict):
+                                            st.caption(
+                                                tr("Evidence rows: {count}", count=linked_evidence.get("total", 0))
+                                            )
+                                            evidence_rows = linked_evidence.get("items", [])
+                                            if evidence_rows:
+                                                st.dataframe(
+                                                    localize_dataframe_columns(pd.DataFrame(evidence_rows)),
+                                                    width="stretch",
+                                                    hide_index=True,
+                                                )
         else:
             st.info(tr("No KB claims available"))
 

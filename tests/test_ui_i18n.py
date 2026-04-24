@@ -102,3 +102,12 @@ def test_new_pipeline_detail_labels_translate_to_russian() -> None:
     assert tr("Recent Run") == "Недавний прогон"
     assert tr("Load Selected Run") == "Загрузить выбранный прогон"
     assert tr("Stage Filter") == "Фильтр по стадии"
+
+
+def test_new_linkage_labels_translate_to_russian() -> None:
+    set_current_language("ru")
+
+    assert tr("Document Linkage") == "Связи документа"
+    assert tr("Output Linkage") == "Связи output"
+    assert tr("Claim Linkage") == "Связи claim"
+    assert tr("Diff Linkage") == "Связи diff"

@@ -1,4 +1,6 @@
 from app.ui.app import (
+    extract_matrix_pair_from_diff_row,
+    extract_source_document_version_ids,
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
     build_matrix_query_params,
@@ -19,6 +21,7 @@ from app.ui.app import (
     sort_document_items,
     sort_recent_tasks,
     translate_value_or_fallback,
+    resolve_current_document_version_id,
 )
 from app.ui.ui_i18n import set_current_language
 
@@ -277,3 +280,29 @@ def test_format_output_option_label_uses_unknown_type_fallback() -> None:
     formatted = format_output_option_label({"id": 8, "output_type": None, "title": "Demo"})
 
     assert formatted == "#8 | Unknown | Demo"
+
+
+def test_resolve_current_document_version_id_prefers_is_current_flag() -> None:
+    detail = {
+        "versions": [
+            {"id": 10, "is_current": False},
+            {"id": 11, "is_current": True},
+        ]
+    }
+    assert resolve_current_document_version_id(detail) == 11
+
+
+def test_extract_source_document_version_ids_merges_links_and_manifest() -> None:
+    artifact_detail = {
+        "source_links": [
+            {"source_kind": "document_version", "source_id": 5},
+            {"source_kind": "artifact", "source_id": 99},
+        ],
+        "manifest_json": {"source_document_version_ids": [7, 5]},
+    }
+    assert extract_source_document_version_ids(artifact_detail) == [5, 7]
+
+
+def test_extract_matrix_pair_from_diff_row_returns_none_for_invalid_payload() -> None:
+    assert extract_matrix_pair_from_diff_row({"from": 1, "to": "bad"}) is None
+    assert extract_matrix_pair_from_diff_row({"from": 2, "to": 3}) == (2, 3)

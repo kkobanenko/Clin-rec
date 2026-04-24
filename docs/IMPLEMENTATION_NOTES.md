@@ -136,3 +136,30 @@ Release impact:
 
 Residual risks:
 - Current gate is single shared API key (no per-user authz, rotation workflow or audit attribution yet).
+
+## 2026-04-25 — Milestone G operator UI linkage (partial complete)
+
+Changed:
+- Added small cross-link sections in Streamlit UI (without structural rewrite):
+	- Documents: `Document Linkage` quick path from selected document/current version to `/matrix/pair-evidence`.
+	- Pipeline: `Run Linkage` hints for touched document IDs (when present in `stats_json`) and quick follow-up load of latest outputs.
+	- Outputs: `Output Linkage` drilldown from output -> linked KB artifact -> source document versions -> pair evidence.
+	- Knowledge Base claims: `Claim Linkage` quick pick from claim -> linked artifact -> source-version evidence.
+	- Scoring Models diff: `Diff Linkage` quick pick from changed pair -> pair evidence lookup.
+- Added pure helper functions for linkage extraction:
+	- current document version resolver,
+	- source document version extraction from artifact detail,
+	- diff-row pair extraction.
+- Extended RU/EN i18n dictionary for all newly introduced linkage labels.
+- Added helper-level regressions in UI tests for new linkage helpers and i18n labels.
+
+Tests:
+- command: `.venv/bin/pytest -q tests/test_ui_i18n.py tests/test_ui_app.py tests/test_ui_regression_batches.py`
+- result: pass (`19251 passed`)
+
+Release impact:
+- non-blocker additive operator UX hardening (no API contract change)
+
+Residual risks:
+- Pipeline run -> touched documents linkage depends on `stats_json` field availability from run payload.
+- Claim -> source fragment remains indirect via source document version + evidence APIs (no direct fragment picker in this slice).

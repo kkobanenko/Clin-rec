@@ -656,13 +656,13 @@ def main():
                 "ℹ️  Structural smoke validated lifecycle, routing, observability contract, "
                 "and mounted auxiliary routes (outputs, kb, storage-stages, tasks)"
             )
-                log("ℹ️  Structural smoke is runtime validation only, not corpus completeness proof.")
+            log("ℹ️  Structural smoke is runtime validation only, not corpus completeness proof.")
         else:
             log(
                 "ℹ️  Quality smoke validated non-empty content, fragments, downstream pair evidence, "
                 "and scoring-model-backed matrix checks for the inspected document"
             )
-                log("ℹ️  Quality smoke validates inspected downstream data only, not full corpus completeness.")
+            log("ℹ️  Quality smoke validates inspected downstream data only, not full corpus completeness.")
         if discovered == 0:
             log("ℹ️  Completed run with discovered_count=0 is valid for structural smoke checks")
         if docs_total == 0:
