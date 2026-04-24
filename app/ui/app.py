@@ -844,7 +844,7 @@ def page_reviews():
                         "created_at": item.get("created_at"),
                     }
                 )
-            st.dataframe(pd.DataFrame(history_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(history_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No review actions yet"))
 
