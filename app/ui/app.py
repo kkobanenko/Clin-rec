@@ -219,6 +219,12 @@ def filter_document_sections(sections: list[dict[str, Any]], section_search: str
     return filtered_sections
 
 
+def filter_pipeline_runs(run_items: list[dict[str, Any]], status_filter: str) -> list[dict[str, Any]]:
+    if not status_filter:
+        return run_items
+    return [item for item in run_items if str(item.get("status", "")) == status_filter]
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -614,6 +620,12 @@ def page_pipeline():
         format_func=format_pipeline_stage_option,
         key="pipeline_stage_filter",
     )
+    pipeline_status_filter = st.selectbox(
+        tr("Pipeline Status Filter"),
+        ["", "queued", "running", "completed", "failed"],
+        format_func=lambda value: tr("All Statuses") if not value else tr(value),
+        key="pipeline_status_filter",
+    )
 
     # Recent runs
     st.subheader("Recent Pipeline Runs")
@@ -622,7 +634,7 @@ def page_pipeline():
         run_params["stage"] = stage_filter
     runs = api_get("/runs", run_params)
     if runs:
-        items = runs.get("items", [])
+        items = filter_pipeline_runs(runs.get("items", []), pipeline_status_filter)
         if items:
             df = pd.DataFrame(items)
             st.dataframe(df, width="stretch")

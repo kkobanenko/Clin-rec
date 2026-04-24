@@ -5,6 +5,7 @@ from app.ui.app import (
     filter_document_artifacts,
     filter_document_items,
     filter_document_sections,
+    filter_pipeline_runs,
     filter_recent_tasks,
     resolve_artifact_id,
     resolve_document_id,
@@ -242,3 +243,15 @@ def test_filter_document_sections_matches_title_or_fragment_text() -> None:
     assert filter_document_sections(sections, "insulin") == [
         {"section_title": "Treatment", "fragments": [{"fragment_text": "Beta insulin"}]}
     ]
+
+
+def test_filter_pipeline_runs_returns_all_when_status_empty() -> None:
+    run_items = [{"id": 1, "status": "completed"}, {"id": 2, "status": "failed"}]
+
+    assert filter_pipeline_runs(run_items, "") == run_items
+
+
+def test_filter_pipeline_runs_keeps_only_matching_status() -> None:
+    run_items = [{"id": 1, "status": "completed"}, {"id": 2, "status": "failed"}]
+
+    assert filter_pipeline_runs(run_items, "completed") == [{"id": 1, "status": "completed"}]

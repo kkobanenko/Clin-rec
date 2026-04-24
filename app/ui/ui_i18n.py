@@ -105,6 +105,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Run Incremental Sync": {"ru": "Запустить инкрементальный sync", "en": "Run Incremental Sync"},
     "Pipeline run started: ID {run_id}": {"ru": "Прогон пайплайна запущен: ID {run_id}", "en": "Pipeline run started: ID {run_id}"},
     "Stage Filter": {"ru": "Фильтр по стадии", "en": "Stage Filter"},
+    "Pipeline Status Filter": {"ru": "Фильтр статуса прогона", "en": "Pipeline Status Filter"},
     "Recent Pipeline Runs": {"ru": "Последние прогоны пайплайна", "en": "Recent Pipeline Runs"},
     "Run Detail": {"ru": "Детали прогона", "en": "Run Detail"},
     "Recent Run": {"ru": "Недавний прогон", "en": "Recent Run"},
