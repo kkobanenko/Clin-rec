@@ -716,7 +716,7 @@ def page_matrix():
         return
 
     df = pd.DataFrame(items)
-    st.dataframe(df, width="stretch")
+    st.dataframe(localize_dataframe_columns(df), width="stretch")
 
     # Export
     st.subheader(tr("Export Matrix"))
