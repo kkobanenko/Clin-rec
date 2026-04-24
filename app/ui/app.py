@@ -163,6 +163,13 @@ def filter_recent_tasks(recent_tasks: list[dict[str, Any]], origin_filter: str) 
     return [item for item in recent_tasks if item.get("origin") == origin_filter]
 
 
+def search_recent_tasks(recent_tasks: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
+    stripped_query = search_query.strip().lower()
+    if not stripped_query:
+        return recent_tasks
+    return [item for item in recent_tasks if stripped_query in str(item.get("label", "")).lower()]
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -1347,7 +1354,11 @@ def page_tasks():
         format_func=lambda origin_value: tr("All Origins") if not origin_value else tr(origin_value),
         key="task_origin_filter",
     )
-    filtered_recent_tasks = filter_recent_tasks(recent_tasks, selected_origin)
+    task_label_search = st.text_input(tr("Task Label Search"), key="task_label_search")
+    filtered_recent_tasks = search_recent_tasks(
+        filter_recent_tasks(recent_tasks, selected_origin),
+        task_label_search,
+    )
     st.subheader("Recent UI Tasks")
     if filtered_recent_tasks:
         st.dataframe(pd.DataFrame(filtered_recent_tasks), width="stretch", hide_index=True)

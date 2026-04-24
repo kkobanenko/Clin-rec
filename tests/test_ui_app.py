@@ -10,6 +10,7 @@ from app.ui.app import (
     resolve_output_id,
     resolve_review_target_id,
     resolve_task_id,
+    search_recent_tasks,
 )
 
 
@@ -153,3 +154,15 @@ def test_filter_recent_tasks_keeps_only_matching_origin() -> None:
     recent_tasks = [{"task_id": "1", "origin": "pipeline"}, {"task_id": "2", "origin": "review"}]
 
     assert filter_recent_tasks(recent_tasks, "pipeline") == [{"task_id": "1", "origin": "pipeline"}]
+
+
+def test_search_recent_tasks_returns_all_when_query_empty() -> None:
+    recent_tasks = [{"task_id": "1", "label": "Sync Task"}, {"task_id": "2", "label": "Review Task"}]
+
+    assert search_recent_tasks(recent_tasks, "  ") == recent_tasks
+
+
+def test_search_recent_tasks_filters_case_insensitively() -> None:
+    recent_tasks = [{"task_id": "1", "label": "Sync Task"}, {"task_id": "2", "label": "Review Task"}]
+
+    assert search_recent_tasks(recent_tasks, "sync") == [{"task_id": "1", "label": "Sync Task"}]

@@ -44,6 +44,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Current Task": {"ru": "Текущая задача", "en": "Current Task"},
     "Manual Task ID": {"ru": "Ввести ID задачи вручную", "en": "Manual Task ID"},
     "Task Origin Filter": {"ru": "Фильтр источника задачи", "en": "Task Origin Filter"},
+    "Task Label Search": {"ru": "Поиск по метке задачи", "en": "Task Label Search"},
     "All Origins": {"ru": "Все источники", "en": "All Origins"},
     "Current Artifact": {"ru": "Артефакт из текущего списка", "en": "Current Artifact"},
     "Manual Artifact ID": {"ru": "Ввести ID артефакта вручную", "en": "Manual Artifact ID"},
