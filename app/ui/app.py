@@ -1117,7 +1117,7 @@ def page_outputs():
                         "released_at": item.get("released_at"),
                     }
                 )
-            st.dataframe(pd.DataFrame(output_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(output_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No outputs available"))
 
