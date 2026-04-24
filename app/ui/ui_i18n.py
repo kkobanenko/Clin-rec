@@ -79,6 +79,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ru": "#{id} | {artifact_type} | {title}",
         "en": "#{id} | {artifact_type} | {title}",
     },
+    "#{id} | {entity_type} | {name}": {
+        "ru": "#{id} | {entity_type} | {name}",
+        "en": "#{id} | {entity_type} | {name}",
+    },
     "application/octet-stream": {"ru": "application/octet-stream", "en": "application/octet-stream"},
     "Frontmatter": {"ru": "Фронтматтер", "en": "Frontmatter"},
     "Markdown Body": {"ru": "Markdown-тело", "en": "Markdown Body"},
