@@ -174,7 +174,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "History Target From Queue": {"ru": "Цель истории из текущей очереди", "en": "History Target From Queue"},
     "Manual History Target": {"ru": "Ввести цель истории вручную", "en": "Manual History Target"},
     "History Target Type": {"ru": "Тип цели истории", "en": "History Target Type"},
-    "History Target ID": {"ru": "ID target в истории", "en": "History Target ID"},
+    "History Target ID": {"ru": "ID цели истории", "en": "History Target ID"},
     "0 means no target filter": {"ru": "0 означает отсутствие target-фильтра", "en": "0 means no target filter"},
     "No review actions yet": {"ru": "Действий ревью пока нет", "en": "No review actions yet"},
     "Bulk Approve": {"ru": "Массовое подтверждение", "en": "Bulk Approve"},
