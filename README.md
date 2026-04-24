@@ -4,8 +4,8 @@
 
 ## Current Release Docs
 
-- `PRD_CR_Intelligence_Platform_v1_7.md`: текущий продуктовый contract для перехода `release-ready MVP -> pilot hardening`
-- `TZ_CR_Intelligence_Platform_v1_7.md`: текущий технический plan pilot hardening без ломки validated release contract
+- `PRD_CR_Intelligence_Platform_v1_9.md`: текущий продуктовый contract для этапа internal pilot validation
+- `TZ_CR_Intelligence_Platform_v1_8.md`: текущий технический plan pilot hardening без ломки validated release contract
 - `DOD_MVP_PILOT_v1.md`: pilot-ready DoD поверх baseline release-ready MVP
 - `RUNBOOK_RUNTIME_PROFILE.md`: runtime profile, smoke semantics и release verification sequence
 - `docs/RELEASE_READY_CHECKLIST.md`: операторский go/no-go checklist для MVP release decision
@@ -23,10 +23,10 @@
 
 ## Current Implementation Stage
 
-- Stage: `release-ready MVP -> pilot hardening`
-- Active tranche: `pilot hardening`
-- Latest validated full-pack evidence: `docs/RELEASE_SUMMARY_2026-04-24.md`
-- Immediate focus: milestone-driven pilot hardening (canonical docs, discovery completeness report, pilot runtime profile, output governance, KB lint expansion) without reopening validated release-contract risk
+- Stage: `validated internal pilot build`
+- Active tranche: `pilot hardening closure`
+- Latest validated full-pack evidence: `docs/RELEASE_SUMMARY_2026-04-25.md`
+- Immediate focus: controlled internal pilot operation; full-corpus completeness evidence remains pending and must be validated separately from smoke runs
 
 ## VS Code Tasks
 

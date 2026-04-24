@@ -125,4 +125,4 @@ If preflight fails:
 ## Notes
 
 - This runbook does not replace `RUNBOOK_RUNTIME_PROFILE.md`; it narrows one selected pilot profile.
-- Latest validated full-pack evidence remains `docs/RELEASE_SUMMARY_2026-04-24.md` until new real rerun.
+- Latest validated full-pack evidence: `docs/RELEASE_SUMMARY_2026-04-25.md`.
