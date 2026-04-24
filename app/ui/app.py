@@ -790,7 +790,7 @@ def page_reviews():
                         "review_status": item.get("review_status"),
                     }
                 )
-            st.dataframe(pd.DataFrame(queue_rows), width="stretch", hide_index=True)
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(queue_rows)), width="stretch", hide_index=True)
         else:
             st.info(tr("No evidence awaiting review"))
     else:
