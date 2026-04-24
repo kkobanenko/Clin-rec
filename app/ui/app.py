@@ -1305,10 +1305,7 @@ def page_kb():
 
     st.subheader(tr("Artifact Detail"))
     current_artifact_options = {
-        item["id"]: (
-            f"#{item['id']} | {tr(item.get('artifact_type') or 'Unknown')} | "
-            f"{item.get('title') or tr('Untitled')}"
-        )
+        item["id"]: format_artifact_option_label(item)
         for item in items
         if item.get("id") is not None
     }
