@@ -212,7 +212,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Model Diff": {"ru": "Сравнение моделей", "en": "Model Diff"},
     "Old Version": {"ru": "Старая версия", "en": "Old Version"},
     "New Version": {"ru": "Новая версия", "en": "New Version"},
-    "Load Diff": {"ru": "Загрузить diff", "en": "Load Diff"},
+    "Load Diff": {"ru": "Загрузить сравнение", "en": "Load Diff"},
     "Added": {"ru": "Добавлено", "en": "Added"},
     "Removed": {"ru": "Удалено", "en": "Removed"},
     "Changed": {"ru": "Изменено", "en": "Changed"},
