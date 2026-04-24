@@ -86,6 +86,16 @@ class DiscoveryService:
                 if max_n > 0:
                     deduplicated_records = deduplicated_records[:max_n]
 
+                fallback_used = bool(discovery_stats.get("fallback_attempted", False))
+                if discovery_mode == "smoke":
+                    completeness_claim = "smoke_only"
+                elif fallback_used:
+                    completeness_claim = "partial_corpus"
+                elif bool(discovery_stats.get("corpus_verified", False)):
+                    completeness_claim = "full_corpus_verified"
+                else:
+                    completeness_claim = "full_corpus_unverified"
+
                 processed, new_count, skipped_no_id = self._upsert_records(session, deduplicated_records, mode)
                 
                 # Calculate quality metrics
@@ -119,6 +129,14 @@ class DiscoveryService:
                     # Strategy and source metrics
                     **discovery_stats,
                     "discovery_strategy_report": {
+                        "mode": discovery_mode if discovery_mode in {"smoke", "corpus"} else "smoke",
+                        "strategy": discovery_stats.get("strategy", "unknown"),
+                        "attempted": True,
+                        "fallback_used": fallback_used,
+                        "source_count": len(records),
+                        "completeness_claim": completeness_claim,
+
+                        # Backward-compatible keys kept for existing consumers.
                         "strategy_used": discovery_stats.get("strategy", "unknown"),
                         "api_attempted": bool(discovery_stats.get("api_attempted", False)),
                         "api_status": discovery_stats.get("api_status", "not_attempted"),

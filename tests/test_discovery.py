@@ -137,11 +137,15 @@ def test_discovery_strategy_report_present_and_counts(sync_engine, monkeypatch):
     report = stored_run.stats_json.get("discovery_strategy_report")
     assert report is not None
     assert report["strategy_used"] == "backend_api"
+    assert report["strategy"] == "backend_api"
+    assert report["mode"] == "smoke"
+    assert report["attempted"] is True
     assert report["api_attempted"] is True
     assert report["api_status"] == "success"
     assert report["records_with_external_id"] == 2
     assert report["records_without_external_id"] == 1
     assert report["completeness_mode"] == "smoke"
+    assert report["completeness_claim"] == "smoke_only"
 
     verify_session.close()
 
@@ -190,7 +194,55 @@ def test_discovery_corpus_mode_disables_limit(sync_engine, monkeypatch):
     report = stored_run.stats_json.get("discovery_strategy_report")
     assert stored_run.discovered_count == 3
     assert report["completeness_mode"] == "corpus"
+    assert report["mode"] == "corpus"
     assert report["limit_applied"] is False
+    assert report["completeness_claim"] == "full_corpus_unverified"
+
+    verify_session.close()
+
+
+def test_discovery_corpus_mode_with_fallback_reports_partial(sync_engine, monkeypatch):
+    session_factory = sessionmaker(bind=sync_engine)
+
+    monkeypatch.setattr("app.services.discovery.get_sync_session", lambda: session_factory())
+    monkeypatch.setattr("app.services.discovery.settings.discovery_mode", "corpus")
+    monkeypatch.setattr(
+        DiscoveryService,
+        "_discover_documents",
+        lambda self: (
+            [
+                {"external_id": "doc-1", "title": "Doc 1"},
+            ],
+            {
+                "strategy": "playwright_fallback",
+                "api_attempted": True,
+                "api_status": "451",
+                "api_records": 0,
+                "dom_attempted": True,
+                "dom_records": 1,
+                "fallback_attempted": True,
+                "fallback_reason": "api_451",
+            },
+        ),
+    )
+    monkeypatch.setattr(DiscoveryService, "_get_probe_candidates", lambda self, session, mode: [])
+
+    setup_session = session_factory()
+    run = PipelineRun(stage="discovery", run_type="full", status="pending")
+    setup_session.add(run)
+    setup_session.commit()
+    run_id = run.id
+    setup_session.close()
+
+    DiscoveryService().execute(run_id, mode="full")
+
+    verify_session = session_factory()
+    stored_run = verify_session.get(PipelineRun, run_id)
+    report = stored_run.stats_json.get("discovery_strategy_report")
+
+    assert report["mode"] == "corpus"
+    assert report["fallback_used"] is True
+    assert report["completeness_claim"] == "partial_corpus"
 
     verify_session.close()
 

@@ -17,6 +17,64 @@ logger = logging.getLogger(__name__)
 
 
 class KnowledgeLintService:
+    ISSUE_POLICY = {
+        "digest_without_provenance": {
+            "severity": "warning",
+            "message": "KB artifact has no provenance links.",
+            "recommended_action": "Re-run KB compile and verify artifact_source_link generation.",
+        },
+        "duplicate_canonical_slug": {
+            "severity": "blocker",
+            "message": "Duplicate canonical_slug detected in KB artifacts.",
+            "recommended_action": "Fix canonical slug generation and remove duplicate records.",
+        },
+        "artifact_empty_summary": {
+            "severity": "warning",
+            "message": "KB artifact summary is empty.",
+            "recommended_action": "Add concise artifact summary during compile stage.",
+        },
+        "claims_missing_provenance_json": {
+            "severity": "error",
+            "message": "Non-hypothesis claims are missing provenance metadata.",
+            "recommended_action": "Backfill provenance_json or regenerate claims from source-linked artifacts.",
+        },
+        "stale_source_version": {
+            "severity": "warning",
+            "message": "KB artifact references non-current document version.",
+            "recommended_action": "Recompile KB artifacts using current document versions.",
+        },
+        "artifacts_missing_claims": {
+            "severity": "warning",
+            "message": "Compiler artifact has no generated claims.",
+            "recommended_action": "Re-run compiler and inspect claim generation for this artifact type.",
+        },
+        "missing_entity_page_molecule": {
+            "severity": "warning",
+            "message": "Molecule entity has no entity_page artifact.",
+            "recommended_action": "Run KB compile after extraction to generate molecule entity pages.",
+        },
+        "orphan_entity": {
+            "severity": "warning",
+            "message": "Entity registry entry is not linked from KB artifacts.",
+            "recommended_action": "Review entity synchronization and entity_page compilation linkage.",
+        },
+        "conflict_group_missing_review_status": {
+            "severity": "error",
+            "message": "Conflict group contains claims without review status.",
+            "recommended_action": "Assign review status for all claims in the conflict group.",
+        },
+    }
+
+    def _issue(self, code: str, **payload: Any) -> dict[str, Any]:
+        policy = self.ISSUE_POLICY.get(code, {})
+        return {
+            "code": code,
+            "severity": policy.get("severity", "warning"),
+            "message": policy.get("message", code),
+            "recommended_action": policy.get("recommended_action", "Review issue details and fix source data."),
+            **payload,
+        }
+
     def run(self) -> dict[str, Any]:
         session = get_sync_session()
         try:
@@ -36,13 +94,7 @@ class KnowledgeLintService:
                 )
             )
             for aid, slug in session.execute(no_link_stmt).all():
-                issues.append(
-                    {
-                        "code": "digest_without_provenance",
-                        "artifact_id": aid,
-                        "slug": slug,
-                    }
-                )
+                issues.append(self._issue("digest_without_provenance", artifact_id=aid, slug=slug))
 
             duplicate_slug_stmt = (
                 select(KnowledgeArtifact.canonical_slug, func.count(KnowledgeArtifact.id))
@@ -50,26 +102,14 @@ class KnowledgeLintService:
                 .having(func.count(KnowledgeArtifact.id) > 1)
             )
             for slug, count in session.execute(duplicate_slug_stmt).all():
-                issues.append(
-                    {
-                        "code": "duplicate_canonical_slug",
-                        "slug": slug,
-                        "count": int(count),
-                    }
-                )
+                issues.append(self._issue("duplicate_canonical_slug", slug=slug, count=int(count)))
 
             empty_summary_stmt = select(KnowledgeArtifact.id, KnowledgeArtifact.canonical_slug).where(
                 KnowledgeArtifact.summary.is_(None)
                 | (func.trim(KnowledgeArtifact.summary) == "")
             )
             for aid, slug in session.execute(empty_summary_stmt).all():
-                issues.append(
-                    {
-                        "code": "artifact_empty_summary",
-                        "artifact_id": aid,
-                        "slug": slug,
-                    }
-                )
+                issues.append(self._issue("artifact_empty_summary", artifact_id=aid, slug=slug))
 
             claims_no_prov = session.scalar(
                 select(func.count())
@@ -80,12 +120,7 @@ class KnowledgeLintService:
                 )
             ) or 0
             if claims_no_prov:
-                issues.append(
-                    {
-                        "code": "claims_missing_provenance_json",
-                        "count": claims_no_prov,
-                    }
-                )
+                issues.append(self._issue("claims_missing_provenance_json", count=claims_no_prov))
 
             stale_source_stmt = (
                 select(
@@ -103,12 +138,12 @@ class KnowledgeLintService:
             )
             for aid, slug, source_id in session.execute(stale_source_stmt).all():
                 issues.append(
-                    {
-                        "code": "stale_source_version",
-                        "artifact_id": aid,
-                        "slug": slug,
-                        "document_version_id": int(source_id),
-                    }
+                    self._issue(
+                        "stale_source_version",
+                        artifact_id=aid,
+                        slug=slug,
+                        document_version_id=int(source_id),
+                    )
                 )
 
             missing_claim_stmt = (
@@ -124,13 +159,7 @@ class KnowledgeLintService:
                 )
             )
             for aid, slug in session.execute(missing_claim_stmt).all():
-                issues.append(
-                    {
-                        "code": "artifacts_missing_claims",
-                        "artifact_id": aid,
-                        "slug": slug,
-                    }
-                )
+                issues.append(self._issue("artifacts_missing_claims", artifact_id=aid, slug=slug))
 
             # TZ §13: entity_page для молекул в entity_registry (после extract).
             covered_molecules: set[int] = set()
@@ -150,11 +179,7 @@ class KnowledgeLintService:
                 mid_int = int(mid)
                 if mid_int not in covered_molecules:
                     issues.append(
-                        {
-                            "code": "missing_entity_page_molecule",
-                            "entity_registry_id": ent.id,
-                            "molecule_id": mid_int,
-                        }
+                        self._issue("missing_entity_page_molecule", entity_registry_id=ent.id, molecule_id=mid_int)
                     )
 
             linked_entity_ids: set[int] = set()
@@ -172,13 +197,7 @@ class KnowledgeLintService:
             ).scalars():
                 if ent.id in linked_entity_ids:
                     continue
-                issues.append(
-                    {
-                        "code": "orphan_entity",
-                        "entity_registry_id": ent.id,
-                        "entity_type": ent.entity_type,
-                    }
-                )
+                issues.append(self._issue("orphan_entity", entity_registry_id=ent.id, entity_type=ent.entity_type))
 
             conflict_missing_review_stmt = (
                 select(KnowledgeClaim.conflict_group_id, func.count(KnowledgeClaim.id))
@@ -190,11 +209,11 @@ class KnowledgeLintService:
             )
             for group_id, count in session.execute(conflict_missing_review_stmt).all():
                 issues.append(
-                    {
-                        "code": "conflict_group_missing_review_status",
-                        "conflict_group_id": int(group_id),
-                        "claim_count": int(count),
-                    }
+                    self._issue(
+                        "conflict_group_missing_review_status",
+                        conflict_group_id=int(group_id),
+                        claim_count=int(count),
+                    )
                 )
 
             # Незакрытые группы конфликтов: distinct conflict_group_id среди claims.

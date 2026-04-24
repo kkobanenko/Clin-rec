@@ -42,6 +42,12 @@ class FakeAsyncSession:
             raise AssertionError("Unexpected execute call")
         return self._values.pop(0)
 
+    async def commit(self):
+        return None
+
+    async def refresh(self, _obj):
+        return None
+
 
 @pytest.mark.asyncio
 async def test_list_outputs_returns_paginated_rows():
@@ -551,3 +557,96 @@ async def test_file_back_alias_queues_task():
     data = resp.json()
     assert data["task_id"] == "task-456"
     assert data["output_id"] == 5
+
+
+@pytest.mark.asyncio
+async def test_release_output_rejects_pending_review():
+    row = SimpleNamespace(
+        id=20,
+        output_type="memo",
+        title="Pending memo",
+        artifact_id=None,
+        file_pointer=None,
+        scope_json=None,
+        generator_version="v1",
+        review_status="pending_review",
+        released_at=None,
+        file_back_status="pending",
+    )
+
+    async def override_get_db():
+        yield FakeAsyncSession([FakeScalarResult(row)])
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/outputs/20/release", json={"author": "qa"})
+
+        assert resp.status_code == 409
+        assert "cannot be released" in resp.json()["detail"]
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_release_output_allows_approved_status():
+    row = SimpleNamespace(
+        id=21,
+        output_type="memo",
+        title="Approved memo",
+        artifact_id=3,
+        file_pointer="var/crin_outputs/approved.md",
+        scope_json={},
+        generator_version="v1",
+        review_status="approved",
+        released_at=None,
+        file_back_status="accepted",
+    )
+
+    async def override_get_db():
+        yield FakeAsyncSession([FakeScalarResult(row)])
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/outputs/21/release", json={"author": "qa"})
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["review_status"] == "released"
+        assert data["released_at"] is not None
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_release_output_treats_legacy_accepted_as_approved():
+    row = SimpleNamespace(
+        id=22,
+        output_type="memo",
+        title="Legacy accepted memo",
+        artifact_id=3,
+        file_pointer="var/crin_outputs/legacy.md",
+        scope_json=None,
+        generator_version="v1",
+        review_status="accepted",
+        released_at=None,
+        file_back_status="accepted",
+    )
+
+    async def override_get_db():
+        yield FakeAsyncSession([FakeScalarResult(row)])
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/outputs/22/release")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["review_status"] == "released"
+    finally:
+        app.dependency_overrides.pop(get_db, None)

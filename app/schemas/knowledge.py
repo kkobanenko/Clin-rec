@@ -97,6 +97,12 @@ class OutputFileBackBody(BaseModel):
     file_back_status: str
 
 
+class OutputReleaseRequest(BaseModel):
+    """Optional audit payload for explicit POST /outputs/{id}/release."""
+
+    author: str | None = None
+
+
 class OutputReleaseOut(BaseModel):
     id: int
     output_type: str

@@ -1,4 +1,5 @@
 from app.ui.app import (
+    _api_headers,
     extract_matrix_pair_from_diff_row,
     extract_source_document_version_ids,
     build_bulk_approve_evidence_ids,
@@ -306,3 +307,8 @@ def test_extract_source_document_version_ids_merges_links_and_manifest() -> None
 def test_extract_matrix_pair_from_diff_row_returns_none_for_invalid_payload() -> None:
     assert extract_matrix_pair_from_diff_row({"from": 1, "to": "bad"}) is None
     assert extract_matrix_pair_from_diff_row({"from": 2, "to": 3}) == (2, 3)
+
+
+def test_api_headers_uses_configured_api_key(monkeypatch) -> None:
+    monkeypatch.setenv("CRIN_API_KEY", "pilot-secret")
+    assert _api_headers() == {"X-CRIN-API-Key": "pilot-secret"}

@@ -20,6 +20,7 @@
 | Runtime preflight | pass / fail |  |
 | Structural smoke | pass / fail | Record whether a freshly queued memo/output task reached `SUCCESS` and the generated output was retrievable. |
 | Quality smoke | pass / fail | Record downstream pair-evidence and matrix checks, plus memo/output task completion if this mode queued output generation. |
+| Discovery report | pass / fail | Record discovery mode, strategy, source count, limit flag and completeness claim (smoke vs corpus). |
 | API regression | pass / fail |  |
 | Downstream verification | pass / fail |  |
 
@@ -27,6 +28,7 @@
 
 - Structural smoke reference: include run id, terminal state, and memo/output completion evidence (`/tasks/{task_id}`, `/outputs/{output_id}`)
 - Quality smoke reference: include run id, terminal state, downstream evidence, and memo/output completion evidence when applicable
+- Discovery strategy report reference: include `mode`, `strategy`, `source_count`, `limit_applied`, `completeness_claim` and explicit statement whether this is smoke validation or corpus completeness.
 - Review API regression reference:
 - Matrix model ops reference:
 - Outputs API reference:

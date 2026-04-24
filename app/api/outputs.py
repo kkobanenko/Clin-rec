@@ -1,6 +1,8 @@
 """API аналитических outputs и output filing (TZ §17)."""
 
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import Text, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +13,7 @@ from app.schemas.knowledge import (
     OutputFileBackBody,
     OutputFileRequest,
     OutputGenerateRequest,
+    OutputReleaseRequest,
     OutputReleaseOut,
 )
 from app.schemas.pipeline import PaginatedResponse
@@ -30,6 +33,14 @@ def _apply_review_status_filter(query, review_status: str):
     if values:
         return query.where(OutputRelease.review_status.in_(values))
     return query.where(OutputRelease.review_status == review_status)
+
+
+def _normalized_release_status(review_status: str | None) -> str:
+    if review_status == "accepted":
+        return "approved"
+    if review_status == "pending":
+        return "pending_review"
+    return review_status or "pending_review"
 
 
 @router.post("/generate", status_code=202)
@@ -137,4 +148,38 @@ async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Output not found")
+    return OutputReleaseOut.model_validate(row)
+
+
+@router.post("/{output_id}/release", response_model=OutputReleaseOut)
+async def release_output(
+    output_id: int,
+    body: OutputReleaseRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Output not found")
+
+    current_status = _normalized_release_status(row.review_status)
+    if current_status == "released":
+        return OutputReleaseOut.model_validate(row)
+    if current_status != "approved":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Output cannot be released from review_status={current_status}",
+        )
+
+    actor = (body.author if body else None) or "system"
+    row.review_status = "released"
+    row.released_at = datetime.now(timezone.utc)
+    scope = dict(row.scope_json or {})
+    scope["release_audit"] = {
+        "released_by": actor,
+        "released_at": row.released_at.isoformat(),
+        "release_action": "manual_release_endpoint",
+    }
+    row.scope_json = scope
+    await db.commit()
+    await db.refresh(row)
     return OutputReleaseOut.model_validate(row)

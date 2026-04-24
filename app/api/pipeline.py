@@ -49,6 +49,23 @@ async def get_run(run_id: int, db: AsyncSession = Depends(get_db)):
     return PipelineRunOut.model_validate(result.scalar_one())
 
 
+@router.get("/pipeline/{run_id}/discovery-report")
+async def get_discovery_report(run_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PipelineRun).where(PipelineRun.id == run_id))
+    run = result.scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Pipeline run not found")
+    report = (run.stats_json or {}).get("discovery_strategy_report")
+    if report is None:
+        raise HTTPException(status_code=404, detail="Discovery strategy report is not available")
+    return {
+        "run_id": run.id,
+        "stage": run.stage,
+        "status": run.status,
+        "discovery_strategy_report": report,
+    }
+
+
 @router.post("/review", response_model=ReviewActionOut)
 async def create_review_action(data: ReviewActionCreate, db: AsyncSession = Depends(get_db)):
     del db

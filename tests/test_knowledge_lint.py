@@ -33,6 +33,9 @@ def test_lint_catches_missing_provenance_for_non_hypothesis(sync_session, monkey
     issue = next((item for item in out["issues"] if item.get("code") == "claims_missing_provenance_json"), None)
     assert issue is not None
     assert issue["count"] >= 1
+    assert issue["severity"] == "error"
+    assert isinstance(issue.get("recommended_action"), str)
+    assert issue.get("recommended_action")
 
 
 def test_lint_catches_empty_summary(sync_session, monkeypatch):
@@ -55,3 +58,15 @@ def test_lint_catches_empty_summary(sync_session, monkeypatch):
         item.get("code") == "artifact_empty_summary" and item.get("artifact_id") == artifact.id
         for item in out["issues"]
     )
+
+    issue = next(
+        (
+            item
+            for item in out["issues"]
+            if item.get("code") == "artifact_empty_summary" and item.get("artifact_id") == artifact.id
+        ),
+        None,
+    )
+    assert issue is not None
+    assert issue["severity"] == "warning"
+    assert isinstance(issue.get("message"), str)

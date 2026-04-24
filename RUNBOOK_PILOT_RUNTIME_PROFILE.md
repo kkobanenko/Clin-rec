@@ -53,6 +53,12 @@ Auth controls for non-local pilot deployment:
 - `/health` remains unauthenticated by design for probes.
 - Streamlit internal calls may use the same `CRIN_API_KEY` via container env.
 
+Key generation example:
+
+```bash
+openssl rand -hex 32
+```
+
 Current compose defaults should resolve to:
 
 - broker: `redis://redis:6379/0`

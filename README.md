@@ -5,12 +5,13 @@
 ## Current Release Docs
 
 - `PRD_CR_Intelligence_Platform_v1_7.md`: текущий продуктовый contract для перехода `release-ready MVP -> pilot hardening`
-- `TZ_CR_Intelligence_Platform_v1_6.md`: текущий технический plan pilot hardening без ломки validated release contract
+- `TZ_CR_Intelligence_Platform_v1_7.md`: текущий технический plan pilot hardening без ломки validated release contract
 - `DOD_MVP_PILOT_v1.md`: pilot-ready DoD поверх baseline release-ready MVP
 - `RUNBOOK_RUNTIME_PROFILE.md`: runtime profile, smoke semantics и release verification sequence
 - `docs/RELEASE_READY_CHECKLIST.md`: операторский go/no-go checklist для MVP release decision
 - `docs/ROADMAP_PILOT_HARDENING_v1.md`: pilot-hardening roadmap
 - `docs/OPERATOR_RUNBOOK_PILOT_v1.md`: operator runbook для pilot stage
+- `docs/BACKUP_RESTORE_PILOT_v1.md`: backup/restore процедура для pilot Postgres и MinIO
 - `docs/DISCOVERY_COMPLETENESS_PLAN_v1.md`: plan отделения smoke discovery от completeness claims
 - `docs/RELEASE_REHEARSAL_2026-04-23.md`: current clean full-pack rehearsal record для compose-backed runtime после raw-artifact access и model-health fix
 - `docs/RELEASE_SUMMARY_2026-04-23.md`: current clean full-pack go/no-go summary для rehearsal 2026-04-23
