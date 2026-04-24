@@ -559,7 +559,7 @@ def page_documents():
             st.json(detail)
 
         artifacts = api_get(f"/documents/{resolved_doc_id}/artifacts")
-        st.subheader("Raw Source Artifacts")
+        st.subheader(tr("Raw Source Artifacts"))
         if isinstance(artifacts, dict) and artifacts.get("artifacts"):
             artifact_items = artifacts.get("artifacts", [])
             artifact_type_options = [""] + sorted(
