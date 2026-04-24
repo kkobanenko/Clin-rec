@@ -71,6 +71,26 @@ def format_pipeline_stage_option(stage: str) -> str:
     return tr("All") if not stage else tr(stage)
 
 
+def build_matrix_query_params(
+    *,
+    page_size: int,
+    scope_type: str,
+    scope_id: str,
+    model_version_id: int,
+    molecule_from_id: int,
+) -> dict:
+    params = {"page": 1, "page_size": page_size}
+    if scope_type:
+        params["scope_type"] = scope_type
+    if scope_id.strip():
+        params["scope_id"] = scope_id.strip()
+    if model_version_id > 0:
+        params["model_version_id"] = model_version_id
+    if molecule_from_id > 0:
+        params["molecule_from_id"] = molecule_from_id
+    return params
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -455,13 +475,30 @@ def page_pipeline():
 def page_matrix():
     st.header("Substitution Matrix")
 
-    col1, col2 = st.columns(2)
-    scope_type = col1.selectbox("Scope", ["global", "disease"])
-    page_size = col2.number_input("Page size", min_value=10, max_value=500, value=50)
+    col1, col2, col3, col4, col5 = st.columns(5)
+    scope_type = col1.selectbox(tr("Scope"), ["global", "disease"], format_func=tr)
+    scope_id = col2.text_input(tr("Scope ID Filter"))
+    model_version_id = col3.number_input(
+        tr("Model Version ID Filter"),
+        min_value=0,
+        step=1,
+        help=tr("0 means no model filter"),
+    )
+    molecule_from_id = col4.number_input(
+        tr("Molecule From Filter"),
+        min_value=0,
+        step=1,
+        help=tr("0 means no molecule filter"),
+    )
+    page_size = col5.number_input(tr("Page size"), min_value=10, max_value=500, value=50)
 
-    params = {"page": 1, "page_size": page_size}
-    if scope_type:
-        params["scope_type"] = scope_type
+    params = build_matrix_query_params(
+        page_size=page_size,
+        scope_type=scope_type,
+        scope_id=scope_id,
+        model_version_id=model_version_id,
+        molecule_from_id=molecule_from_id,
+    )
 
     data = api_get("/matrix", params)
     if not data:
