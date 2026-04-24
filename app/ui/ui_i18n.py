@@ -95,7 +95,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Frontmatter": {"ru": "Фронтматтер", "en": "Frontmatter"},
     "Markdown Body": {"ru": "Markdown-тело", "en": "Markdown Body"},
     "Raw Payload": {"ru": "Сырой payload", "en": "Raw Payload"},
-    "File-Back": {"ru": "Файлинг", "en": "File-Back"},
+    "File-Back": {"ru": "Файловая обратная связь", "en": "File-Back"},
     "Artifact": {"ru": "Артефакт", "en": "Artifact"},
     "Scope": {"ru": "Контур", "en": "Scope"},
     "Aliases": {"ru": "Алиасы", "en": "Aliases"},
