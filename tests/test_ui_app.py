@@ -2,6 +2,7 @@ from app.ui.app import (
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
     build_matrix_query_params,
+    format_output_option_label,
     filter_document_artifacts,
     filter_document_items,
     filter_document_sections,
@@ -17,6 +18,7 @@ from app.ui.app import (
     search_recent_tasks,
     sort_document_items,
     sort_recent_tasks,
+    translate_value_or_fallback,
 )
 
 
@@ -255,3 +257,7 @@ def test_filter_pipeline_runs_keeps_only_matching_status() -> None:
     run_items = [{"id": 1, "status": "completed"}, {"id": 2, "status": "failed"}]
 
     assert filter_pipeline_runs(run_items, "completed") == [{"id": 1, "status": "completed"}]
+
+
+def test_translate_value_or_fallback_uses_localized_default_for_empty_value() -> None:
+    assert translate_value_or_fallback(None) == "n/a"
