@@ -107,6 +107,13 @@ def format_artifact_option_label(item: dict[str, Any]) -> str:
     )
 
 
+def format_entity_option_label(item: dict[str, Any]) -> str:
+    return (
+        f"#{item.get('id')} | {tr(item.get('entity_type') or 'Unknown')} | "
+        f"{item.get('canonical_name') or tr('Untitled entity')}"
+    )
+
+
 def localize_dataframe_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
     return dataframe.rename(columns=lambda column: tr(str(column)))
 
