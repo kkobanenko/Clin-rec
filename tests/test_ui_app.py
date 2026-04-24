@@ -2,6 +2,7 @@ from app.ui.app import (
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
     build_matrix_query_params,
+    filter_recent_tasks,
     resolve_artifact_id,
     resolve_document_id,
     resolve_entity_id,
@@ -140,3 +141,15 @@ def test_resolve_task_id_prefers_current_selection() -> None:
 
 def test_resolve_task_id_strips_manual_value() -> None:
     assert resolve_task_id("  manual-task  ", None) == "manual-task"
+
+
+def test_filter_recent_tasks_returns_all_when_origin_empty() -> None:
+    recent_tasks = [{"task_id": "1", "origin": "pipeline"}, {"task_id": "2", "origin": "review"}]
+
+    assert filter_recent_tasks(recent_tasks, "") == recent_tasks
+
+
+def test_filter_recent_tasks_keeps_only_matching_origin() -> None:
+    recent_tasks = [{"task_id": "1", "origin": "pipeline"}, {"task_id": "2", "origin": "review"}]
+
+    assert filter_recent_tasks(recent_tasks, "pipeline") == [{"task_id": "1", "origin": "pipeline"}]

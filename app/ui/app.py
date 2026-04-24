@@ -1,6 +1,7 @@
 """CR Intelligence Platform — Streamlit Admin UI."""
 
 from datetime import datetime, timezone
+from typing import Any
 
 import httpx
 import pandas as pd
@@ -154,6 +155,12 @@ def resolve_entity_id(manual_entity_id: int, selected_entity_id: int | None) -> 
 
 def resolve_task_id(manual_task_id: str, selected_task_id: str | None) -> str:
     return selected_task_id or manual_task_id.strip()
+
+
+def filter_recent_tasks(recent_tasks: list[dict[str, Any]], origin_filter: str) -> list[dict[str, Any]]:
+    if not origin_filter:
+        return recent_tasks
+    return [item for item in recent_tasks if item.get("origin") == origin_filter]
 
 
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
@@ -1331,16 +1338,26 @@ def page_tasks():
     st.header("Tasks")
 
     recent_tasks = st.session_state.get("recent_tasks") or []
+    task_origin_options = [""] + sorted(
+        {str(item.get("origin", "")) for item in recent_tasks if item.get("origin")}
+    )
+    selected_origin = st.selectbox(
+        tr("Task Origin Filter"),
+        task_origin_options,
+        format_func=lambda origin_value: tr("All Origins") if not origin_value else tr(origin_value),
+        key="task_origin_filter",
+    )
+    filtered_recent_tasks = filter_recent_tasks(recent_tasks, selected_origin)
     st.subheader("Recent UI Tasks")
-    if recent_tasks:
-        st.dataframe(pd.DataFrame(recent_tasks), width="stretch", hide_index=True)
+    if filtered_recent_tasks:
+        st.dataframe(pd.DataFrame(filtered_recent_tasks), width="stretch", hide_index=True)
         selected_task_id = st.selectbox(
             "Tracked Task",
-            [item["task_id"] for item in recent_tasks],
+            [item["task_id"] for item in filtered_recent_tasks],
             format_func=lambda task_value: next(
                 (
                     f"{item['task_id']} | {tr(item['label'])} | {tr(item['origin'])}"
-                    for item in recent_tasks
+                    for item in filtered_recent_tasks
                     if item["task_id"] == task_value
                 ),
                 task_value,
@@ -1356,13 +1373,13 @@ def page_tasks():
 
     selected_task_id = st.selectbox(
         tr("Current Task"),
-        [""] + [item["task_id"] for item in recent_tasks],
+        [""] + [item["task_id"] for item in filtered_recent_tasks],
         format_func=lambda task_value: tr("Manual Task ID")
         if not task_value
         else next(
             (
                 f"{item['task_id']} | {tr(item['label'])} | {tr(item['origin'])}"
-                for item in recent_tasks
+                for item in filtered_recent_tasks
                 if item["task_id"] == task_value
             ),
             task_value,
