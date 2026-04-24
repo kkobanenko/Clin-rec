@@ -193,7 +193,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Action": {"ru": "Действие", "en": "Action"},
     "Reason": {"ru": "Причина", "en": "Reason"},
     "Author": {"ru": "Автор", "en": "Author"},
-    "Override Score": {"ru": "Override score", "en": "Override Score"},
+    "Override Score": {"ru": "Переопределенный балл", "en": "Override Score"},
     "Submit": {"ru": "Отправить", "en": "Submit"},
     "Review submitted": {"ru": "Ревью отправлено", "en": "Review submitted"},
     "Selected Model": {"ru": "Выбранная модель", "en": "Selected Model"},
