@@ -1331,14 +1331,14 @@ def page_kb():
     st.subheader(tr("Conflicts"))
     conflict_col1, conflict_col2 = st.columns(2)
     conflict_artifact_id = conflict_col1.number_input(
-        "Conflict Artifact ID Filter",
+        tr("Conflict Artifact ID Filter"),
         min_value=0,
         step=1,
         key="kb_conflict_artifact_id",
-        help="0 means no artifact filter",
+        help=tr("0 means no artifact filter"),
     )
     conflict_review_filter = conflict_col2.selectbox(
-        "Conflict Review Filter",
+        tr("Conflict Review Filter"),
         ["", "auto", "needs_review", "approved", "rejected"],
         index=0,
         key="kb_conflict_review_filter",
@@ -1372,26 +1372,26 @@ def page_kb():
     st.subheader(tr("Claims"))
     claim_col1, claim_col2, claim_col3, claim_col4 = st.columns(4)
     claim_artifact_id = claim_col1.number_input(
-        "Claim Artifact ID Filter",
+        tr("Claim Artifact ID Filter"),
         min_value=0,
         step=1,
         key="kb_claim_artifact_id",
-        help="0 means no artifact filter",
+        help=tr("0 means no artifact filter"),
     )
     claim_type_filter = claim_col2.selectbox(
-        "Claim Type Filter",
+        tr("Claim Type Filter"),
         ["", "fact", "inference", "hypothesis"],
         index=0,
         key="kb_claim_type_filter",
     )
     claim_review_filter = claim_col3.selectbox(
-        "Claim Review Filter",
+        tr("Claim Review Filter"),
         ["", "auto", "needs_review", "approved", "rejected"],
         index=0,
         key="kb_claim_review_filter",
     )
     claim_page_size = claim_col4.number_input(
-        "Claims Page Size",
+        tr("Claims Page Size"),
         min_value=10,
         max_value=200,
         value=50,
