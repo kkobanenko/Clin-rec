@@ -41,6 +41,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Output": {"ru": "Выход", "en": "Output"},
     "Entity #{id}": {"ru": "Сущность #{id}", "en": "Entity #{id}"},
     "Untitled entity": {"ru": "Сущность без названия", "en": "Untitled entity"},
+    "Current Artifact": {"ru": "Артефакт из текущего списка", "en": "Current Artifact"},
+    "Manual Artifact ID": {"ru": "Ввести ID артефакта вручную", "en": "Manual Artifact ID"},
     "Artifact ID": {"ru": "ID артефакта", "en": "Artifact ID"},
     "Output ID": {"ru": "ID выхода", "en": "Output ID"},
     "Type": {"ru": "Тип", "en": "Type"},
