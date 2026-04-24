@@ -184,6 +184,14 @@ def filter_document_items(document_items: list[dict[str, Any]], status_filter: s
     return [item for item in document_items if str(item.get("status", "")) == status_filter]
 
 
+def sort_document_items(document_items: list[dict[str, Any]], sort_order: str) -> list[dict[str, Any]]:
+    return sorted(
+        document_items,
+        key=lambda item: int(item.get("id") or 0),
+        reverse=sort_order != "oldest",
+    )
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -482,7 +490,13 @@ def page_documents():
         format_func=lambda value: tr("All Statuses") if not value else tr(value),
         key="document_status_filter",
     )
-    filtered_items = filter_document_items(items, selected_status)
+    document_sort_order = st.selectbox(
+        tr("Document Sort Order"),
+        ["newest", "oldest"],
+        format_func=lambda value: tr("Newest First") if value == "newest" else tr("Oldest First"),
+        key="document_sort_order",
+    )
+    filtered_items = sort_document_items(filter_document_items(items, selected_status), document_sort_order)
     if not filtered_items:
         st.info("No documents found")
         return

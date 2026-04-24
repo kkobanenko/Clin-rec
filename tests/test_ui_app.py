@@ -12,6 +12,7 @@ from app.ui.app import (
     resolve_review_target_id,
     resolve_task_id,
     search_recent_tasks,
+    sort_document_items,
     sort_recent_tasks,
 )
 
@@ -198,3 +199,15 @@ def test_filter_document_items_keeps_only_matching_status() -> None:
     document_items = [{"id": 1, "status": "ready"}, {"id": 2, "status": "draft"}]
 
     assert filter_document_items(document_items, "ready") == [{"id": 1, "status": "ready"}]
+
+
+def test_sort_document_items_defaults_to_newest_first() -> None:
+    document_items = [{"id": 1}, {"id": 3}, {"id": 2}]
+
+    assert [item["id"] for item in sort_document_items(document_items, "newest")] == [3, 2, 1]
+
+
+def test_sort_document_items_supports_oldest_first() -> None:
+    document_items = [{"id": 1}, {"id": 3}, {"id": 2}]
+
+    assert [item["id"] for item in sort_document_items(document_items, "oldest")] == [1, 2, 3]
