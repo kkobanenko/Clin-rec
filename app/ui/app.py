@@ -277,7 +277,7 @@ def render_kb_artifact_detail(detail: dict) -> None:
 
     if source_links:
         st.markdown(f"**{tr('Source Links')}**")
-        st.dataframe(pd.DataFrame(source_links), width="stretch", hide_index=True)
+        st.dataframe(localize_dataframe_columns(pd.DataFrame(source_links)), width="stretch", hide_index=True)
 
     claims = detail.get("claims") or []
     if claims:
