@@ -715,7 +715,7 @@ def page_matrix():
         step=1,
         help=tr("0 means latest available model"),
     )
-    if st.button("Load Cell Detail"):
+    if st.button(tr("Load Cell Detail")):
         detail = api_get(
             "/matrix/cell",
             build_matrix_cell_detail_params(
