@@ -128,6 +128,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "No review actions yet": {"ru": "Действий ревью пока нет", "en": "No review actions yet"},
     "Bulk Approve": {"ru": "Массовое подтверждение", "en": "Bulk Approve"},
     "Evidence IDs (comma-separated)": {"ru": "ID evidence (через запятую)", "en": "Evidence IDs (comma-separated)"},
+    "Queued Evidence IDs": {"ru": "ID evidence из текущей очереди", "en": "Queued Evidence IDs"},
+    "Optional quick-pick from current review queue": {"ru": "Необязательный быстрый выбор из текущей очереди ревью", "en": "Optional quick-pick from current review queue"},
     "Bulk Approve Author": {"ru": "Автор bulk approve", "en": "Bulk Approve Author"},
     "Use the filtered queue above to identify evidence IDs for bulk approval.": {"ru": "Используйте отфильтрованную очередь выше для выбора ID evidence для bulk approve.", "en": "Use the filtered queue above to identify evidence IDs for bulk approval."},
     "Enter at least one evidence ID": {"ru": "Введите хотя бы один ID evidence", "en": "Enter at least one evidence ID"},

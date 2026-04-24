@@ -1,4 +1,8 @@
-from app.ui.app import build_matrix_cell_detail_params, build_matrix_query_params
+from app.ui.app import (
+    build_bulk_approve_evidence_ids,
+    build_matrix_cell_detail_params,
+    build_matrix_query_params,
+)
 
 
 def test_build_matrix_query_params_omits_empty_optional_filters() -> None:
@@ -61,3 +65,15 @@ def test_build_matrix_cell_detail_params_includes_model_when_present() -> None:
         "scope_type": "disease",
         "model_version_id": 9,
     }
+
+
+def test_build_bulk_approve_evidence_ids_merges_manual_and_selected_without_dupes() -> None:
+    evidence_ids = build_bulk_approve_evidence_ids("7, 8, 7", [8, 9, 10])
+
+    assert evidence_ids == [7, 8, 9, 10]
+
+
+def test_build_bulk_approve_evidence_ids_skips_empty_values() -> None:
+    evidence_ids = build_bulk_approve_evidence_ids("  ,  ", [])
+
+    assert evidence_ids == []

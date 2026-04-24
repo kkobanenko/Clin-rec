@@ -108,6 +108,26 @@ def build_matrix_cell_detail_params(
     return params
 
 
+def build_bulk_approve_evidence_ids(manual_ids: str, selected_ids: list[int]) -> list[int]:
+    evidence_ids: list[int] = []
+    seen_ids: set[int] = set()
+    for raw_value in manual_ids.split(","):
+        stripped_value = raw_value.strip()
+        if not stripped_value:
+            continue
+        parsed_id = int(stripped_value)
+        if parsed_id in seen_ids:
+            continue
+        seen_ids.add(parsed_id)
+        evidence_ids.append(parsed_id)
+    for selected_id in selected_ids:
+        if selected_id in seen_ids:
+            continue
+        seen_ids.add(selected_id)
+        evidence_ids.append(selected_id)
+    return evidence_ids
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -604,6 +624,8 @@ def page_reviews():
             st.dataframe(pd.DataFrame(queue_rows), width="stretch", hide_index=True)
         else:
             st.info("No evidence awaiting review")
+    else:
+        items = []
 
     # Review history
     st.subheader("Recent Review Actions")
@@ -648,10 +670,21 @@ def page_reviews():
     st.subheader("Bulk Approve")
     with st.form("bulk_review_form"):
         bulk_ids = st.text_input("Evidence IDs (comma-separated)")
+        queued_evidence_options = {
+            item["id"]: f"#{item['id']} | {item.get('relation_type')} | {item.get('final_fragment_score')}"
+            for item in items
+            if item.get("id") is not None
+        }
+        selected_evidence_ids = st.multiselect(
+            tr("Queued Evidence IDs"),
+            list(queued_evidence_options),
+            format_func=lambda evidence_id: queued_evidence_options[evidence_id],
+            help=tr("Optional quick-pick from current review queue"),
+        )
         bulk_author = st.text_input("Bulk Approve Author")
         st.caption("Use the filtered queue above to identify evidence IDs for bulk approval.")
         if st.form_submit_button("Bulk Approve"):
-            evidence_ids = [int(item.strip()) for item in bulk_ids.split(",") if item.strip()]
+            evidence_ids = build_bulk_approve_evidence_ids(bulk_ids, selected_evidence_ids)
             if not evidence_ids:
                 st.warning("Enter at least one evidence ID")
             else:
