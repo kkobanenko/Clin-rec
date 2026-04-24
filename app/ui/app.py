@@ -72,6 +72,15 @@ def format_pipeline_stage_option(stage: str) -> str:
     return tr("All") if not stage else tr(stage)
 
 
+def format_review_evidence_option(item: dict[str, Any]) -> str:
+    return tr(
+        "#{id} | {relation_type} | {score}",
+        id=item.get("id"),
+        relation_type=tr(item.get("relation_type") or "Unknown"),
+        score=item.get("final_fragment_score"),
+    )
+
+
 def build_matrix_query_params(
     *,
     page_size: int,
@@ -788,7 +797,7 @@ def page_reviews():
         index=0,
     )
     queued_history_options = {
-        item["id"]: f"#{item['id']} | {item.get('relation_type')} | {item.get('final_fragment_score')}"
+        item["id"]: format_review_evidence_option(item)
         for item in items
         if item.get("id") is not None
     }
@@ -834,7 +843,7 @@ def page_reviews():
     with st.form("bulk_review_form"):
         bulk_ids = st.text_input(tr("Evidence IDs (comma-separated)"))
         queued_evidence_options = {
-            item["id"]: f"#{item['id']} | {item.get('relation_type')} | {item.get('final_fragment_score')}"
+            item["id"]: format_review_evidence_option(item)
             for item in items
             if item.get("id") is not None
         }
@@ -865,7 +874,7 @@ def page_reviews():
     with st.form("review_form"):
         target_type = st.selectbox(tr("Target Type"), ["pair_evidence"])
         queued_target_options = {
-            item["id"]: f"#{item['id']} | {item.get('relation_type')} | {item.get('final_fragment_score')}"
+            item["id"]: format_review_evidence_option(item)
             for item in items
             if item.get("id") is not None
         }
