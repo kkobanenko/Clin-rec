@@ -372,7 +372,7 @@ def api_post(path: str, json: dict | None = None) -> dict | None:
 # --- Page: Dashboard ---
 
 def page_dashboard():
-    st.header("Dashboard")
+    st.header(tr("Dashboard"))
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
@@ -402,7 +402,7 @@ def page_dashboard():
         col5.metric(tr("KB Artifacts"), kb_artifacts.get("total", 0))
 
     # Health check
-    st.subheader("System Health")
+    st.subheader(tr("System Health"))
     health = api_get("/health")
     if health:
         status = health.get("status", "unknown")
@@ -413,7 +413,7 @@ def page_dashboard():
             if health.get("db_error"):
                 st.error(tr("DB: {error}", error=health["db_error"]))
 
-    st.subheader("Release Gate Snapshot")
+    st.subheader(tr("Release Gate Snapshot"))
 
     snapshot_col1, snapshot_col2 = st.columns(2)
 
