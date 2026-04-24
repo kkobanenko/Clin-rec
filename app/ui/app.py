@@ -1194,25 +1194,25 @@ def page_kb():
     st.subheader(tr("Artifacts"))
     filter_col1, filter_col2, filter_col3, filter_col4, filter_col5 = st.columns(5)
     artifact_type_filter = filter_col1.selectbox(
-        "Artifact Type Filter",
+        tr("Artifact Type Filter"),
         ["", "source_digest", "entity_page", "glossary_term", "open_question", "master_index"],
         index=0,
         key="kb_artifact_type_filter",
     )
     artifact_status_filter = filter_col2.selectbox(
-        "Artifact Status Filter",
+        tr("Artifact Status Filter"),
         ["", "draft", "active", "archived"],
         index=0,
         key="kb_artifact_status_filter",
     )
     artifact_review_filter = filter_col3.selectbox(
-        "Artifact Review Filter",
+        tr("Artifact Review Filter"),
         ["", "draft", "auto", "needs_review", "approved", "rejected"],
         index=0,
         key="kb_artifact_review_filter",
     )
     artifact_generator_filter = filter_col4.text_input(
-        "Artifact Generator Filter",
+        tr("Artifact Generator Filter"),
         key="kb_artifact_generator_filter",
     )
     artifact_search = filter_col5.text_input(tr("Artifact Search"), key="kb_artifact_search")
