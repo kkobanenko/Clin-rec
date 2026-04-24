@@ -89,6 +89,10 @@ def format_document_option_label(item: dict[str, Any]) -> str:
     return tr("#{id} | {title}", id=item.get("id"), title=item.get("title") or tr("Untitled"))
 
 
+def format_model_option_label(model: dict[str, Any]) -> str:
+    return tr("#{id} {label}", id=model.get("id"), label=model.get("version_label") or tr("Untitled"))
+
+
 def localize_dataframe_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
     return dataframe.rename(columns=lambda column: tr(str(column)))
 
