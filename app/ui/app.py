@@ -103,9 +103,11 @@ def format_output_option_label(item: dict[str, Any]) -> str:
 
 
 def format_artifact_option_label(item: dict[str, Any]) -> str:
-    return (
-        f"#{item.get('id')} | {tr(item.get('artifact_type') or 'Unknown')} | "
-        f"{item.get('title') or tr('Untitled')}"
+    return tr(
+        "#{id} | {artifact_type} | {title}",
+        id=item.get("id"),
+        artifact_type=tr(item.get("artifact_type") or "Unknown"),
+        title=item.get("title") or tr("Untitled"),
     )
 
 
