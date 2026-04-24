@@ -577,8 +577,8 @@ def page_documents():
                     f"#{artifact.get('id')} {artifact.get('artifact_type')} "
                     f"({artifact.get('content_type') or 'application/octet-stream'})"
                 )
-                col2.link_button("Download", f"{API_BASE}{artifact.get('download_url')}")
-                col3.link_button("Preview", f"{API_BASE}{artifact.get('preview_url')}")
+                col2.link_button(tr("Download"), f"{API_BASE}{artifact.get('download_url')}")
+                col3.link_button(tr("Preview"), f"{API_BASE}{artifact.get('preview_url')}")
         else:
             st.info(tr("No valid raw artifacts available for current version"))
 
@@ -590,7 +590,7 @@ def page_documents():
             )
             sections = filter_document_sections(content.get("sections", []), section_search)
             for sec in sections:
-                with st.expander(sec.get("section_title", "Section")):
+                with st.expander(sec.get("section_title", tr("Section"))):
                     fragments = sec.get("fragments", [])
                     for frag in fragments:
                         st.text(frag.get("fragment_text", "")[:500])
