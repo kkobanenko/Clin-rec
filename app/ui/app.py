@@ -1563,7 +1563,7 @@ def page_tasks():
         if not task_value
         else next(
             (
-                f"{item['task_id']} | {tr(item['label'])} | {tr(item['origin'])}"
+                format_task_option_label(item)
                 for item in filtered_recent_tasks
                 if item["task_id"] == task_value
             ),
