@@ -1249,7 +1249,7 @@ def page_kb():
         else:
             st.info("No KB artifacts available")
 
-    st.subheader("Artifact Detail")
+    st.subheader(tr("Artifact Detail"))
     current_artifact_options = {
         item["id"]: f"#{item['id']} | {item.get('artifact_type')} | {item.get('title') or 'untitled'}"
         for item in items
@@ -1261,8 +1261,8 @@ def page_kb():
         format_func=lambda value: tr("Manual Artifact ID") if value is None else current_artifact_options[value],
         key="current_artifact_id",
     )
-    artifact_id = st.number_input("Artifact ID", min_value=1, step=1, key="artifact_id")
-    if st.button("Load Artifact"):
+    artifact_id = st.number_input(tr("Artifact ID"), min_value=1, step=1, key="artifact_id")
+    if st.button(tr("Load Artifact")):
         detail = api_get(f"/kb/artifacts/{resolve_artifact_id(artifact_id, selected_artifact_id)}")
         if detail:
             render_kb_artifact_detail(detail)
@@ -1310,7 +1310,7 @@ def page_kb():
         else:
             st.info("No KB entities available")
 
-    st.subheader("Entity Detail")
+    st.subheader(tr("Entity Detail"))
     current_entity_options = {
         item["id"]: f"#{item['id']} | {item.get('entity_type')} | {item.get('canonical_name') or 'unnamed'}"
         for item in items
@@ -1322,8 +1322,8 @@ def page_kb():
         format_func=lambda value: tr("Manual Entity ID") if value is None else current_entity_options[value],
         key="current_entity_id",
     )
-    entity_id = st.number_input("Entity ID", min_value=1, step=1, key="kb_entity_id")
-    if st.button("Load Entity"):
+    entity_id = st.number_input(tr("Entity ID"), min_value=1, step=1, key="kb_entity_id")
+    if st.button(tr("Load Entity")):
         entity_detail = api_get(f"/kb/entities/{resolve_entity_id(entity_id, selected_entity_id)}")
         if entity_detail:
             render_entity_detail(entity_detail)
