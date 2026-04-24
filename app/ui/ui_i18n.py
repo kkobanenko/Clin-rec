@@ -282,7 +282,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Conflict Artifact ID Filter": {"ru": "Фильтр конфликтов по ID артефакта", "en": "Conflict Artifact ID Filter"},
     "Conflict Review Filter": {"ru": "Фильтр конфликтов по ревью", "en": "Conflict Review Filter"},
     "No KB conflicts detected": {"ru": "Конфликты KB не обнаружены", "en": "No KB conflicts detected"},
-    "Claim Artifact ID Filter": {"ru": "Фильтр claim по ID артефакта", "en": "Claim Artifact ID Filter"},
+    "Claim Artifact ID Filter": {"ru": "Фильтр утверждений по ID артефакта", "en": "Claim Artifact ID Filter"},
     "Claim Type Filter": {"ru": "Фильтр по типу claim", "en": "Claim Type Filter"},
     "Claim Review Filter": {"ru": "Фильтр по ревью claim", "en": "Claim Review Filter"},
     "Claims Page Size": {"ru": "Размер страницы claims", "en": "Claims Page Size"},
