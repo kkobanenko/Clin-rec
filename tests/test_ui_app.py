@@ -4,6 +4,7 @@ from app.ui.app import (
     build_matrix_query_params,
     resolve_document_id,
     resolve_history_target_id,
+    resolve_output_id,
     resolve_review_target_id,
 )
 
@@ -104,3 +105,11 @@ def test_resolve_document_id_prefers_current_list_selection() -> None:
 
 def test_resolve_document_id_falls_back_to_manual_value() -> None:
     assert resolve_document_id(4, None) == 4
+
+
+def test_resolve_output_id_prefers_current_list_selection() -> None:
+    assert resolve_output_id(6, 18) == 18
+
+
+def test_resolve_output_id_falls_back_to_manual_value() -> None:
+    assert resolve_output_id(6, None) == 6

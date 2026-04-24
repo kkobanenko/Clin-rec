@@ -140,6 +140,10 @@ def resolve_document_id(manual_document_id: int, selected_document_id: int | Non
     return selected_document_id or manual_document_id
 
 
+def resolve_output_id(manual_output_id: int, selected_output_id: int | None) -> int:
+    return selected_output_id or manual_output_id
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -968,9 +972,21 @@ def page_outputs():
             st.info("No outputs available")
 
     st.subheader("Output Detail")
+    current_output_options = {
+        item["id"]: f"#{item['id']} | {item.get('output_type')} | {item.get('title') or 'untitled'}"
+        for item in items
+        if item.get("id") is not None
+    }
+    selected_output_id = st.selectbox(
+        tr("Current Output"),
+        [None, *list(current_output_options)],
+        format_func=lambda value: tr("Manual Output ID") if value is None else current_output_options[value],
+        key="current_output_id",
+    )
     detail_output_id = st.number_input("Detail Output ID", min_value=1, step=1, key="detail_output_id")
     if st.button("Load Output Detail"):
-        detail = api_get(f"/outputs/{detail_output_id}")
+        resolved_output_id = resolve_output_id(detail_output_id, selected_output_id)
+        detail = api_get(f"/outputs/{resolved_output_id}")
         if detail:
             render_output_detail(detail)
             artifact_id = detail.get("artifact_id")

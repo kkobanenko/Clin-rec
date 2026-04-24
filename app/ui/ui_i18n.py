@@ -187,6 +187,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Outputs With Files Only": {"ru": "Только выходы с файлами", "en": "Outputs With Files Only"},
     "No outputs available": {"ru": "Выходы не найдены", "en": "No outputs available"},
     "Output Detail": {"ru": "Детали выхода", "en": "Output Detail"},
+    "Current Output": {"ru": "Выход из текущего списка", "en": "Current Output"},
+    "Manual Output ID": {"ru": "Ввести ID выхода вручную", "en": "Manual Output ID"},
     "Detail Output ID": {"ru": "ID выхода для деталей", "en": "Detail Output ID"},
     "Load Output Detail": {"ru": "Загрузить детали выхода", "en": "Load Output Detail"},
     "Linked KB artifact: #{id}": {"ru": "Связанный KB артефакт: #{id}", "en": "Linked KB artifact: #{id}"},
