@@ -1399,7 +1399,7 @@ def page_kb():
         key="kb_claim_page_size",
     )
     claim_search = st.text_input(tr("Claim Search"), key="kb_claim_search")
-    conflicted_only = st.checkbox("Conflicted Claims Only", key="kb_claim_conflicted_only")
+    conflicted_only = st.checkbox(tr("Conflicted Claims Only"), key="kb_claim_conflicted_only")
     claim_params = {"page_size": claim_page_size}
     if claim_artifact_id > 0:
         claim_params["artifact_id"] = claim_artifact_id
