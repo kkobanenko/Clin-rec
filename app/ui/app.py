@@ -93,6 +93,13 @@ def format_model_option_label(model: dict[str, Any]) -> str:
     return tr("#{id} {label}", id=model.get("id"), label=model.get("version_label") or tr("Untitled"))
 
 
+def format_output_option_label(item: dict[str, Any]) -> str:
+    return (
+        f"#{item.get('id')} | {tr(item.get('output_type') or 'Unknown')} | "
+        f"{item.get('title') or tr('Untitled')}"
+    )
+
+
 def localize_dataframe_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
     return dataframe.rename(columns=lambda column: tr(str(column)))
 
