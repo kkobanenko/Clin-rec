@@ -1518,7 +1518,7 @@ def page_tasks():
     )
     st.subheader(tr("Recent UI Tasks"))
     if filtered_recent_tasks:
-        st.dataframe(pd.DataFrame(filtered_recent_tasks), width="stretch", hide_index=True)
+        st.dataframe(localize_dataframe_columns(pd.DataFrame(filtered_recent_tasks)), width="stretch", hide_index=True)
         selected_task_id = st.selectbox(
             tr("Tracked Task"),
             [item["task_id"] for item in filtered_recent_tasks],
