@@ -248,7 +248,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "File Back Output": {"ru": "Обратная связь по выходу", "en": "File Back Output"},
     "Current File-Back Output": {"ru": "Выход для обратной связи из текущего списка", "en": "Current File-Back Output"},
     "Manual File-Back Output ID": {"ru": "Ввести ID выхода для обратной связи вручную", "en": "Manual File-Back Output ID"},
-    "File Back Status": {"ru": "Статус файлинга", "en": "File Back Status"},
+    "File Back Status": {"ru": "Статус файловой обратной связи", "en": "File Back Status"},
     "Queue File Back": {"ru": "Поставить файлинг в очередь", "en": "Queue File Back"},
     "File-back queued: {task_id}": {"ru": "Файлинг поставлен в очередь: {task_id}", "en": "File-back queued: {task_id}"},
     "Compile KB": {"ru": "Собрать KB", "en": "Compile KB"},
