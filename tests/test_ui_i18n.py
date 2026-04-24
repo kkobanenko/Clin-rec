@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from app.ui.app import append_recent_task
+from app.ui.app import append_recent_task, format_pipeline_run_label
 from app.ui import ui_i18n
 from app.ui.ui_i18n import (
     load_language_preference,
@@ -77,3 +77,19 @@ def test_append_recent_task_deduplicates_and_keeps_latest_first() -> None:
     assert [item["task_id"] for item in updated_tasks[:2]] == ["old-1", "old-2"]
     assert updated_tasks[0]["label"] == "kb_lint"
     assert updated_tasks[0]["origin"] == "knowledge_base"
+
+
+def test_format_pipeline_run_label_includes_core_run_fields() -> None:
+    label = format_pipeline_run_label(
+        {"id": 17, "stage": "discovery", "run_type": "full", "status": "success"}
+    )
+
+    assert label == "#17 | discovery | full | success"
+
+
+def test_new_pipeline_detail_labels_translate_to_russian() -> None:
+    set_current_language("ru")
+
+    assert tr("Run Detail") == "Детали прогона"
+    assert tr("Recent Run") == "Недавний прогон"
+    assert tr("Load Selected Run") == "Загрузить выбранный прогон"

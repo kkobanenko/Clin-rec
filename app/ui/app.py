@@ -60,6 +60,13 @@ def remember_task(task_id: str | None, *, label: str, origin: str) -> None:
     )
 
 
+def format_pipeline_run_label(run: dict) -> str:
+    return (
+        f"#{run.get('id')} | {run.get('stage')} | "
+        f"{run.get('run_type')} | {run.get('status')}"
+    )
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -412,6 +419,19 @@ def page_pipeline():
         if items:
             df = pd.DataFrame(items)
             st.dataframe(df, width="stretch")
+
+            st.subheader(tr("Run Detail"))
+            recent_run_map = {item["id"]: item for item in items if item.get("id") is not None}
+            selected_run_id = st.selectbox(
+                tr("Recent Run"),
+                list(recent_run_map),
+                format_func=lambda run_id: format_pipeline_run_label(recent_run_map[run_id]),
+                key="pipeline_recent_run_id",
+            )
+            if st.button(tr("Load Selected Run")):
+                detail = api_get(f"/runs/{selected_run_id}")
+                if detail:
+                    st.json(detail)
         else:
             st.info("No pipeline runs yet")
 
