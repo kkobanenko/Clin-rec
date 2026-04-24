@@ -940,7 +940,7 @@ def page_scoring_models():
                 )
             st.dataframe(localize_dataframe_columns(pd.DataFrame(overview_rows)), width="stretch")
         else:
-            st.dataframe(pd.DataFrame(models), width="stretch")
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(models)), width="stretch")
 
         active_model = api_get("/matrix/models/active", allow_statuses={404})
         if isinstance(active_model, dict):
