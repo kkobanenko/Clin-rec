@@ -250,7 +250,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Manual File-Back Output ID": {"ru": "Ввести ID выхода для обратной связи вручную", "en": "Manual File-Back Output ID"},
     "File Back Status": {"ru": "Статус файловой обратной связи", "en": "File Back Status"},
     "Queue File Back": {"ru": "Поставить обратную связь в очередь", "en": "Queue File Back"},
-    "File-back queued: {task_id}": {"ru": "Файлинг поставлен в очередь: {task_id}", "en": "File-back queued: {task_id}"},
+    "File-back queued: {task_id}": {"ru": "Задача обратной связи поставлена в очередь: {task_id}", "en": "File-back queued: {task_id}"},
     "Compile KB": {"ru": "Собрать KB", "en": "Compile KB"},
     "Lint KB": {"ru": "Проверить KB", "en": "Lint KB"},
     "KB compile queued: {task_id}": {"ru": "Сборка KB поставлена в очередь: {task_id}", "en": "KB compile queued: {task_id}"},
