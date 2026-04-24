@@ -188,7 +188,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Enter at least one evidence ID": {"ru": "Введите хотя бы один ID доказательства", "en": "Enter at least one evidence ID"},
     "Approved {count} evidence items": {"ru": "Подтверждено элементов доказательств: {count}", "en": "Approved {count} evidence items"},
     "Submit Review": {"ru": "Отправить решение ревью", "en": "Submit Review"},
-    "Target Type": {"ru": "Тип target", "en": "Target Type"},
+    "Target Type": {"ru": "Тип цели", "en": "Target Type"},
     "Target ID": {"ru": "ID target", "en": "Target ID"},
     "Action": {"ru": "Действие", "en": "Action"},
     "Reason": {"ru": "Причина", "en": "Reason"},
