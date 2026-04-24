@@ -91,6 +91,23 @@ def build_matrix_query_params(
     return params
 
 
+def build_matrix_cell_detail_params(
+    *,
+    molecule_from_id: int,
+    molecule_to_id: int,
+    scope_type: str,
+    model_version_id: int,
+) -> dict:
+    params = {
+        "molecule_from_id": molecule_from_id,
+        "molecule_to_id": molecule_to_id,
+        "scope_type": scope_type,
+    }
+    if model_version_id > 0:
+        params["model_version_id"] = model_version_id
+    return params
+
+
 def _split_frontmatter(content_md: str | None) -> tuple[str | None, str]:
     if not content_md:
         return None, ""
@@ -520,11 +537,26 @@ def page_matrix():
 
     # Cell detail
     st.subheader("Cell Detail")
-    col1, col2 = st.columns(2)
+    col1, col2, col3, col4 = st.columns(4)
     mol_from = col1.number_input("Molecule From ID", min_value=1, step=1)
     mol_to = col2.number_input("Molecule To ID", min_value=1, step=1)
+    cell_scope_type = col3.selectbox(tr("Cell Scope"), ["global", "disease"], format_func=tr)
+    detail_model_version_id = col4.number_input(
+        tr("Cell Model Version ID"),
+        min_value=0,
+        step=1,
+        help=tr("0 means latest available model"),
+    )
     if st.button("Load Cell Detail"):
-        detail = api_get("/matrix/cell", {"molecule_from_id": mol_from, "molecule_to_id": mol_to})
+        detail = api_get(
+            "/matrix/cell",
+            build_matrix_cell_detail_params(
+                molecule_from_id=mol_from,
+                molecule_to_id=mol_to,
+                scope_type=cell_scope_type,
+                model_version_id=detail_model_version_id,
+            ),
+        )
         if detail:
             st.json(detail)
 
