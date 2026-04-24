@@ -189,7 +189,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "Approved {count} evidence items": {"ru": "Подтверждено элементов доказательств: {count}", "en": "Approved {count} evidence items"},
     "Submit Review": {"ru": "Отправить решение ревью", "en": "Submit Review"},
     "Target Type": {"ru": "Тип цели", "en": "Target Type"},
-    "Target ID": {"ru": "ID target", "en": "Target ID"},
+    "Target ID": {"ru": "ID цели", "en": "Target ID"},
     "Action": {"ru": "Действие", "en": "Action"},
     "Reason": {"ru": "Причина", "en": "Reason"},
     "Author": {"ru": "Автор", "en": "Author"},
