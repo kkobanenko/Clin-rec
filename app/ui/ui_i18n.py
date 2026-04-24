@@ -178,7 +178,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "0 means no target filter": {"ru": "0 означает отсутствие фильтра по цели", "en": "0 means no target filter"},
     "No review actions yet": {"ru": "Действий ревью пока нет", "en": "No review actions yet"},
     "Bulk Approve": {"ru": "Массовое подтверждение", "en": "Bulk Approve"},
-    "Evidence IDs (comma-separated)": {"ru": "ID evidence (через запятую)", "en": "Evidence IDs (comma-separated)"},
+    "Evidence IDs (comma-separated)": {"ru": "ID доказательств (через запятую)", "en": "Evidence IDs (comma-separated)"},
     "Queued Evidence IDs": {"ru": "ID evidence из текущей очереди", "en": "Queued Evidence IDs"},
     "Optional quick-pick from current review queue": {"ru": "Необязательный быстрый выбор из текущей очереди ревью", "en": "Optional quick-pick from current review queue"},
     "Queued Evidence Target": {"ru": "Target из текущей очереди", "en": "Queued Evidence Target"},
