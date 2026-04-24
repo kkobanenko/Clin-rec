@@ -1012,11 +1012,22 @@ def page_outputs():
 
     st.subheader("File Back Output")
     with st.form("output_file_back_form"):
+        file_back_output_options = {
+            item["id"]: f"#{item['id']} | {item.get('output_type')} | {item.get('title') or 'untitled'}"
+            for item in items
+            if item.get("id") is not None
+        }
+        selected_file_back_output_id = st.selectbox(
+            tr("Current File-Back Output"),
+            [None, *list(file_back_output_options)],
+            format_func=lambda value: tr("Manual File-Back Output ID") if value is None else file_back_output_options[value],
+            key="current_file_back_output_id",
+        )
         output_id = st.number_input("Output ID", min_value=1, step=1)
         file_back_status = st.selectbox("File Back Status", ["accepted", "rejected", "needs_review"])
         if st.form_submit_button("Queue File Back"):
             result = api_post(
-                f"/outputs/file-back/{output_id}",
+                f"/outputs/file-back/{resolve_output_id(output_id, selected_file_back_output_id)}",
                 {"file_back_status": file_back_status},
             )
             if result:
