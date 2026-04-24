@@ -113,7 +113,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "No active scoring model": {"ru": "Нет активной скоринговой модели", "en": "No active scoring model"},
     "KB master index available: artifact #{id} ({fmt})": {"ru": "Master index KB доступен: артефакт #{id} ({fmt})", "en": "KB master index available: artifact #{id} ({fmt})"},
     "KB master index unavailable": {"ru": "Master index KB недоступен", "en": "KB master index unavailable"},
-    "Quick operator checks": {"ru": "Быстрые operator-проверки", "en": "Quick operator checks"},
+    "Quick operator checks": {"ru": "Быстрые проверки оператора", "en": "Quick operator checks"},
     "Document Registry": {"ru": "Реестр документов", "en": "Document Registry"},
     "Search": {"ru": "Поиск", "en": "Search"},
     "Specialty filter": {"ru": "Фильтр по специальности", "en": "Specialty filter"},
