@@ -37,3 +37,23 @@ Release impact:
 Residual risks:
 - Full architect Milestone B not fully closed yet: still need richer `completeness_claim` semantics and broader release-summary integration wording.
 - Milestone C+ (pilot runtime preflight, output governance, KB lint expansion, auth minimum) not implemented yet.
+
+## 2026-04-25 — Milestone C pilot runtime profile and preflight
+
+Changed:
+- Added `RUNBOOK_PILOT_RUNTIME_PROFILE.md` with selected pilot profile `pilot-compose-local`.
+- Added executable `scripts/pilot_preflight.sh` with checks for compose config, required env vars, disk space, service availability, bucket directory, and alembic current/head alignment.
+- Added lightweight assertions in `tests/test_pilot_preflight_script.py` to protect script contract.
+- Updated `docs/RELEASE_READY_CHECKLIST.md` with separate pilot runtime gate and pilot runbook reference.
+
+Tests:
+- command: `.venv/bin/pytest -q tests/test_pilot_preflight_script.py`
+- result: pass (`5 passed`)
+- command: `bash scripts/pilot_preflight.sh`
+- result: pass
+
+Release impact:
+- non-blocker hardening (pilot operations guardrails), additive only
+
+Residual risks:
+- Preflight uses container-level bucket directory check (`/data/cr-artifacts`) as practical signal; deeper S3 API-level bucket audit still optional hardening.

@@ -8,6 +8,7 @@
 - Подтвердить один active runtime profile: `host-only` или `docker-compose-only`.
 - Подтвердить согласованность `CRIN_CELERY_BROKER_URL` и `CRIN_CELERY_RESULT_BACKEND` между API и worker.
 - Подтвердить, что release evaluation не смешивается с unrelated локальными экспериментами.
+- Для pilot-stage verification отдельно подтвердить выбранный pilot runtime profile через `bash scripts/pilot_preflight.sh`.
 - Для полного прогона можно использовать helper: `bash scripts/release_ready_check.sh`.
 - По умолчанию helper сохраняет логи в `.artifacts/release_checks/<timestamp>`; этот каталог использовать как evidence bundle для summary.
 - Helper также копирует `docs/RELEASE_SUMMARY_TEMPLATE.md` в bundle как стартовую заготовку `release_summary.md`.
@@ -52,6 +53,12 @@
 - Подтвердить, что scoring model readiness/activation path контролируем и диагностируем.
 - Подтвердить, что output/KB background workflows не только видимы через tasks/operator surfaces, но и реально завершаются с доступным результатом.
 
+## 6a. Pilot Runtime Gate
+
+- Запустить `bash scripts/pilot_preflight.sh` перед full release pack.
+- Убедиться, что preflight проверил compose config, env vars, Postgres/Redis/MinIO/API/UI availability, disk space, bucket existence и alembic current=head.
+- Зафиксировать runtime profile в итоговом summary как `pilot-compose-local` или другой явно выбранный pilot profile.
+
 ## 7. Go/No-Go Summary
 
 - Зафиксировать статус: `release-ready` или `blocked`.
@@ -66,6 +73,7 @@
 - Product contract: `PRD_CR_Intelligence_Platform_v1_7.md`
 - Technical tranche: `TZ_CR_Intelligence_Platform_v1_6.md`
 - Runtime procedure: `RUNBOOK_RUNTIME_PROFILE.md`
+- Pilot runtime procedure: `RUNBOOK_PILOT_RUNTIME_PROFILE.md`
 - Live rehearsal record: `docs/RELEASE_REHEARSAL_2026-04-22.md`
 - Final release summary: `docs/RELEASE_SUMMARY_2026-04-22.md`
 - Baseline acceptance floor: `DOD_MVP.md`
