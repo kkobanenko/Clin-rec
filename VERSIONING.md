@@ -155,6 +155,15 @@ This document tracks component versions for reproducibility across runs, per PRD
 - Synced PRD/TZ/backlog with the post-release plan: async follow-up, compact linkage and operator-observability polish as the next additive tranche.
 - Added recent UI task tracking, surfaced sync task ids, added pipeline run detail picker and pipeline stage filter, all validated with focused tests and live Streamlit smoke.
 
+### Phase-2 Operator Hardening Sync (2026-04-24, review and matrix follow-up)
+
+**Files:** `PRD_CR_Intelligence_Platform_v1_6.md`, `TZ_CR_Intelligence_Platform_v1_5.md`, `docs/TZ_PRD_PHASE2_BACKLOG.md`, `VERSIONING.md`, `app/ui/app.py`, `app/ui/ui_i18n.py`, `tests/test_ui_app.py`
+
+**Changelog:**
+- Synced canon docs to latest operator-hardening head after review and matrix follow-up tranche.
+- Added matrix list/detail filters plus review queue/history/submit quick-pick controls to reduce manual ID transfer across operator flows.
+- Kept delivery additive: focused helper tests, narrow compile checks and live Streamlit smoke on affected pages.
+
 ### PRD v1.5 (2026-04-21)
 
 **File:** `PRD_CR_Intelligence_Platform_v1_5.md`
