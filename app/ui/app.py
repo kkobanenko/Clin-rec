@@ -1159,7 +1159,7 @@ def page_outputs():
 # --- Page: Knowledge Base ---
 
 def page_kb():
-    st.header("Knowledge Base")
+    st.header(tr("Knowledge Base"))
 
     col1, col2 = st.columns(2)
     if col1.button("Compile KB"):
@@ -1191,7 +1191,7 @@ def page_kb():
         else:
             st.info(master_index.get("message") or "No master index artifact yet")
 
-    st.subheader("Artifacts")
+    st.subheader(tr("Artifacts"))
     filter_col1, filter_col2, filter_col3, filter_col4, filter_col5 = st.columns(5)
     artifact_type_filter = filter_col1.selectbox(
         "Artifact Type Filter",
@@ -1215,7 +1215,7 @@ def page_kb():
         "Artifact Generator Filter",
         key="kb_artifact_generator_filter",
     )
-    artifact_search = filter_col5.text_input("Artifact Search", key="kb_artifact_search")
+    artifact_search = filter_col5.text_input(tr("Artifact Search"), key="kb_artifact_search")
     artifact_params = {"page_size": 50}
     if artifact_type_filter:
         artifact_params["artifact_type"] = artifact_type_filter
@@ -1267,7 +1267,7 @@ def page_kb():
         if detail:
             render_kb_artifact_detail(detail)
 
-    st.subheader("Entities")
+    st.subheader(tr("Entities"))
     entity_col1, entity_col2, entity_col3 = st.columns(3)
     entity_type_filter = entity_col1.selectbox(
         "Entity Type Filter",
@@ -1281,7 +1281,7 @@ def page_kb():
         index=0,
         key="kb_entity_status_filter",
     )
-    entity_search = entity_col3.text_input("Entity Search", key="kb_entity_search")
+    entity_search = entity_col3.text_input(tr("Entity Search"), key="kb_entity_search")
     entity_params = {"page_size": 50}
     if entity_type_filter:
         entity_params["entity_type"] = entity_type_filter
@@ -1328,7 +1328,7 @@ def page_kb():
         if entity_detail:
             render_entity_detail(entity_detail)
 
-    st.subheader("Conflicts")
+    st.subheader(tr("Conflicts"))
     conflict_col1, conflict_col2 = st.columns(2)
     conflict_artifact_id = conflict_col1.number_input(
         "Conflict Artifact ID Filter",
@@ -1367,9 +1367,9 @@ def page_kb():
                 )
             st.dataframe(pd.DataFrame(conflict_rows), width="stretch", hide_index=True)
         else:
-            st.info("No KB conflicts detected")
+            st.info(tr("No KB conflicts detected"))
 
-    st.subheader("Claims")
+    st.subheader(tr("Claims"))
     claim_col1, claim_col2, claim_col3, claim_col4 = st.columns(4)
     claim_artifact_id = claim_col1.number_input(
         "Claim Artifact ID Filter",
@@ -1398,7 +1398,7 @@ def page_kb():
         step=10,
         key="kb_claim_page_size",
     )
-    claim_search = st.text_input("Claim Search", key="kb_claim_search")
+    claim_search = st.text_input(tr("Claim Search"), key="kb_claim_search")
     conflicted_only = st.checkbox("Conflicted Claims Only", key="kb_claim_conflicted_only")
     claim_params = {"page_size": claim_page_size}
     if claim_artifact_id > 0:
