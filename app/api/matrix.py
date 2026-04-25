@@ -42,7 +42,23 @@ async def list_pair_evidence(
     document_version_id: int | None = None,
     molecule_from_id: int | None = None,
     molecule_to_id: int | None = None,
+    relation_type: str | None = None,
+    review_status: str | None = None,
+    min_score: float | None = None,
 ):
+    """List pair evidence with filtering and pagination.
+    
+    Query parameters:
+    - page: Page number (default 1)
+    - page_size: Items per page (default 50, max 500)
+    - context_id: Filter by clinical context
+    - document_version_id: Filter by document version
+    - molecule_from_id: Filter by source molecule
+    - molecule_to_id: Filter by target molecule
+    - relation_type: Filter by relation type (e.g., "interaction")
+    - review_status: Filter by review status ("auto", "manual")
+    - min_score: Filter by minimum final_fragment_score
+    """
     query = select(PairEvidence)
     count_query = select(func.count(PairEvidence.id))
 
@@ -62,6 +78,15 @@ async def list_pair_evidence(
     if molecule_to_id:
         query = query.where(PairEvidence.molecule_to_id == molecule_to_id)
         count_query = count_query.where(PairEvidence.molecule_to_id == molecule_to_id)
+    if relation_type:
+        query = query.where(PairEvidence.relation_type == relation_type)
+        count_query = count_query.where(PairEvidence.relation_type == relation_type)
+    if review_status:
+        query = query.where(PairEvidence.review_status == review_status)
+        count_query = count_query.where(PairEvidence.review_status == review_status)
+    if min_score:
+        query = query.where(PairEvidence.final_fragment_score >= min_score)
+        count_query = count_query.where(PairEvidence.final_fragment_score >= min_score)
 
     total = (await db.execute(count_query)).scalar_one()
     query = query.order_by(PairEvidence.created_at.desc(), PairEvidence.id.desc()).offset((page - 1) * page_size).limit(page_size)
