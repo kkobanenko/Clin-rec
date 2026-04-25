@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.core.config import settings
 from app.core.dependencies import get_db
 from app.main import app
 
@@ -324,5 +325,62 @@ async def test_document_artifact_download_endpoint_streams_valid_current_artifac
         assert resp.content == pdf_bytes
         assert resp.headers["content-type"].startswith("application/pdf")
         assert resp.headers["content-disposition"] == 'inline; filename="document_artifact_9.pdf"'
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_document_artifacts_route_requires_auth_header_when_enabled(monkeypatch):
+    monkeypatch.setattr(settings, "api_auth_enabled", True)
+    monkeypatch.setattr(settings, "api_key", "pilot-secret")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/documents/1/artifacts")
+
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid API key"
+
+
+@pytest.mark.asyncio
+async def test_document_artifact_download_endpoint_accepts_auth_header_when_enabled(monkeypatch):
+    monkeypatch.setattr(settings, "api_auth_enabled", True)
+    monkeypatch.setattr(settings, "api_key", "pilot-secret")
+
+    version = SimpleNamespace(id=11)
+    valid_html = SimpleNamespace(
+        id=9,
+        document_version_id=11,
+        artifact_type="html",
+        raw_path="documents/1/versions/11/html.html",
+        content_hash="hash-html",
+        content_type="text/html",
+        fetched_at=datetime.now(timezone.utc),
+    )
+
+    db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=version),
+            FakeScalarResult(values=[valid_html]),
+        ]
+    )
+
+    async def override_get_db():
+        yield db
+
+    monkeypatch.setattr("app.api.documents.download_artifact", lambda _path: b"<html>ok</html>")
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get(
+                "/documents/1/artifacts/9/download?disposition=inline",
+                headers={"X-CRIN-API-Key": "pilot-secret"},
+            )
+
+        assert resp.status_code == 200
+        assert resp.headers["content-disposition"] == 'inline; filename="document_artifact_9.html"'
+        assert resp.content == b"<html>ok</html>"
     finally:
         app.dependency_overrides.pop(get_db, None)

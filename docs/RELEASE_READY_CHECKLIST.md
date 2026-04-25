@@ -59,6 +59,13 @@
 - Убедиться, что preflight проверил compose config, env vars, Postgres/Redis/MinIO/API/UI availability, disk space, bucket existence и alembic current=head.
 - Зафиксировать runtime profile в итоговом summary как `pilot-compose-local` или другой явно выбранный pilot profile.
 
+## 6b. Operator UI Smoke Gate
+
+- Для Documents -> Raw Source Artifacts проверить `Download`, `Preview` и `Load Evidence For Current Version`.
+- Подтвердить, что browser DOM не содержит container-only artifact links вида `http://app:8000/...`.
+- При включенной auth убедиться, что API key не попадает в browser URL и artifact actions работают через server-side UI flow.
+- Зафиксировать результат в отдельном dated UI smoke doc.
+
 ## 7. Go/No-Go Summary
 
 - Зафиксировать статус: `release-ready` или `blocked`.

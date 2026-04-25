@@ -1,6 +1,9 @@
 from app.ui.app import (
     _api_headers,
+    build_preview_payload,
+    describe_evidence_result,
     extract_matrix_pair_from_diff_row,
+    fetch_artifact_bytes,
     extract_source_document_version_ids,
     build_bulk_approve_evidence_ids,
     build_matrix_cell_detail_params,
@@ -23,6 +26,7 @@ from app.ui.app import (
     sort_recent_tasks,
     translate_value_or_fallback,
     resolve_current_document_version_id,
+    resolve_loaded_document_id,
 )
 from app.ui.ui_i18n import set_current_language
 
@@ -123,6 +127,12 @@ def test_resolve_document_id_prefers_current_list_selection() -> None:
 
 def test_resolve_document_id_falls_back_to_manual_value() -> None:
     assert resolve_document_id(4, None) == 4
+
+
+def test_resolve_loaded_document_id_updates_only_on_explicit_load() -> None:
+    assert resolve_loaded_document_id(11, 4, None, False) == 11
+    assert resolve_loaded_document_id(11, 4, 7, True) == 7
+    assert resolve_loaded_document_id(None, 4, None, True) == 4
 
 
 def test_resolve_output_id_prefers_current_list_selection() -> None:
@@ -312,3 +322,81 @@ def test_extract_matrix_pair_from_diff_row_returns_none_for_invalid_payload() ->
 def test_api_headers_uses_configured_api_key(monkeypatch) -> None:
     monkeypatch.setenv("CRIN_API_KEY", "pilot-secret")
     assert _api_headers() == {"X-CRIN-API-Key": "pilot-secret"}
+
+
+def test_fetch_artifact_bytes_uses_server_side_request_with_api_key(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class _Response:
+        status_code = 200
+        content = b"<html>artifact</html>"
+        headers = {"content-type": "text/html"}
+
+        def raise_for_status(self):
+            return None
+
+    def fake_get(url, *, headers, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return _Response()
+
+    monkeypatch.setenv("CRIN_API_KEY", "pilot-secret")
+    monkeypatch.setattr("app.ui.app.httpx.get", fake_get)
+
+    result = fetch_artifact_bytes(
+        {
+            "id": 40,
+            "artifact_type": "html",
+            "download_url": "/documents/1/artifacts/40/download",
+        }
+    )
+
+    assert result["ok"] is True
+    assert captured["url"] == "http://app:8000/documents/1/artifacts/40/download"
+    assert captured["headers"] == {"X-CRIN-API-Key": "pilot-secret"}
+
+
+def test_build_preview_payload_returns_text_for_html() -> None:
+    payload = build_preview_payload(
+        {
+            "ok": True,
+            "content_type": "text/html",
+            "content": b"<html><body>clinical recommendation</body></html>",
+        }
+    )
+
+    assert payload["kind"] == "text"
+    assert "clinical recommendation" in payload["message"]
+
+
+def test_build_preview_payload_returns_pdf_fallback_message() -> None:
+    payload = build_preview_payload(
+        {
+            "ok": True,
+            "content_type": "application/pdf",
+            "content": b"%PDF-1.7",
+        }
+    )
+
+    assert payload["kind"] == "info"
+    assert "use Download" in payload["message"]
+
+
+def test_describe_evidence_result_handles_rows_empty_and_error() -> None:
+    rows_result = describe_evidence_result(
+        {"ok": True, "data": {"items": [{"id": 1}], "total": 1}}
+    )
+    empty_result = describe_evidence_result(
+        {"ok": True, "data": {"items": [], "total": 0}}
+    )
+    error_result = describe_evidence_result(
+        {"ok": False, "status_code": 500, "detail": "server exploded"}
+    )
+
+    assert rows_result["state"] == "rows"
+    assert rows_result["total"] == 1
+    assert empty_result["state"] == "empty"
+    assert empty_result["message"] == "No evidence rows for current version"
+    assert error_result["state"] == "error"
+    assert "500" in error_result["message"]

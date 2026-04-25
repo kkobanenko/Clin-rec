@@ -37,6 +37,159 @@ def _api_headers() -> dict[str, str]:
     return {"X-CRIN-API-Key": api_key}
 
 
+def _extract_api_error_detail(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = None
+    if isinstance(payload, dict) and payload.get("detail"):
+        return str(payload["detail"])
+    text = response.text.strip()
+    return text or response.reason_phrase
+
+
+def api_get_result(
+    path: str,
+    params: dict | None = None,
+    allow_statuses: set[int] | None = None,
+) -> dict[str, Any]:
+    try:
+        response = httpx.get(f"{API_BASE}{path}", params=params, headers=_api_headers(), timeout=30)
+        if allow_statuses and response.status_code in allow_statuses:
+            return {
+                "ok": True,
+                "status_code": response.status_code,
+                "data": None,
+                "detail": None,
+            }
+        response.raise_for_status()
+        return {
+            "ok": True,
+            "status_code": response.status_code,
+            "data": response.json(),
+            "detail": None,
+        }
+    except httpx.HTTPStatusError as exc:
+        return {
+            "ok": False,
+            "status_code": exc.response.status_code,
+            "data": None,
+            "detail": _extract_api_error_detail(exc.response),
+        }
+    except httpx.HTTPError as exc:
+        return {
+            "ok": False,
+            "status_code": None,
+            "data": None,
+            "detail": str(exc),
+        }
+
+
+def _artifact_filename(artifact: dict[str, Any]) -> str:
+    artifact_id = artifact.get("id") or "unknown"
+    artifact_type = str(artifact.get("artifact_type") or "bin")
+    if artifact_type == "html":
+        extension = "html"
+    elif artifact_type == "pdf":
+        extension = "pdf"
+    else:
+        extension = artifact_type
+    return f"document_artifact_{artifact_id}.{extension}"
+
+
+def fetch_artifact_bytes(artifact: dict[str, Any], *, inline: bool = False) -> dict[str, Any]:
+    action_path = artifact.get("preview_url") if inline else artifact.get("download_url")
+    if not action_path:
+        return {
+            "ok": False,
+            "status_code": None,
+            "content": None,
+            "content_type": None,
+            "filename": None,
+            "detail": "Artifact URL is unavailable",
+        }
+    try:
+        response = httpx.get(f"{API_BASE}{action_path}", headers=_api_headers(), timeout=30)
+        response.raise_for_status()
+        return {
+            "ok": True,
+            "status_code": response.status_code,
+            "content": response.content,
+            "content_type": response.headers.get("content-type") or artifact.get("content_type") or "application/octet-stream",
+            "filename": _artifact_filename(artifact),
+            "detail": None,
+        }
+    except httpx.HTTPStatusError as exc:
+        return {
+            "ok": False,
+            "status_code": exc.response.status_code,
+            "content": None,
+            "content_type": None,
+            "filename": None,
+            "detail": _extract_api_error_detail(exc.response),
+        }
+    except httpx.HTTPError as exc:
+        return {
+            "ok": False,
+            "status_code": None,
+            "content": None,
+            "content_type": None,
+            "filename": None,
+            "detail": str(exc),
+        }
+
+
+def build_preview_payload(preview_result: dict[str, Any]) -> dict[str, str]:
+    if not preview_result.get("ok"):
+        return {
+            "kind": "error",
+            "message": f"Artifact preview failed: {preview_result.get('detail')}",
+        }
+    content_type = str(preview_result.get("content_type") or "")
+    content = preview_result.get("content") or b""
+    if "html" in content_type or content_type.startswith("text/"):
+        decoded = content.decode("utf-8", errors="replace")
+        truncated = decoded[:4000]
+        if len(decoded) > len(truncated):
+            truncated = f"{truncated}\n\n...[truncated]"
+        return {"kind": "text", "message": truncated}
+    if "pdf" in content_type:
+        return {
+            "kind": "info",
+            "message": "Inline preview is not supported for this artifact type; use Download.",
+        }
+    return {
+        "kind": "info",
+        "message": f"Inline preview is not supported for content type: {content_type or 'unknown'}",
+    }
+
+
+def describe_evidence_result(result: dict[str, Any]) -> dict[str, Any]:
+    if not result.get("ok"):
+        return {
+            "state": "error",
+            "message": f"Evidence load failed: {result.get('status_code') or 'n/a'} {result.get('detail')}",
+            "rows": [],
+            "total": 0,
+        }
+    data = result.get("data") if isinstance(result.get("data"), dict) else {}
+    rows = data.get("items") or []
+    total = int(data.get("total") or 0)
+    if rows:
+        return {
+            "state": "rows",
+            "message": f"Evidence rows: {total}",
+            "rows": rows,
+            "total": total,
+        }
+    return {
+        "state": "empty",
+        "message": "No evidence rows for current version",
+        "rows": [],
+        "total": total,
+    }
+
+
 def append_recent_task(
     recent_tasks: list[dict],
     *,
@@ -215,6 +368,17 @@ def resolve_history_target_id(manual_target_id: int, queued_target_id: int | Non
 
 def resolve_document_id(manual_document_id: int, selected_document_id: int | None) -> int:
     return selected_document_id or manual_document_id
+
+
+def resolve_loaded_document_id(
+    previous_document_id: int | None,
+    manual_document_id: int,
+    selected_document_id: int | None,
+    load_requested: bool,
+) -> int | None:
+    if load_requested:
+        return resolve_document_id(manual_document_id, selected_document_id)
+    return previous_document_id
 
 
 def resolve_output_id(manual_output_id: int, selected_output_id: int | None) -> int:
@@ -472,15 +636,14 @@ def api_get(
     allow_statuses: set[int] | None = None,
 ) -> dict | list | None:
     """Make GET request to backend API."""
-    try:
-        resp = httpx.get(f"{API_BASE}{path}", params=params, headers=_api_headers(), timeout=30)
-        if allow_statuses and resp.status_code in allow_statuses:
-            return None
-        resp.raise_for_status()
-        return resp.json()
-    except httpx.HTTPError as e:
-        st.error(tr("API error: {error}", error=e))
-        return None
+    result = api_get_result(path, params=params, allow_statuses=allow_statuses)
+    if result.get("ok"):
+        return result.get("data")
+    status_code = result.get("status_code")
+    detail = result.get("detail")
+    error_text = f"{status_code} {detail}" if status_code else detail
+    st.error(tr("API error: {error}", error=error_text))
+    return None
 
 
 def api_post(path: str, json: dict | None = None) -> dict | None:
@@ -677,8 +840,15 @@ def page_documents():
         format_func=lambda value: tr("Manual Document ID") if value is None else current_document_options[value],
     )
     doc_id = st.number_input(tr("Document ID"), min_value=1, step=1)
-    if st.button(tr("Load Document")):
-        resolved_doc_id = resolve_document_id(doc_id, selected_document_id)
+    load_document_requested = st.button(tr("Load Document"))
+    resolved_doc_id = resolve_loaded_document_id(
+        st.session_state.get("documents_loaded_document_id"),
+        doc_id,
+        selected_document_id,
+        load_document_requested,
+    )
+    st.session_state["documents_loaded_document_id"] = resolved_doc_id
+    if resolved_doc_id:
         detail = api_get(f"/documents/{resolved_doc_id}")
         current_version_id = resolve_current_document_version_id(detail if isinstance(detail, dict) else None)
         if detail:
@@ -698,6 +868,7 @@ def page_documents():
                 key=f"document_artifact_type_filter_{resolved_doc_id}",
             )
             for artifact in filter_document_artifacts(artifact_items, selected_artifact_type):
+                download_result = fetch_artifact_bytes(artifact)
                 col1, col2, col3 = st.columns([2, 1, 1])
                 col1.write(
                     tr(
@@ -707,8 +878,32 @@ def page_documents():
                         content_type=artifact.get("content_type") or tr("application/octet-stream"),
                     )
                 )
-                col2.link_button(tr("Download"), f"{API_BASE}{artifact.get('download_url')}")
-                col3.link_button(tr("Preview"), f"{API_BASE}{artifact.get('preview_url')}")
+                if download_result.get("ok"):
+                    col2.download_button(
+                        tr("Download"),
+                        data=download_result.get("content") or b"",
+                        file_name=download_result.get("filename") or _artifact_filename(artifact),
+                        mime=download_result.get("content_type") or "application/octet-stream",
+                        key=f"document_artifact_download_{resolved_doc_id}_{artifact.get('id')}",
+                    )
+                else:
+                    col2.caption(tr("Download unavailable"))
+
+                preview_button_key = f"document_artifact_preview_button_{resolved_doc_id}_{artifact.get('id')}"
+                preview_state_key = f"document_artifact_preview_payload_{resolved_doc_id}_{artifact.get('id')}"
+                if col3.button(tr("Preview"), key=preview_button_key):
+                    st.session_state[preview_state_key] = build_preview_payload(fetch_artifact_bytes(artifact, inline=True))
+
+                preview_payload = st.session_state.get(preview_state_key)
+                if isinstance(preview_payload, dict):
+                    preview_kind = preview_payload.get("kind")
+                    preview_message = tr(preview_payload.get("message") or "")
+                    if preview_kind == "text":
+                        st.code(preview_message, language="html")
+                    elif preview_kind == "error":
+                        st.error(preview_message)
+                    elif preview_kind == "info":
+                        st.info(preview_message)
         else:
             st.info(tr("No valid raw artifacts available for current version"))
 
@@ -729,19 +924,24 @@ def page_documents():
         if current_version_id:
             st.caption(tr("Current document version ID: {id}", id=current_version_id))
             if st.button(tr("Load Evidence For Current Version"), key=f"document_link_evidence_{resolved_doc_id}"):
-                evidence = api_get(
+                evidence = api_get_result(
                     "/matrix/pair-evidence",
                     {"document_version_id": current_version_id, "page_size": 20},
                 )
-                if isinstance(evidence, dict):
-                    st.caption(tr("Evidence rows: {count}", count=evidence.get("total", 0)))
-                    evidence_rows = evidence.get("items", [])
+                evidence_view = describe_evidence_result(evidence)
+                if evidence_view.get("state") == "rows":
+                    st.caption(tr("Evidence rows: {count}", count=evidence_view.get("total", 0)))
+                    evidence_rows = evidence_view.get("rows", [])
                     if evidence_rows:
                         st.dataframe(
                             localize_dataframe_columns(pd.DataFrame(evidence_rows)),
                             width="stretch",
                             hide_index=True,
                         )
+                elif evidence_view.get("state") == "empty":
+                    st.info(tr(evidence_view.get("message") or "No evidence rows for current version"))
+                else:
+                    st.error(tr(evidence_view.get("message") or "Evidence load failed"))
         else:
             st.info(tr("Current document version is unavailable for linkage"))
 
