@@ -139,9 +139,17 @@ run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pi
 run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
 run_step outputs_api "Outputs API regression" "$PYTEST_BIN" tests/test_outputs_api.py
 run_step document_outcomes_api "Document outcomes API regression" "$PYTEST_BIN" tests/test_document_pipeline_outcomes_api.py
+run_step artifact_coverage_api "Artifact coverage API regression" "$PYTEST_BIN" tests/test_document_artifact_coverage_api.py
+run_step raw_artifacts_ui "Raw source artifacts UI regression" "$PYTEST_BIN" tests/test_ui_regression_batches_raw_source_artifacts.py
 run_step aux_routes "Aux routes regression" "$PYTEST_BIN" tests/test_aux_api_mounts.py
 run_step kb_integration "KB integration regression" env CRIN_INTEGRATION_POSTGRES_URL="$INTEGRATION_POSTGRES_URL" "$PYTEST_BIN" tests/test_kb_integration_postgres.py
 ensure_log_has_no_skips kb_integration "KB integration regression"
+
+# Raw artifact locality smoke (API-assisted; not full browser coverage)
+SKIP_RAW_ARTIFACTS_SMOKE="${SKIP_RAW_ARTIFACTS_SMOKE:-0}"
+if [[ "$SKIP_RAW_ARTIFACTS_SMOKE" != "1" && "$RUNTIME_PROFILE" == "docker-compose-only" ]]; then
+    run_step ui_smoke_raw_source_artifacts "UI smoke: raw source artifacts" bash scripts/ui_smoke_raw_source_artifacts.sh
+fi
 
 echo
 echo "Release-ready verification pack completed successfully."

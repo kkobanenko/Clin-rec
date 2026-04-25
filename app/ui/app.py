@@ -783,6 +783,22 @@ def page_dashboard():
 def page_documents():
     st.header(tr("Document Registry"))
 
+    # Raw Artifact Coverage diagnostic block
+    with st.expander(tr("Raw Artifact Coverage"), expanded=False):
+        if st.button(tr("Refresh Coverage"), key="doc_coverage_refresh"):
+            st.session_state["doc_coverage_data"] = api_get("/documents/artifact-coverage")
+        coverage = st.session_state.get("doc_coverage_data")
+        if isinstance(coverage, dict):
+            st.write(tr("Total documents: {n}", n=coverage.get("total_documents", 0)))
+            st.write(tr("Without current version: {n}", n=coverage.get("documents_without_current_version", 0)))
+            st.write(tr("Current versions without artifacts: {n}", n=coverage.get("current_versions_without_artifacts", 0)))
+            st.write(tr("Artifacts failed validation: {n}", n=coverage.get("artifacts_failed_validation", 0)))
+            problem_docs = [d for d in (coverage.get("documents") or []) if d.get("problems")]
+            if problem_docs:
+                st.dataframe(pd.DataFrame(problem_docs), width="stretch", hide_index=True)
+        else:
+            st.info(tr("Click Refresh Coverage to load diagnostic."))
+
     col1, col2 = st.columns(2)
     search = col1.text_input(tr("Search"), "")
     specialty = col2.text_input(tr("Specialty filter"), "")
@@ -887,7 +903,13 @@ def page_documents():
                         key=f"document_artifact_download_{resolved_doc_id}_{artifact.get('id')}",
                     )
                 else:
-                    col2.caption(tr("Download unavailable"))
+                    _detail = download_result.get("detail") or ""
+                    _reason = "local artifact missing" if download_result.get("status_code") == 404 else (
+                        "artifact validation failed" if download_result.get("status_code") == 422 else (
+                            "local storage error" if not download_result.get("status_code") else _detail
+                        )
+                    )
+                    col2.caption(tr("Download unavailable: {reason}", reason=_reason))
 
                 preview_button_key = f"document_artifact_preview_button_{resolved_doc_id}_{artifact.get('id')}"
                 preview_state_key = f"document_artifact_preview_payload_{resolved_doc_id}_{artifact.get('id')}"
@@ -906,6 +928,7 @@ def page_documents():
                         st.info(preview_message)
         else:
             st.info(tr("No valid raw artifacts available for current version"))
+            st.caption(tr("To obtain local artifacts, run Fetch from the Pipeline page or execute the backfill script."))
 
         content = api_get(f"/documents/{resolved_doc_id}/content")
         if content:

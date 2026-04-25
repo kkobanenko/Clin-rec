@@ -64,3 +64,22 @@
 - `Preview`: pass
 - `Load Evidence For Current Version`: pass
 - RawSourceArtifacts UI blocker: `closed`
+
+---
+
+## 2026-04-25 v2 — Post SPA-shell fix update
+
+**Changes in this iteration:**
+
+- Root cause found: `looks_like_spa_shell()` had a size guard (`>= 3000 bytes → not a shell`) that incorrectly allowed the 13,957-byte Minzdrav Vue SPA wrapper to be stored and served as a valid HTML artifact.
+- Fix: removed the size guard; shell detection is now purely content-based (presence of `id="app"` + Vue asset bundle + empty body text).
+- Consequence: all previously stored HTML artifacts are now detected as shells and hidden by the API re-validation in `_get_current_valid_artifacts()`.
+- `GET /documents/artifact-coverage` endpoint added for operator diagnostics.
+- UI improved: `Download unavailable` now shows specific reason (missing, validation failed, storage error).
+- UI added: "Raw Artifact Coverage" diagnostic expander in Documents page.
+- Backfill script added: `scripts/backfill_missing_raw_artifacts.py`.
+- Smoke script added: `scripts/ui_smoke_raw_source_artifacts.sh`.
+- Release check extended with new regression suites and smoke.
+
+**Raw artifact UI actions are local-storage-only. They must not fetch from the source web service.**
+See `docs/RAW_ARTIFACT_LOCALITY_POLICY.md`.

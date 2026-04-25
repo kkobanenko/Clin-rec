@@ -41,7 +41,7 @@ def test_html_accepts_substantial_main():
 
 
 def test_large_dom_with_app_and_assets_not_shell():
-    """Playwright: в разметке остаются #app и bundle, но объём уже не голая оболочка."""
+    """Большой HTML с реальным текстом не должен считаться shell."""
     padding = "x" * 3200
     page = f"""<!doctype html><html><body><div id="app"></div>
 <p>{padding}</p><script type="module" src="/assets/index-ABC.js"></script></body></html>"""
@@ -49,3 +49,12 @@ def test_large_dom_with_app_and_assets_not_shell():
     assert len(data) >= 3000
     assert looks_like_spa_shell(data) is False
     assert is_valid_html_payload("text/html", data) is True
+
+
+def test_large_empty_shell_with_bundle_is_rejected():
+    shell = b"""<!doctype html><html lang=\"ru\"><head><title>undefined</title></head><body><div id=\"app\"></div>
+<script type=\"module\" src=\"/assets/index-ABC.js\"></script>
+<style>""" + (b"x" * 14000) + b"""</style></body></html>"""
+    assert len(shell) >= 3000
+    assert looks_like_spa_shell(shell) is True
+    assert is_valid_html_payload("text/html", shell) is False

@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.dependencies import get_db
-from app.core.storage import download_artifact
+from app.core.storage import download_artifact, content_hash as compute_storage_hash
 from app.models.document import DocumentRegistry, DocumentVersion, SourceArtifact
 from app.models.pipeline_event import PipelineEventLog
 from app.schemas.documents import DocumentArtifactListOut
@@ -23,6 +23,8 @@ from app.schemas.documents import (
     PipelineOutcomeOut,
     SectionOut,
     SourceArtifactOut,
+    ArtifactCoverageOut,
+    ArtifactCoverageDocumentOut,
 )
 from app.schemas.pipeline import PaginatedResponse
 
@@ -173,6 +175,116 @@ async def _get_latest_pipeline_outcome(
         message=event.message,
         reason_code=detail_json.get("reason_code"),
         created_at=event.created_at,
+    )
+
+
+@router.get("/artifact-coverage", response_model=ArtifactCoverageOut)
+async def get_artifact_coverage(db: AsyncSession = Depends(get_db)):
+    """Return diagnostic aggregation of local artifact coverage for all documents."""
+    docs_result = await db.execute(select(DocumentRegistry).order_by(DocumentRegistry.id))
+    docs = docs_result.scalars().all()
+
+    total_documents = len(docs)
+    doc_entries: list[ArtifactCoverageDocumentOut] = []
+    docs_with_version = 0
+    docs_without_version = 0
+    current_versions_with_artifacts = 0
+    current_versions_without_artifacts = 0
+    artifacts_total = 0
+    artifacts_downloadable = 0
+    artifacts_failed_validation = 0
+
+    for doc in docs:
+        version_result = await db.execute(
+            select(DocumentVersion)
+            .where(DocumentVersion.registry_id == doc.id, DocumentVersion.is_current.is_(True))
+            .order_by(DocumentVersion.detected_at.desc())
+            .limit(1)
+        )
+        version = version_result.scalar_one_or_none()
+
+        if version is None:
+            docs_without_version += 1
+            doc_entries.append(ArtifactCoverageDocumentOut(
+                document_id=doc.id,
+                current_version_id=None,
+                artifact_count=0,
+                artifact_types=[],
+                downloadable=False,
+                problems=["no_current_version"],
+            ))
+            continue
+
+        docs_with_version += 1
+
+        artifact_result = await db.execute(
+            select(SourceArtifact)
+            .where(SourceArtifact.document_version_id == version.id)
+            .order_by(SourceArtifact.fetched_at.desc())
+        )
+        all_artifacts = artifact_result.scalars().all()
+        artifacts_total += len(all_artifacts)
+
+        problems: list[str] = []
+        valid_types: list[str] = []
+        doc_downloadable = 0
+
+        for artifact in all_artifacts:
+            try:
+                raw_data = download_artifact(artifact.raw_path)
+            except Exception as exc:
+                problems.append(f"storage_error:{artifact.id}:{exc}")
+                artifacts_failed_validation += 1
+                continue
+
+            if not raw_data:
+                problems.append(f"empty_bytes:{artifact.id}")
+                artifacts_failed_validation += 1
+                continue
+
+            actual_hash = compute_storage_hash(raw_data)
+            if actual_hash != artifact.content_hash:
+                problems.append(f"hash_mismatch:{artifact.id}")
+                artifacts_failed_validation += 1
+                continue
+
+            validation = validate_artifact_payload(artifact.artifact_type, artifact.content_type, raw_data)
+            if not validation.is_valid:
+                problems.append(f"validation_failed:{artifact.id}:{validation.reason_code}")
+                artifacts_failed_validation += 1
+                continue
+
+            artifacts_downloadable += 1
+            doc_downloadable += 1
+            valid_types.append(artifact.artifact_type)
+
+        if not all_artifacts:
+            current_versions_without_artifacts += 1
+            problems.append("no_artifacts")
+        elif doc_downloadable == 0:
+            current_versions_without_artifacts += 1
+        else:
+            current_versions_with_artifacts += 1
+
+        doc_entries.append(ArtifactCoverageDocumentOut(
+            document_id=doc.id,
+            current_version_id=version.id,
+            artifact_count=doc_downloadable,
+            artifact_types=sorted(set(valid_types)),
+            downloadable=doc_downloadable > 0,
+            problems=problems,
+        ))
+
+    return ArtifactCoverageOut(
+        total_documents=total_documents,
+        documents_with_current_version=docs_with_version,
+        documents_without_current_version=docs_without_version,
+        current_versions_with_artifacts=current_versions_with_artifacts,
+        current_versions_without_artifacts=current_versions_without_artifacts,
+        artifacts_total=artifacts_total,
+        artifacts_downloadable=artifacts_downloadable,
+        artifacts_failed_validation=artifacts_failed_validation,
+        documents=doc_entries,
     )
 
 

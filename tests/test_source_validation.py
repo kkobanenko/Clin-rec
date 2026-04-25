@@ -108,3 +108,9 @@ def test_fetch_rejects_html_shell_payload():
 def test_fetch_accepts_valid_html_payload():
     html = b"<html><body><main><p>valid content" + (b"x" * 400) + b"</p></main></body></html>"
     assert FetchService._is_valid_artifact_payload("html", "text/html", html) is True
+
+
+def test_fetch_rejects_large_textless_html_shell_payload():
+    shell = b"""<!doctype html><html><head><title>undefined</title></head><body><div id=\"app\"></div>
+<script src=\"/assets/index-ABC.js\"></script><style>""" + (b"x" * 14000) + b"""</style></body></html>"""
+    assert FetchService._is_valid_artifact_payload("html", "text/html", shell) is False

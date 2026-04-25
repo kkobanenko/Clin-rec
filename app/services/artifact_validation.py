@@ -22,11 +22,10 @@ def looks_like_spa_shell(data: bytes) -> bool:
     """
     Эвристика: ответ похож на каркас Vue/SPA рубрикатора (пустой #app + bundle), без текста КР.
 
-    После Playwright в DOM часто остаются #app и /assets/index-*.js; объём HTML уже большой.
-    Голая оболочка обычно <2 КБ (~610 байт). Большие ответы не считаем shell по этой эвристике.
+    Для валидного HTML важен не размер ответа, а наличие осмысленного текста.
+    Большие ответы тоже считаем shell, если в них остались только #app + bundle
+    и почти нет читаемого body-текста.
     """
-    if len(data) >= 3000:
-        return False
     try:
         text = data.decode("utf-8", errors="ignore")
     except Exception:

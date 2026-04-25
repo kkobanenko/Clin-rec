@@ -107,3 +107,24 @@ class DocumentArtifactListOut(BaseModel):
     version_id: int
     artifacts: list[SourceArtifactAccessOut] = []
     total: int
+
+
+class ArtifactCoverageDocumentOut(BaseModel):
+    document_id: int
+    current_version_id: int | None = None
+    artifact_count: int = 0
+    artifact_types: list[str] = []
+    downloadable: bool = False
+    problems: list[str] = []
+
+
+class ArtifactCoverageOut(BaseModel):
+    total_documents: int
+    documents_with_current_version: int
+    documents_without_current_version: int
+    current_versions_with_artifacts: int
+    current_versions_without_artifacts: int
+    artifacts_total: int
+    artifacts_downloadable: int
+    artifacts_failed_validation: int
+    documents: list[ArtifactCoverageDocumentOut] = []
