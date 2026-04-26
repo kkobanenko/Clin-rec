@@ -1,6 +1,7 @@
 """CR Intelligence Platform — Streamlit Admin UI."""
 
 from datetime import datetime, timezone
+import json
 import os
 from typing import Any
 
@@ -88,10 +89,14 @@ def api_get_result(
 def _artifact_filename(artifact: dict[str, Any]) -> str:
     artifact_id = artifact.get("id") or "unknown"
     artifact_type = str(artifact.get("artifact_type") or "bin")
-    if artifact_type == "html":
+    if artifact_type in {"html", "cleaned_html"}:
         extension = "html"
     elif artifact_type == "pdf":
         extension = "pdf"
+    elif artifact_type == "json" or artifact_type == "derived_blocks":
+        extension = "json"
+    elif artifact_type == "ocr_text":
+        extension = "txt"
     else:
         extension = artifact_type
     return f"document_artifact_{artifact_id}.{extension}"
@@ -147,6 +152,17 @@ def build_preview_payload(preview_result: dict[str, Any]) -> dict[str, str]:
         }
     content_type = str(preview_result.get("content_type") or "")
     content = preview_result.get("content") or b""
+    if "json" in content_type:
+        decoded = content.decode("utf-8", errors="replace")
+        try:
+            parsed = json.loads(decoded)
+            pretty = json.dumps(parsed, ensure_ascii=False, indent=2)
+        except Exception:
+            pretty = decoded
+        truncated = pretty[:10000]
+        if len(pretty) > len(truncated):
+            truncated = f"{truncated}\n\n...[truncated]"
+        return {"kind": "text", "message": truncated}
     if "html" in content_type or content_type.startswith("text/"):
         decoded = content.decode("utf-8", errors="replace")
         truncated = decoded[:4000]
@@ -878,6 +894,13 @@ def page_documents():
                         content_type=artifact.get("content_type") or tr("application/octet-stream"),
                     )
                 )
+                artifact_type = str(artifact.get("artifact_type") or "")
+                if artifact_type == "json":
+                    col1.caption(tr("Primary source: json"))
+                elif artifact_type in {"html", "pdf"}:
+                    col1.caption(tr("Fallback source: html/pdf"))
+                elif artifact_type == "cleaned_html":
+                    col1.caption(tr("Derived presentation artifact: cleaned_html"))
                 if download_result.get("ok"):
                     col2.download_button(
                         tr("Download"),
@@ -913,10 +936,28 @@ def page_documents():
                 tr("Section Search"),
                 key=f"document_section_search_{resolved_doc_id}",
             )
-            sections = filter_document_sections(content.get("sections", []), section_search)
+            raw_sections = content.get("sections", [])
+            if raw_sections and not any(isinstance(sec, dict) and isinstance(sec.get("fragments"), list) for sec in raw_sections):
+                fragments_payload = api_get(f"/documents/{resolved_doc_id}/fragments") or {}
+                by_section: dict[int, list[dict[str, Any]]] = {}
+                for frag in fragments_payload.get("fragments", []) if isinstance(fragments_payload, dict) else []:
+                    section_id = frag.get("section_id")
+                    if isinstance(section_id, int):
+                        by_section.setdefault(section_id, []).append(frag)
+                raw_sections = [
+                    {
+                        **sec,
+                        "fragments": by_section.get(sec.get("id"), []) if isinstance(sec, dict) else [],
+                    }
+                    for sec in raw_sections
+                ]
+
+            sections = filter_document_sections(raw_sections, section_search)
             for sec in sections:
                 with st.expander(sec.get("section_title", tr("Section"))):
                     fragments = sec.get("fragments", [])
+                    if not fragments:
+                        st.info(tr("No fragments for this section"))
                     for frag in fragments:
                         st.text(frag.get("fragment_text", "")[:500])
 

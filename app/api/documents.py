@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from collections import defaultdict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -22,6 +23,7 @@ from app.schemas.documents import (
     NormalizedDocumentOut,
     PipelineOutcomeOut,
     SectionOut,
+    SectionWithFragmentsOut,
     SourceArtifactOut,
 )
 from app.schemas.pipeline import PaginatedResponse
@@ -271,8 +273,30 @@ async def get_document_content(document_id: int, db: AsyncSession = Depends(get_
         .where(DocumentSection.document_version_id == version.id)
         .order_by(DocumentSection.section_order)
     )
-    sections = [SectionOut.model_validate(s) for s in sections_result.scalars().all()]
-    pipeline_outcome = await _get_latest_pipeline_outcome(db, version.id, prefer_success=bool(sections))
+    section_rows = sections_result.scalars().all()
+    section_ids = [section.id for section in section_rows]
+    fragments_by_section: dict[int, list[FragmentOut]] = defaultdict(list)
+    if section_ids:
+        fragments_result = await db.execute(
+            select(TextFragment)
+            .where(TextFragment.section_id.in_(section_ids))
+            .order_by(TextFragment.section_id, TextFragment.fragment_order)
+        )
+        for fragment in fragments_result.scalars().all():
+            fragments_by_section[fragment.section_id].append(FragmentOut.model_validate(fragment))
+
+    sections = [
+        SectionWithFragmentsOut(
+            **SectionOut.model_validate(section).model_dump(),
+            fragments=fragments_by_section.get(section.id, []),
+        )
+        for section in section_rows
+    ]
+    pipeline_outcome = await _get_latest_pipeline_outcome(
+        db,
+        version.id,
+        prefer_success=bool(section_rows),
+    )
 
     return NormalizedDocumentOut(
         document_id=document_id,

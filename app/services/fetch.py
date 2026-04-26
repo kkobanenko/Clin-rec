@@ -3,6 +3,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import json
 
 import httpx
 
@@ -44,6 +45,11 @@ class FetchService:
 
             fetched_any = False
             fetched_artifacts: list[str] = []
+
+            # Materialize raw JSON from discovery payload as local artifact.
+            if self._persist_source_payload_json_artifact(session, doc, version):
+                fetched_any = True
+                fetched_artifacts.append("json")
 
             # Fetch HTML
             if doc.html_url:
@@ -169,6 +175,61 @@ class FetchService:
                 time.sleep(RETRY_BACKOFF * (attempt + 1))
 
         return False
+
+    def _persist_source_payload_json_artifact(
+        self,
+        session,
+        doc: DocumentRegistry,
+        version: DocumentVersion,
+    ) -> bool:
+        if not doc.source_payload_json:
+            return False
+
+        data = json.dumps(
+            doc.source_payload_json,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+        ).encode("utf-8")
+
+        validation = validate_artifact_payload("json", "application/json", data)
+        if not validation.is_valid:
+            logger.warning(
+                "Skipping json artifact for version %d: reason=%s",
+                version.id,
+                validation.reason_code,
+            )
+            return False
+
+        data_hash = content_hash(data)
+        existing = (
+            session.query(SourceArtifact)
+            .filter_by(
+                document_version_id=version.id,
+                artifact_type="json",
+                content_hash=data_hash,
+            )
+            .first()
+        )
+        if existing:
+            return True
+
+        key = f"documents/{doc.id}/versions/{version.id}/raw_json.json"
+        upload_artifact(data, key, "application/json")
+        session.add(
+            SourceArtifact(
+                document_version_id=version.id,
+                artifact_type="json",
+                raw_path=key,
+                content_hash=data_hash,
+                content_type="application/json",
+                headers_json={"source": "document_registry.source_payload_json"},
+                fetched_at=datetime.now(timezone.utc),
+            )
+        )
+        session.flush()
+        return True
+
     @staticmethod
     def _is_valid_artifact_payload(artifact_type: str, content_type: str | None, data: bytes) -> bool:
         return validate_artifact_payload(artifact_type, content_type, data).is_valid

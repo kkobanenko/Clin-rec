@@ -8,6 +8,7 @@ SPA-заглушки и «pdf» с HTML-телом.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 
 from bs4 import BeautifulSoup
 
@@ -66,6 +67,30 @@ def validate_artifact_payload(
             return ArtifactValidationResult(False, "source_invalid_html_content_type")
         if looks_like_spa_shell(data):
             return ArtifactValidationResult(False, "source_invalid_html_shell")
+        return ArtifactValidationResult(True)
+
+    if artifact_type == "json":
+        json_ct = (
+            "application/json" in normalized_ct
+            or "text/json" in normalized_ct
+            or normalized_ct.endswith("+json")
+        )
+        if normalized_ct and not json_ct:
+            return ArtifactValidationResult(False, "source_invalid_json_parse")
+        try:
+            decoded = data.decode("utf-8")
+        except UnicodeDecodeError:
+            return ArtifactValidationResult(False, "source_invalid_json_decode")
+        try:
+            payload = json.loads(decoded)
+        except json.JSONDecodeError:
+            return ArtifactValidationResult(False, "source_invalid_json_parse")
+        if not isinstance(payload, (dict, list)):
+            return ArtifactValidationResult(False, "source_invalid_json_shape")
+        if isinstance(payload, dict) and not payload:
+            return ArtifactValidationResult(False, "source_invalid_json_shape")
+        if isinstance(payload, list) and not payload:
+            return ArtifactValidationResult(False, "source_invalid_json_shape")
         return ArtifactValidationResult(True)
 
     return ArtifactValidationResult(True)

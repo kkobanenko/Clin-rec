@@ -68,6 +68,7 @@ async def test_document_endpoints_expose_pipeline_outcome():
         [
             FakeScalarResult(value=SimpleNamespace(id=11)),
             FakeScalarResult(values=[section]),
+            FakeScalarResult(values=[fragment]),
             FakeScalarResult(value=event),
         ]
     )
@@ -131,6 +132,7 @@ async def test_document_endpoints_prefer_success_outcome_when_content_exists():
         [
             FakeScalarResult(value=SimpleNamespace(id=11)),
             FakeScalarResult(values=[section]),
+            FakeScalarResult(values=[fragment]),
             FakeScalarResult(value=success_event),
         ]
     )

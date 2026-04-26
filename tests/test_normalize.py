@@ -17,7 +17,7 @@ def test_extract_sections_falls_back_to_pdf_when_html_has_no_sections(monkeypatc
         lambda raw_data: [("Документ", "0", [("paragraph", "Normalized from PDF")])],
     )
 
-    sections = service._extract_sections(version, html_artifact, pdf_artifact)
+    sections = service._extract_sections(version, None, html_artifact, pdf_artifact)
 
     assert sections == [("Документ", "0", [("paragraph", "Normalized from PDF")])]
 
@@ -32,10 +32,10 @@ def test_extract_sections_reports_reason_when_html_and_pdf_are_empty(monkeypatch
     monkeypatch.setattr(service, "_normalize_html", lambda raw_data: [])
     monkeypatch.setattr(service, "_normalize_pdf", lambda raw_data: [])
 
-    result = service._extract_sections_detailed(version, html_artifact, pdf_artifact)
+    result = service._extract_sections_detailed(version, None, html_artifact, pdf_artifact)
 
     assert result.sections == []
-    assert result.source_used == "pdf"
+    assert result.source_used == "pdf_fallback"
     assert result.reason_code == "normalize_empty_after_pdf_fallback"
 
 

@@ -49,3 +49,20 @@ def test_large_dom_with_app_and_assets_not_shell():
     assert len(data) >= 3000
     assert looks_like_spa_shell(data) is False
     assert is_valid_html_payload("text/html", data) is True
+
+
+def test_json_valid_dict_and_list():
+    assert is_valid_artifact_payload("json", "application/json", b'{"a": 1}') is True
+    assert is_valid_artifact_payload("json", "application/vnd.api+json", b'[1, 2, 3]') is True
+
+
+def test_json_invalid_decode_and_parse():
+    assert is_valid_artifact_payload("json", "application/json", b"\xff\xfe") is False
+    assert is_valid_artifact_payload("json", "application/json", b"{bad json}") is False
+
+
+def test_json_invalid_scalar_or_empty_shape():
+    assert is_valid_artifact_payload("json", "application/json", b'"text"') is False
+    assert is_valid_artifact_payload("json", "application/json", b"123") is False
+    assert is_valid_artifact_payload("json", "application/json", b"{}") is False
+    assert is_valid_artifact_payload("json", "application/json", b"[]") is False

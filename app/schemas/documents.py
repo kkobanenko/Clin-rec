@@ -72,6 +72,10 @@ class SectionOut(BaseModel):
     section_path: str | None = None
     section_title: str | None = None
     section_order: int
+    source_artifact_id: int | None = None
+    source_artifact_type: str | None = None
+    source_block_id: str | None = None
+    source_path: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -83,14 +87,24 @@ class FragmentOut(BaseModel):
     fragment_type: str
     fragment_text: str
     stable_id: str | None = None
+    source_artifact_id: int | None = None
+    source_artifact_type: str | None = None
+    source_block_id: str | None = None
+    source_path: str | None = None
+    content_kind: str | None = None
+    extraction_confidence: float | None = None
 
     model_config = {"from_attributes": True}
+
+
+class SectionWithFragmentsOut(SectionOut):
+    fragments: list[FragmentOut] = []
 
 
 class NormalizedDocumentOut(BaseModel):
     document_id: int
     version_id: int
-    sections: list[SectionOut] = []
+    sections: list[SectionWithFragmentsOut] = []
     pipeline_outcome: PipelineOutcomeOut | None = None
 
 
