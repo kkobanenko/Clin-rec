@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 from app.core.storage import content_hash, download_artifact, upload_artifact
 from app.core.sync_database import get_sync_session
 from app.models.document import DocumentVersion, SourceArtifact
+from app.models.evidence import PairEvidence
 from app.models.text import DocumentSection, TextFragment
 from app.services.cleaned_html import sanitize_html
 from app.services.json_blocks import collect_canonical_blocks, serialize_rules_to_text
@@ -81,6 +82,10 @@ class NormalizeService:
             # Remove old sections/fragments for this version
             old_sections = session.query(DocumentSection).filter_by(document_version_id=version_id).all()
             for sec in old_sections:
+                # Must delete pair_evidence before text_fragment due to FK constraint
+                frag_ids = [f.id for f in session.query(TextFragment.id).filter_by(section_id=sec.id).all()]
+                if frag_ids:
+                    session.query(PairEvidence).filter(PairEvidence.fragment_id.in_(frag_ids)).delete(synchronize_session=False)
                 session.query(TextFragment).filter_by(section_id=sec.id).delete()
                 session.delete(sec)
             session.flush()
@@ -153,6 +158,12 @@ class NormalizeService:
                 source_artifact_id=extraction.source_artifact_id,
                 html_chunks=html_chunks,
             )
+            if extraction.source_used == "json" and json_artifact is not None:
+                self._persist_derived_blocks_artifact(
+                    session,
+                    version=version,
+                    source_artifact=json_artifact,
+                )
 
             session.commit()
             logger.info("Normalized version %d: %d sections", version_id, len(sections))
@@ -427,6 +438,68 @@ class NormalizeService:
                 headers_json={
                     "derived_from_artifact_id": source_artifact_id,
                     "generator": "cleaned_html_v1",
+                },
+                fetched_at=datetime.now(timezone.utc),
+            )
+        )
+
+    def _persist_derived_blocks_artifact(
+        self,
+        session,
+        *,
+        version: DocumentVersion,
+        source_artifact: SourceArtifact,
+    ) -> None:
+        payload = json.loads(download_artifact(source_artifact.raw_path).decode("utf-8"))
+        blocks = collect_canonical_blocks(payload)
+        if not blocks:
+            return
+
+        derived_payload = {
+            "schema_version": "canonical_json_blocks_v1",
+            "source_artifact_id": source_artifact.id,
+            "source_artifact_type": "json",
+            "blocks": [
+                {
+                    "block_id": block.block_id,
+                    "source_path": block.source_path,
+                    "order": block.order,
+                    "title": block.title,
+                    "content_kind": block.content_kind,
+                    "has_rules": block.rules is not None,
+                    "has_html": bool(block.html),
+                    "image_ref": block.image_ref,
+                }
+                for block in blocks
+            ],
+        }
+
+        data = json.dumps(derived_payload, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+        data_hash = content_hash(data)
+        existing = (
+            session.query(SourceArtifact)
+            .filter_by(
+                document_version_id=version.id,
+                artifact_type="derived_blocks",
+                content_hash=data_hash,
+            )
+            .first()
+        )
+        if existing:
+            return
+
+        key = f"documents/{version.registry_id}/versions/{version.id}/derived_blocks.json"
+        upload_artifact(data, key, "application/json")
+        session.add(
+            SourceArtifact(
+                document_version_id=version.id,
+                artifact_type="derived_blocks",
+                raw_path=key,
+                content_hash=data_hash,
+                content_type="application/json",
+                headers_json={
+                    "derived_from_artifact_id": source_artifact.id,
+                    "generator": "canonical_json_blocks_v1",
                 },
                 fetched_at=datetime.now(timezone.utc),
             )

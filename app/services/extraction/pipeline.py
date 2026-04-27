@@ -23,6 +23,7 @@ class ExtractionPipelineResult:
     relation_count: int = 0
     context_count: int = 0
     mnn_molecule_ids: tuple[int, ...] = ()
+    ocr_unavailable_count: int = 0
 
 
 class ExtractionPipeline:
@@ -60,6 +61,7 @@ class ExtractionPipeline:
             all_mnn_results = []
             all_uur_udd_results = []
             all_relation_results = []
+            ocr_unavailable_count = 0
 
             for section in sections:
                 fragments = (
@@ -71,25 +73,29 @@ class ExtractionPipeline:
 
                 frag_data = []
                 for frag in fragments:
+                    fragment_text, image_without_ocr = self._route_fragment_text(frag)
+                    if image_without_ocr:
+                        ocr_unavailable_count += 1
+
                     # MNN extraction
-                    mnn_hits = self.mnn_extractor.extract(frag.fragment_text)
+                    mnn_hits = self.mnn_extractor.extract(fragment_text)
                     for hit in mnn_hits:
                         hit["fragment_id"] = frag.id
                     all_mnn_results.extend(mnn_hits)
 
                     # UUR/UDD extraction
-                    uur_udd_hits = self.uur_udd_extractor.extract(frag.fragment_text)
+                    uur_udd_hits = self.uur_udd_extractor.extract(fragment_text)
                     for hit in uur_udd_hits:
                         hit["fragment_id"] = frag.id
                     all_uur_udd_results.extend(uur_udd_hits)
 
                     # Relation signal extraction
-                    relation_hits = self.relation_extractor.extract(frag.fragment_text)
+                    relation_hits = self.relation_extractor.extract(fragment_text)
                     for hit in relation_hits:
                         hit["fragment_id"] = frag.id
                     all_relation_results.extend(relation_hits)
 
-                    frag_data.append({"text": frag.fragment_text, "id": frag.id})
+                    frag_data.append({"text": fragment_text, "id": frag.id})
 
                 section_data.append({
                     "title": section.section_title or "",
@@ -138,6 +144,7 @@ class ExtractionPipeline:
                 "relation_count": len(all_relation_results),
                 "context_count": len(contexts),
                 "mnn_molecules": list({h["molecule_id"] for h in all_mnn_results}),
+                "ocr_unavailable_count": ocr_unavailable_count,
             }
             logger.info("Extraction stats for version %d: %s", version_id, stats)
             return ExtractionPipelineResult(
@@ -147,7 +154,20 @@ class ExtractionPipeline:
                 relation_count=stats["relation_count"],
                 context_count=stats["context_count"],
                 mnn_molecule_ids=tuple(stats["mnn_molecules"]),
+                ocr_unavailable_count=stats["ocr_unavailable_count"],
             )
 
         finally:
             session.close()
+
+    @staticmethod
+    def _route_fragment_text(fragment: TextFragment) -> tuple[str, bool]:
+        content_kind = (fragment.content_kind or "text").strip().lower()
+        base_text = (fragment.fragment_text or "").strip()
+        if content_kind == "image":
+            if base_text:
+                return f"{base_text} [ocr_unavailable]", True
+            return "[ocr_unavailable]", True
+        if content_kind in {"text", "html", "table_like", "unknown"}:
+            return base_text, False
+        return base_text, False

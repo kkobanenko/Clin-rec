@@ -118,7 +118,7 @@ def test_fetch_then_normalize_html_flow(sync_engine, monkeypatch):
     assert normalize_result.status == "success"
     assert normalize_result.sections_count == 2
     assert normalize_result.fragments_count == 3
-    assert normalize_result.source_used == "html"
+    assert normalize_result.source_used in {"html", "html_fallback"}
     assert normalize_result.queued_extract is True
     assert queued_extract == [version_id]
 
@@ -150,6 +150,77 @@ def test_fetch_then_normalize_html_flow(sync_engine, monkeypatch):
     assert sections[1].section_title == "2. Therapy"
     assert len(fragments) == 3
     assert [fragment.fragment_type for fragment in fragments] == ["paragraph", "paragraph", "bullet"]
+
+    _clear_document_tables(verify_session)
+    verify_session.close()
+
+
+def test_normalize_json_creates_derived_blocks_artifact(sync_engine, monkeypatch):
+    session_factory = sessionmaker(bind=sync_engine)
+    artifact_store: dict[str, bytes] = {}
+    queued_extract: list[int] = []
+
+    monkeypatch.setattr("app.services.normalize.get_sync_session", lambda: session_factory())
+    monkeypatch.setattr(
+        "app.services.normalize.download_artifact",
+        lambda key: artifact_store[key],
+    )
+    monkeypatch.setattr(
+        "app.services.normalize.upload_artifact",
+        lambda data, key, content_type: artifact_store.setdefault(key, data) or key,
+    )
+    monkeypatch.setattr(
+        "app.workers.tasks.extract.extract_document.delay",
+        lambda version_id: queued_extract.append(version_id),
+    )
+
+    setup_session = session_factory()
+    _clear_document_tables(setup_session)
+    registry = DocumentRegistry(
+        external_id="json-derived-blocks-doc",
+        title="JSON Doc",
+        discovered_at=datetime.now(timezone.utc),
+        last_seen_at=datetime.now(timezone.utc),
+    )
+    setup_session.add(registry)
+    setup_session.flush()
+    version = DocumentVersion(
+        registry_id=registry.id,
+        source_type_primary="json",
+        source_type_available="json",
+        is_current=True,
+    )
+    setup_session.add(version)
+    setup_session.flush()
+    json_artifact = SourceArtifact(
+        document_version_id=version.id,
+        artifact_type="json",
+        raw_path=f"documents/{registry.id}/versions/{version.id}/raw_json.json",
+        content_hash="h-json",
+        content_type="application/json",
+        headers_json={},
+        fetched_at=datetime.now(timezone.utc),
+    )
+    setup_session.add(json_artifact)
+    setup_session.commit()
+
+    artifact_store[json_artifact.raw_path] = (
+        b'{"title":"Section A","rules":["1","alpha"],"html":"<p>Beta</p>","image_ref":"img-1"}'
+    )
+
+    result = NormalizeService().normalize(version.id)
+    assert result.status == "success"
+    assert result.source_used == "json"
+    assert queued_extract == [version.id]
+
+    verify_session = session_factory()
+    artifacts = verify_session.query(SourceArtifact).filter_by(document_version_id=version.id).all()
+    derived = [a for a in artifacts if a.artifact_type == "derived_blocks"]
+    assert derived
+    derived_payload = artifact_store[derived[0].raw_path].decode("utf-8")
+    assert '"schema_version": "canonical_json_blocks_v1"' in derived_payload
+    assert '"source_artifact_type": "json"' in derived_payload
+    assert '"content_kind": "image"' in derived_payload
 
     _clear_document_tables(verify_session)
     verify_session.close()

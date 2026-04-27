@@ -30,5 +30,52 @@
             "/var/lib/docker",
             "/etc/docker"
         ]
+    },
+    "chat.tools.terminal.autoApprove": {
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'bash scripts/pilot_preflight\\.sh 2>&1 \\| tail -30'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'RUNTIME_PROFILE=docker-compose-only bash scripts/release_ready_check\\.sh 2>&1 \\| tail -40'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'cd /home/kobanenkokn/Clin-rec && docker exec crin_postgres psql -U crin -d crin -tAc \"\nselect '\\\\''sections_by_source_type:'\\\\'' as label, source_artifact_type, count\\(\\*\\) from document_section where source_artifact_type is not null group by source_artifact_type;\nselect '\\\\''fragments_by_source_type:'\\\\'' as label, source_artifact_type, count\\(\\*\\) from text_fragment where source_artifact_type is not null group by source_artifact_type;\nselect '\\\\''sample_section_fields:'\\\\'' as label, id, source_artifact_type, source_block_id, source_path from document_section where source_artifact_type='\\\\''json'\\\\'' limit 1;\nselect '\\\\''sample_fragment_fields:'\\\\'' as label, id, source_artifact_type, source_block_id, content_kind from text_fragment where source_artifact_type='\\\\''json'\\\\'' limit 1;\nselect '\\\\''derived_blocks_artifacts_count:'\\\\'' as label, count\\(\\*\\) from source_artifact where artifact_type='\\\\''derived_blocks'\\\\'';\nselect '\\\\''sample_derived_blocks_artifact:'\\\\'' as label, id, artifact_type, raw_path from source_artifact where artifact_type='\\\\''derived_blocks'\\\\'' limit 1;\nselect '\\\\''json_artifacts_count:'\\\\'',count\\(\\*\\) from source_artifact where artifact_type='\\\\''json'\\\\'';\n\"'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'docker exec crin_postgres env \\| grep POSTGRES && docker exec crin_postgres psql -U crin_user -d crin_db -tAc \"select 1\" 2>&1 \\| head -5'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'docker exec crin_postgres psql -U crplatform -d crplatform -tAc \"\nselect source_artifact_type, count\\(\\*\\) as cnt from document_section where source_artifact_type is not null group by source_artifact_type order by cnt desc;\nselect source_artifact_type, count\\(\\*\\) as cnt from text_fragment where source_artifact_type is not null group by source_artifact_type order by cnt desc;\nselect id, source_artifact_type, source_block_id, source_path from document_section where source_artifact_type='\\\\''json'\\\\'' limit 1;\nselect id, source_artifact_type, source_block_id, content_kind from text_fragment where source_artifact_type='\\\\''json'\\\\'' limit 1;\nselect count\\(\\*\\) from source_artifact where artifact_type='\\\\''derived_blocks'\\\\'';\nselect id, artifact_type, raw_path from source_artifact where artifact_type='\\\\''derived_blocks'\\\\'' limit 1;\nselect count\\(\\*\\) from source_artifact where artifact_type='\\\\''json'\\\\'';\nselect id, artifact_type, raw_path from source_artifact where artifact_type='\\\\''json'\\\\'' limit 1;\n\"'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'docker exec crin_postgres psql -U crplatform -d crplatform -tAc \"\nselect '\\\\''sections_json_count\\|'\\\\'' \\|\\| count\\(\\*\\) from document_section where source_artifact_type='\\\\''json'\\\\'';\nselect '\\\\''fragments_json_count\\|'\\\\'' \\|\\| count\\(\\*\\) from text_fragment where source_artifact_type='\\\\''json'\\\\'';\nselect '\\\\''sections_nonnull_count\\|'\\\\'' \\|\\| count\\(\\*\\) from document_section where source_artifact_type is not null;\nselect '\\\\''fragments_nonnull_count\\|'\\\\'' \\|\\| count\\(\\*\\) from text_fragment where source_artifact_type is not null;\nselect '\\\\''fallback_html_sections\\|'\\\\'' \\|\\| count\\(\\*\\) from document_section where source_artifact_type='\\\\''html'\\\\'';\nselect '\\\\''fallback_pdf_sections\\|'\\\\'' \\|\\| count\\(\\*\\) from document_section where source_artifact_type='\\\\''pdf'\\\\'';\nselect '\\\\''derived_blocks_count\\|'\\\\'' \\|\\| count\\(\\*\\) from source_artifact where artifact_type='\\\\''derived_blocks'\\\\'';\nselect '\\\\''json_artifacts_count\\|'\\\\'' \\|\\| count\\(\\*\\) from source_artifact where artifact_type='\\\\''json'\\\\'';\nselect '\\\\''sample_section\\|'\\\\'' \\|\\| coalesce\\(id::text,'\\\\'''\\\\''\\) \\|\\| '\\\\''\\|'\\\\'' \\|\\| coalesce\\(source_artifact_type,'\\\\'''\\\\''\\) \\|\\| '\\\\''\\|'\\\\'' \\|\\| coalesce\\(source_block_id,'\\\\'''\\\\''\\) \\|\\| '\\\\''\\|'\\\\'' \\|\\| coalesce\\(source_path,'\\\\'''\\\\''\\) from document_section where source_artifact_type='\\\\''json'\\\\'' order by id asc limit 1;\nselect '\\\\''sample_fragment\\|'\\\\'' \\|\\| coalesce\\(id::text,'\\\\'''\\\\''\\) \\|\\| '\\\\''\\|'\\\\'' \\|\\| coalesce\\(source_artifact_type,'\\\\'''\\\\''\\) \\|\\| '\\\\''\\|'\\\\'' \\|\\| coalesce\\(source_block_id,'\\\\'''\\\\''\\) \\|\\| '\\\\''\\|'\\\\'' \\|\\| coalesce\\(content_kind,'\\\\'''\\\\''\\) from text_fragment where source_artifact_type='\\\\''json'\\\\'' order by id asc limit 1;\nselect '\\\\''sample_derived\\|'\\\\'' \\|\\| coalesce\\(id::text,'\\\\'''\\\\''\\) \\|\\| '\\\\''\\|'\\\\'' \\|\\| coalesce\\(raw_path,'\\\\'''\\\\''\\) from source_artifact where artifact_type='\\\\''derived_blocks'\\\\'' order by id asc limit 1;\nselect '\\\\''sample_json_artifact\\|'\\\\'' \\|\\| coalesce\\(id::text,'\\\\'''\\\\''\\) \\|\\| '\\\\''\\|'\\\\'' \\|\\| coalesce\\(raw_path,'\\\\'''\\\\''\\) from source_artifact where artifact_type='\\\\''json'\\\\'' order by id asc limit 1;\n\"'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'docker exec crin_postgres psql -U crplatform -d crplatform -tAc \"\nselect '\\\\''versions_total\\|'\\\\'' \\|\\| count\\(\\*\\) from document_version;\nselect '\\\\''versions_current\\|'\\\\'' \\|\\| count\\(\\*\\) from document_version where is_current=true;\nselect '\\\\''sections_total\\|'\\\\'' \\|\\| count\\(\\*\\) from document_section;\nselect '\\\\''fragments_total\\|'\\\\'' \\|\\| count\\(\\*\\) from text_fragment;\nselect '\\\\''document_sections_sample\\|'\\\\'' \\|\\| string_agg\\(source_artifact_type,'\\\\'','\\\\'' order by id\\) from \\(select id, source_artifact_type from document_section order by id limit 5\\) x;\nselect '\\\\''sample_doc_id\\|'\\\\'' \\|\\| coalesce\\(min\\(registry_id\\)::text,'\\\\''none'\\\\''\\) from document_version where is_current=true;\n\"\n'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'docker exec crin_postgres psql -U crplatform -d crplatform -tAc \"\nselect '\\\\''sections_missing_source_type\\|'\\\\'' \\|\\| count\\(\\*\\) from document_section where source_artifact_type is null;\nselect '\\\\''sample_artifact_types\\|'\\\\'' \\|\\| string_agg\\(artifact_type,'\\\\'','\\\\'' order by artifact_type\\) from \\(select distinct artifact_type from source_artifact\\) x;\nselect '\\\\''doc_version_1_artifacts\\|'\\\\'' \\|\\| string_agg\\(artifact_type,'\\\\'','\\\\'' order by artifact_type\\) from source_artifact where document_version_id=4;\n\"'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'docker exec crin_app python scripts/renormalize_current_versions_json_first\\.py 2>&1 \\| tail -30'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'docker exec crin_app sh -c \"cd /app && PYTHONPATH=/app python scripts/renormalize_current_versions_json_first\\.py 2>&1 \\| tail -30\"'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^env TMPDIR=\"/home/kobanenkokn/\\.vscode/tmp/tmp_vscode_1\" '/usr/bin/bash' -c 'docker exec crin_app sh -c \"cd /app && PYTHONPATH=/app python scripts/renormalize_current_versions_json_first\\.py 2>&1 \\| tail -40\"'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "env": true
     }
 }

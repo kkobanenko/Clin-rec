@@ -82,3 +82,68 @@ async def test_documents_content_includes_fragments_in_sections():
         assert body["sections"][0]["fragments"][0]["fragment_text"] == "Normalized fragment text"
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_documents_content_returns_sections_with_fragments_and_traceability():
+    section = SimpleNamespace(
+        id=8,
+        section_path="/blocks/0",
+        section_title="Traceable",
+        section_order=0,
+        source_artifact_id=101,
+        source_artifact_type="json",
+        source_block_id="block-0",
+        source_path="/blocks/0",
+    )
+    fragment = SimpleNamespace(
+        id=14,
+        section_id=8,
+        fragment_order=0,
+        fragment_type="paragraph",
+        fragment_text="Traceable fragment",
+        stable_id="frag-2",
+        source_artifact_id=101,
+        source_artifact_type="json",
+        source_block_id="block-0",
+        source_path="/blocks/0/rules/0",
+        content_kind="text",
+        extraction_confidence=0.99,
+    )
+    event = SimpleNamespace(
+        stage="extract",
+        status="success",
+        message="ok",
+        detail_json={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db = FakeAsyncSession(
+        [
+            FakeScalarResult(value=SimpleNamespace(id=12)),
+            FakeScalarResult(values=[section]),
+            FakeScalarResult(values=[fragment]),
+            FakeScalarResult(value=event),
+        ]
+    )
+
+    async def override_get_db():
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/documents/1/content")
+        assert response.status_code == 200
+        body = response.json()
+        section_out = body["sections"][0]
+        fragment_out = section_out["fragments"][0]
+        assert section_out["source_artifact_type"] == "json"
+        assert section_out["source_block_id"] == "block-0"
+        assert section_out["source_path"] == "/blocks/0"
+        assert fragment_out["content_kind"] == "text"
+        assert fragment_out["source_artifact_type"] == "json"
+        assert fragment_out["source_block_id"] == "block-0"
+    finally:
+        app.dependency_overrides.pop(get_db, None)

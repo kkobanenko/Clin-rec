@@ -63,6 +63,7 @@ def extract_document(version_id: int):
                     "uur_udd_count": extraction_result.uur_udd_count,
                     "relation_count": extraction_result.relation_count,
                     "context_count": extraction_result.context_count,
+                    "ocr_unavailable_count": extraction_result.ocr_unavailable_count,
                     "mnn_molecule_ids": list(extraction_result.mnn_molecule_ids),
                     "candidate_pairs_count": candidate_pairs_count,
                     "active_model_version_id": active_model_version_id,
