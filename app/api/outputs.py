@@ -143,6 +143,54 @@ async def list_outputs(
     return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, pages=pages)
 
 
+@router.get(
+    "/candidate-diagnostics",
+    summary="Recent candidate generation diagnostics summary",
+)
+async def get_candidate_diagnostics(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0.0, le=1.0),
+    top_n: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return candidate diagnostics summary from recent successful extract events."""
+    del db
+    from app.services.candidate_diagnostics_report import CandidateDiagnosticsReportService
+
+    svc = CandidateDiagnosticsReportService()
+    report = svc.generate_report(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        top_n=top_n,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/candidate-diagnostics/markdown",
+    summary="Candidate diagnostics report as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_candidate_diagnostics_markdown(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0.0, le=1.0),
+    top_n: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return candidate diagnostics report as Markdown text."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.candidate_diagnostics_report import CandidateDiagnosticsReportService
+
+    svc = CandidateDiagnosticsReportService()
+    report = svc.generate_report(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        top_n=top_n,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
 @router.get("/{output_id}", response_model=OutputReleaseOut)
 async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()
@@ -265,3 +313,5 @@ async def get_corpus_quality_markdown(
     svc = CorpusQualityService()
     report = svc.generate_report()
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+

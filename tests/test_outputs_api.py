@@ -363,6 +363,66 @@ async def test_list_outputs_applies_has_file_pointer_filter():
 
 
 @pytest.mark.asyncio
+async def test_candidate_diagnostics_endpoint_returns_report_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "versions_considered": 2,
+            "versions_with_candidate_pairs": 1,
+            "avg_skip_rate": 0.45,
+            "top_versions_by_skip_rate": [],
+        }
+    )
+    try:
+        with patch(
+            "app.services.candidate_diagnostics_report.CandidateDiagnosticsReportService.generate_report",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/candidate-diagnostics?max_versions=50&top_n=5")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["versions_considered"] == 2
+        assert payload["versions_with_candidate_pairs"] == 1
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_candidate_diagnostics_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Candidate Diagnostics Report\n\n- ok",
+    )
+    try:
+        with patch(
+            "app.services.candidate_diagnostics_report.CandidateDiagnosticsReportService.generate_report",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/candidate-diagnostics/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Candidate Diagnostics Report")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [

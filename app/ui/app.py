@@ -1541,6 +1541,90 @@ def page_outputs():
         else:
             st.info(tr("No outputs available"))
 
+    st.subheader(tr("Candidate Diagnostics"))
+    diag_col1, diag_col2, diag_col3 = st.columns(3)
+    diag_max_versions = diag_col1.number_input(
+        tr("Versions Window"),
+        min_value=10,
+        max_value=500,
+        value=100,
+        step=10,
+        key="candidate_diag_max_versions",
+    )
+    diag_top_n = diag_col2.number_input(
+        tr("Top High-Skip Versions"),
+        min_value=1,
+        max_value=50,
+        value=10,
+        step=1,
+        key="candidate_diag_top_n",
+    )
+    diag_threshold_pct = diag_col3.slider(
+        tr("High-Skip Threshold (%)"),
+        min_value=50,
+        max_value=100,
+        value=80,
+        step=5,
+        key="candidate_diag_threshold_pct",
+    )
+    diag_params = {
+        "max_versions": int(diag_max_versions),
+        "top_n": int(diag_top_n),
+        "high_skip_threshold": float(diag_threshold_pct) / 100.0,
+    }
+    diagnostics = api_get("/outputs/candidate-diagnostics", diag_params)
+    if isinstance(diagnostics, dict):
+        summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+        summary_col1.metric(
+            tr("Versions Considered"),
+            diagnostics.get("versions_considered", 0),
+        )
+        summary_col2.metric(
+            tr("Versions With Pairs"),
+            diagnostics.get("versions_with_candidate_pairs", 0),
+        )
+        avg_skip_rate = float(diagnostics.get("avg_skip_rate") or 0.0) * 100.0
+        summary_col3.metric(tr("Avg Skip Rate"), f"{avg_skip_rate:.1f}%")
+        summary_col4.metric(
+            tr("High-Skip Versions"),
+            diagnostics.get("high_skip_versions", 0),
+        )
+
+        st.caption(
+            tr(
+                "max_skip={max_skip} | total_pairs={pairs} | no_mnn={no_mnn} | single_mnn={single_mnn} | image={image}",
+                max_skip=f"{float(diagnostics.get('max_skip_rate') or 0.0) * 100.0:.1f}%",
+                pairs=diagnostics.get("total_candidate_pairs", 0),
+                no_mnn=diagnostics.get("total_fragments_no_mnn", 0),
+                single_mnn=diagnostics.get("total_fragments_single_mnn", 0),
+                image=diagnostics.get("total_fragments_image", 0),
+            )
+        )
+
+        top_versions = diagnostics.get("top_versions_by_skip_rate") or []
+        if top_versions:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(top_versions)), width="stretch", hide_index=True)
+        else:
+            st.info(tr("No candidate diagnostics available yet"))
+
+        if st.button(tr("Load Candidate Diagnostics Markdown"), key="candidate_diag_markdown_btn"):
+            try:
+                markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/candidate-diagnostics/markdown",
+                    params=diag_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                markdown_response.raise_for_status()
+                st.code(markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Candidate diagnostics markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)
