@@ -423,6 +423,67 @@ async def test_candidate_diagnostics_markdown_endpoint_returns_plain_text():
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_endpoint_returns_report_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "verdict": "pass",
+            "summary": "ok",
+            "rules": [],
+            "corpus_quality": {"overall_health": "healthy"},
+            "candidate_diagnostics": {"avg_skip_rate": 0.2},
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate.QualityGateService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate?max_versions=80")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["verdict"] == "pass"
+        assert payload["corpus_quality"]["overall_health"] == "healthy"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Automated Quality Gate\n\n- ok",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate.QualityGateService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Automated Quality Gate")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [

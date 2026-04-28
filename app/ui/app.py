@@ -1625,6 +1625,101 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Automated Quality Gate"))
+    gate_col1, gate_col2, gate_col3, gate_col4 = st.columns(4)
+    gate_max_versions = gate_col1.number_input(
+        tr("Gate Versions Window"),
+        min_value=10,
+        max_value=500,
+        value=100,
+        step=10,
+        key="quality_gate_max_versions",
+    )
+    gate_high_skip = gate_col2.slider(
+        tr("Gate High-Skip Threshold (%)"),
+        min_value=50,
+        max_value=100,
+        value=80,
+        step=5,
+        key="quality_gate_high_skip",
+    )
+    gate_avg_skip = gate_col3.slider(
+        tr("Gate Max Avg Skip (%)"),
+        min_value=30,
+        max_value=100,
+        value=75,
+        step=5,
+        key="quality_gate_avg_skip",
+    )
+    gate_min_pairs = gate_col4.number_input(
+        tr("Gate Min Candidate Pairs"),
+        min_value=0,
+        max_value=100000,
+        value=1,
+        step=1,
+        key="quality_gate_min_pairs",
+    )
+    gate_params = {
+        "max_versions": int(gate_max_versions),
+        "high_skip_threshold": float(gate_high_skip) / 100.0,
+        "max_avg_skip_rate": float(gate_avg_skip) / 100.0,
+        "min_candidate_pairs": int(gate_min_pairs),
+    }
+    gate_result = api_get("/outputs/quality-gate", gate_params)
+    if isinstance(gate_result, dict):
+        verdict = str(gate_result.get("verdict") or "unknown")
+        summary = str(gate_result.get("summary") or "")
+        if verdict == "pass":
+            st.success(tr("Quality Gate Verdict: PASS"))
+        elif verdict == "warn":
+            st.warning(tr("Quality Gate Verdict: WARN"))
+        elif verdict == "fail":
+            st.error(tr("Quality Gate Verdict: FAIL"))
+        else:
+            st.info(tr("Quality Gate Verdict: {verdict}", verdict=verdict.upper()))
+        if summary:
+            st.caption(summary)
+
+        rules = gate_result.get("rules") or []
+        if rules:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(rules)), width="stretch", hide_index=True)
+
+        gate_snapshot_col1, gate_snapshot_col2 = st.columns(2)
+        cq = gate_result.get("corpus_quality") or {}
+        cd = gate_result.get("candidate_diagnostics") or {}
+        gate_snapshot_col1.caption(
+            tr(
+                "corpus_health={health} | flags={flags}",
+                health=str(cq.get("overall_health") or "unknown"),
+                flags=len(cq.get("flags") or []),
+            )
+        )
+        gate_snapshot_col2.caption(
+            tr(
+                "avg_skip={avg_skip} | high_skip_versions={high_skip}",
+                avg_skip=f"{float(cd.get('avg_skip_rate') or 0.0) * 100.0:.1f}%",
+                high_skip=cd.get("high_skip_versions", 0),
+            )
+        )
+
+        if st.button(tr("Load Quality Gate Markdown"), key="quality_gate_markdown_btn"):
+            try:
+                gate_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/markdown",
+                    params=gate_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                gate_markdown_response.raise_for_status()
+                st.code(gate_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Quality gate markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)

@@ -191,6 +191,58 @@ async def get_candidate_diagnostics_markdown(
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
 
 
+@router.get(
+    "/quality-gate",
+    summary="Automated quality gate verdict for release readiness",
+)
+async def get_quality_gate(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0.0, le=1.0),
+    max_avg_skip_rate: float = Query(0.75, ge=0.0, le=1.0),
+    min_candidate_pairs: int = Query(1, ge=0, le=100000),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return aggregate quality gate verdict and evaluated rule set."""
+    del db
+    from app.services.quality_gate import QualityGateService
+
+    svc = QualityGateService()
+    report = svc.evaluate(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/markdown",
+    summary="Automated quality gate report as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_markdown(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0.0, le=1.0),
+    max_avg_skip_rate: float = Query(0.75, ge=0.0, le=1.0),
+    min_candidate_pairs: int = Query(1, ge=0, le=100000),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return aggregate quality gate verdict in markdown format."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate import QualityGateService
+
+    svc = QualityGateService()
+    report = svc.evaluate(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
 @router.get("/{output_id}", response_model=OutputReleaseOut)
 async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()
