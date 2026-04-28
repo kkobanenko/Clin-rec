@@ -4,7 +4,11 @@ from types import SimpleNamespace
 
 import pytest
 from app.services.matrix_builder import MatrixBuilder
-from app.services.scoring.engine import ScoringEngine, RELATION_ROLE_SCORES
+from app.services.scoring.engine import (
+    CONTENT_KIND_MULTIPLIER,
+    RELATION_ROLE_SCORES,
+    ScoringEngine,
+)
 
 
 class TestScoringEngine:
@@ -112,3 +116,104 @@ class TestMatrixBuilder:
         assert explanation["pair_context_score_ids"] == [21, 22]
         assert explanation["contexts"][0]["evidence_ids"] == [11, 12]
         assert explanation["contexts"][1]["fragment_ids"] == [103]
+
+
+class TestScoringEngineContentKind:
+    """Tests for content-kind-aware scoring additions."""
+
+    def setup_method(self):
+        self.engine = ScoringEngine()
+
+    def test_practical_score_text(self):
+        assert self.engine._practical_score("text") == 0.8
+
+    def test_practical_score_html(self):
+        assert self.engine._practical_score("html") == 0.8
+
+    def test_practical_score_table_like(self):
+        assert self.engine._practical_score("table_like") == 0.6
+
+    def test_practical_score_unknown(self):
+        assert self.engine._practical_score("unknown") == 0.5
+
+    def test_practical_score_image_is_zero(self):
+        assert self.engine._practical_score("image") == 0.0
+
+    def test_practical_score_none_defaults_text(self):
+        # None or empty → the method treats it as "text" (or "unknown") defaulting to mapped value
+        result = self.engine._practical_score(None)  # type: ignore[arg-type]
+        assert result in {0.5, 0.8}  # either "unknown" or "text" default is acceptable
+
+    def test_content_kind_multiplier_table(self):
+        assert CONTENT_KIND_MULTIPLIER["text"] == 1.0
+        assert CONTENT_KIND_MULTIPLIER["html"] == 1.0
+        assert CONTENT_KIND_MULTIPLIER["image"] == 0.0
+
+    def test_score_fragment_image_final_is_zero(self):
+        ev = SimpleNamespace(
+            relation_type="explicit_alternative_same_line",
+            uur="A",
+            udd="1",
+        )
+        weights = {
+            "role": 0.20, "text": 0.25, "population": 0.15,
+            "parity": 0.15, "practical": 0.10, "penalty": 0.15,
+        }
+        result = self.engine._score_fragment(ev, weights, content_kind="image")
+        assert result["final"] == 0.0
+
+    def test_score_fragment_text_positive(self):
+        ev = SimpleNamespace(
+            relation_type="explicit_alternative_same_line",
+            uur="A",
+            udd="1",
+        )
+        weights = {
+            "role": 0.20, "text": 0.25, "population": 0.15,
+            "parity": 0.15, "practical": 0.10, "penalty": 0.15,
+        }
+        result = self.engine._score_fragment(ev, weights, content_kind="text")
+        assert result["final"] > 0.0
+        assert result["final"] <= 1.0
+
+    def test_score_fragment_table_like_lower_than_text(self):
+        ev = SimpleNamespace(
+            relation_type="explicit_alternative_same_line",
+            uur="A",
+            udd="1",
+        )
+        weights = {
+            "role": 0.20, "text": 0.25, "population": 0.15,
+            "parity": 0.15, "practical": 0.10, "penalty": 0.15,
+        }
+        text_result = self.engine._score_fragment(ev, weights, content_kind="text")
+        table_result = self.engine._score_fragment(ev, weights, content_kind="table_like")
+        assert table_result["final"] <= text_result["final"]
+
+    def test_score_fragment_has_all_component_keys(self):
+        ev = SimpleNamespace(
+            relation_type="same_line_option",
+            uur="B",
+            udd="2",
+        )
+        weights = {
+            "role": 0.20, "text": 0.25, "population": 0.15,
+            "parity": 0.15, "practical": 0.10, "penalty": 0.15,
+        }
+        result = self.engine._score_fragment(ev, weights)
+        expected_keys = {"role", "text", "population", "parity", "practical", "penalty", "final"}
+        assert expected_keys == set(result.keys())
+
+    def test_score_fragment_final_in_unit_interval(self):
+        for rel in RELATION_ROLE_SCORES:
+            for ck in ("text", "html", "table_like", "image", "unknown"):
+                ev = SimpleNamespace(relation_type=rel, uur="A", udd="1")
+                weights = {
+                    "role": 0.20, "text": 0.25, "population": 0.15,
+                    "parity": 0.15, "practical": 0.10, "penalty": 0.15,
+                }
+                result = self.engine._score_fragment(ev, weights, content_kind=ck)
+                assert 0.0 <= result["final"] <= 1.0, (
+                    f"final={result['final']} out of [0,1] for rel={rel}, ck={ck}"
+                )
+

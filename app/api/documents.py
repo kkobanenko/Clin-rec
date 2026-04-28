@@ -10,9 +10,11 @@ from app.core.dependencies import get_db
 from app.core.storage import download_artifact
 from app.models.document import DocumentRegistry, DocumentVersion, SourceArtifact
 from app.models.pipeline_event import PipelineEventLog
+from app.schemas.diagnostics import CorpusCoverageOut, VersionEvidenceStateOut
 from app.schemas.documents import DocumentArtifactListOut
 from app.models.text import DocumentSection, TextFragment
 from app.services.artifact_validation import validate_artifact_payload
+from app.services.evidence_diagnostics import EvidenceDiagnosticsService
 from app.schemas.documents import (
     DocumentDetailOut,
     SourceArtifactAccessOut,
@@ -338,3 +340,67 @@ async def get_document_fragments(
         total=len(fragments),
         pipeline_outcome=pipeline_outcome,
     )
+
+
+@router.get(
+    "/{document_id}/versions/{version_id}/evidence-state",
+    response_model=VersionEvidenceStateOut,
+    summary="Evidence density diagnostics for a specific document version",
+)
+async def get_version_evidence_state(
+    document_id: int,
+    version_id: int,
+    include_fragments: bool = Query(True, description="Include per-fragment diagnostics"),
+    max_fragments: int = Query(200, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return fragment-level evidence density state classification for a document version.
+
+    Each fragment is classified as one of:
+    - evidence_rows_present
+    - healthy_empty_state
+    - degraded_routing
+    - extraction_missing
+    - scoring_missing
+    - no_mnn
+    """
+    # Verify document and version exist
+    doc_result = await db.execute(
+        select(DocumentRegistry).where(DocumentRegistry.id == document_id)
+    )
+    doc = doc_result.scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    ver_result = await db.execute(
+        select(DocumentVersion).where(
+            DocumentVersion.id == version_id,
+            DocumentVersion.registry_id == document_id,
+        )
+    )
+    ver = ver_result.scalar_one_or_none()
+    if ver is None:
+        raise HTTPException(status_code=404, detail="Version not found for this document")
+
+    svc = EvidenceDiagnosticsService()
+    return svc.diagnose_version(
+        version_id=version_id,
+        include_fragment_details=include_fragments,
+        max_fragment_details=max_fragments,
+    )
+
+
+@router.get(
+    "/corpus/evidence-coverage",
+    response_model=CorpusCoverageOut,
+    summary="Corpus-level evidence density across all current versions",
+)
+async def get_corpus_evidence_coverage(
+    db: AsyncSession = Depends(get_db),
+):
+    """Return aggregated evidence density across all current document versions.
+
+    Useful for release evidence documents and operational health dashboards.
+    """
+    svc = EvidenceDiagnosticsService()
+    return svc.corpus_coverage()

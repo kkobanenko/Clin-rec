@@ -31,8 +31,13 @@ def extract_document(version_id: int):
     pipeline = ExtractionPipeline()
     try:
         extraction_result = pipeline.extract(version_id=version_id)
-        candidate_pairs_count = CandidateEngine().generate_pairs(version_id=version_id)
+
+        # Use diagnostic variant so pair generation reasons are logged
+        candidate_diag = CandidateEngine().generate_pairs_with_diagnostics(version_id=version_id)
+        candidate_pairs_count = candidate_diag.total_new_pairs
+
         score_contexts_count = 0
+        version_score_contexts_count = 0
         matrix_cells_count = 0
         active_model_version_id = None
         scoring_session = get_sync_session()
@@ -45,10 +50,20 @@ def extract_document(version_id: int):
             )
             if active_model is not None:
                 active_model_version_id = active_model.id
+                # Full corpus re-score (legacy, keeps global scores fresh)
                 score_contexts_count = ScoringEngine().score_all(model_version_id=active_model.id)
-                matrix_cells_count = MatrixBuilder().build(model_version_id=active_model.id, scope_type="global")
+                # Per-version incremental score — content_kind-aware, cheaper than score_all
+                version_score_contexts_count = ScoringEngine().score_version(
+                    version_id=version_id,
+                    model_version_id=active_model.id,
+                )
+                matrix_cells_count = MatrixBuilder().build(
+                    model_version_id=active_model.id,
+                    scope_type="global",
+                )
         finally:
             scoring_session.close()
+
         if registry_id is not None:
             write_pipeline_event(
                 document_registry_id=registry_id,
@@ -66,8 +81,13 @@ def extract_document(version_id: int):
                     "ocr_unavailable_count": extraction_result.ocr_unavailable_count,
                     "mnn_molecule_ids": list(extraction_result.mnn_molecule_ids),
                     "candidate_pairs_count": candidate_pairs_count,
+                    "candidate_skip_rate": candidate_diag.skip_rate,
+                    "candidate_fragments_no_mnn": candidate_diag.fragments_no_mnn,
+                    "candidate_fragments_single_mnn": candidate_diag.fragments_single_mnn,
+                    "candidate_fragments_image": candidate_diag.fragments_image,
                     "active_model_version_id": active_model_version_id,
                     "score_contexts_count": score_contexts_count,
+                    "version_score_contexts_count": version_score_contexts_count,
                     "matrix_cells_count": matrix_cells_count,
                 },
             )

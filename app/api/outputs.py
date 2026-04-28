@@ -183,3 +183,85 @@ async def release_output(
     await db.commit()
     await db.refresh(row)
     return OutputReleaseOut.model_validate(row)
+
+
+@router.get(
+    "/release-evidence",
+    summary="Generate current-head release evidence report",
+)
+async def get_release_evidence(
+    include_state_counters: bool = True,
+    max_sample_chains: int = Query(5, ge=1, le=20),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return a structured JSON release evidence report for the current head.
+
+    Includes artifact coverage, evidence density, sample traceability chains,
+    and known limitations. Suitable for release documentation generation.
+    Use `Accept: text/markdown` header (not enforced) to remind yourself
+    to call `.to_markdown()` on the returned dict for a human-readable version.
+    """
+    from app.services.evidence_report import ReleaseEvidenceReportService
+
+    svc = ReleaseEvidenceReportService()
+    report = svc.generate_report(
+        include_state_counters=include_state_counters,
+        max_sample_chains=max_sample_chains,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/release-evidence/markdown",
+    summary="Generate release evidence report as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_release_evidence_markdown(
+    db: AsyncSession = Depends(get_db),
+):
+    """Return release evidence report as a Markdown document."""
+    from fastapi.responses import PlainTextResponse
+    from app.services.evidence_report import ReleaseEvidenceReportService
+
+    svc = ReleaseEvidenceReportService()
+    report = svc.generate_report(include_state_counters=True)
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
+@router.get(
+    "/corpus-quality",
+    summary="Corpus quality metrics: completeness, evidence richness, scoring readiness",
+)
+async def get_corpus_quality(
+    db: AsyncSession = Depends(get_db),
+):
+    """Return a :class:`CorpusQualityReport` as JSON.
+
+    Covers:
+    * content_kind breakdown (text / html / table_like / image / unknown)
+    * evidence richness (fragments with evidence, score coverage)
+    * quality flags (warnings for image-heavy corpora, low evidence coverage, etc.)
+    * overall health rating: healthy / degraded / critical / empty
+    """
+    from app.services.corpus_quality import CorpusQualityService
+
+    svc = CorpusQualityService()
+    report = svc.generate_report()
+    return report.to_dict()
+
+
+@router.get(
+    "/corpus-quality/markdown",
+    summary="Corpus quality report as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_corpus_quality_markdown(
+    db: AsyncSession = Depends(get_db),
+):
+    """Return corpus quality report as a Markdown document."""
+    from fastapi.responses import PlainTextResponse
+    from app.services.corpus_quality import CorpusQualityService
+
+    svc = CorpusQualityService()
+    report = svc.generate_report()
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")

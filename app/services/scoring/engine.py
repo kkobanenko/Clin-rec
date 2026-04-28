@@ -3,9 +3,13 @@
 import logging
 from collections import defaultdict
 
+from sqlalchemy import func
+
 from app.core.sync_database import get_sync_session
-from app.models.evidence import PairContextScore, PairEvidence
+from app.models.clinical import ClinicalContext
+from app.models.evidence import MatrixCell, PairContextScore, PairEvidence
 from app.models.scoring import ScoringModelVersion
+from app.models.text import TextFragment
 from app.services.scoring.confidence import ConfidenceCalculator
 
 logger = logging.getLogger(__name__)
@@ -37,6 +41,15 @@ RELATION_ROLE_SCORES = {
 UUR_PARITY = {"A": 1.0, "B": 0.7, "C": 0.4}
 UDD_PARITY = {"1": 1.0, "2": 0.8, "3": 0.6, "4": 0.4, "5": 0.2}
 
+# content_kind -> practical confidence multiplier (penalise degraded content kinds)
+CONTENT_KIND_MULTIPLIER: dict[str, float] = {
+    "text": 1.0,
+    "html": 1.0,
+    "table_like": 0.9,
+    "unknown": 0.8,
+    "image": 0.0,   # OCR-unavailable content should not contribute
+}
+
 
 class ScoringEngine:
     def __init__(self):
@@ -51,6 +64,122 @@ class ScoringEngine:
             "relation_types": [e.relation_type for e in evidence_list],
             "aggregation": "weighted_max",
         }
+
+    def score_version(self, version_id: int, model_version_id: int) -> int:
+        """Score all evidence pairs belonging to a specific document version.
+
+        This is a targeted variant of score_all that only touches evidence rows
+        that trace back to the given version_id. Returns evidence count scored.
+        """
+        session = get_sync_session()
+        try:
+            model = session.get(ScoringModelVersion, model_version_id)
+            if not model:
+                logger.error("ScoringModelVersion %d not found", model_version_id)
+                return 0
+
+            weights = model.weights_json or DEFAULT_WEIGHTS
+
+            # Get all contexts for this version
+            context_ids = [
+                row[0]
+                for row in session.query(ClinicalContext.id)
+                .filter_by(document_version_id=version_id)
+                .all()
+            ]
+            if not context_ids:
+                logger.info("No contexts for version %d; nothing to score", version_id)
+                return 0
+
+            evidence_records = (
+                session.query(PairEvidence)
+                .filter(
+                    PairEvidence.context_id.in_(context_ids),
+                    PairEvidence.review_status != "rejected",
+                )
+                .all()
+            )
+
+            grouped: dict[tuple[int, int, int], list[PairEvidence]] = defaultdict(list)
+            for e in evidence_records:
+                key = (e.context_id, e.molecule_from_id, e.molecule_to_id)
+                grouped[key].append(e)
+
+            # Load content_kind for all referenced fragments for this version
+            fragment_ids = {e.fragment_id for e in evidence_records if e.fragment_id}
+            content_kinds: dict[int, str] = {}
+            if fragment_ids:
+                rows = (
+                    session.query(TextFragment.id, TextFragment.content_kind)
+                    .filter(TextFragment.id.in_(fragment_ids))
+                    .all()
+                )
+                for frag_id, ck in rows:
+                    content_kinds[frag_id] = ck or "text"
+
+            count = 0
+            for (ctx_id, mol_from, mol_to), evidence_list in grouped.items():
+                fragment_scores = []
+                for ev in evidence_list:
+                    ck = content_kinds.get(ev.fragment_id, "text")
+                    frag_score = self._score_fragment(ev, weights, content_kind=ck)
+                    ev.role_score = frag_score["role"]
+                    ev.text_score = frag_score["text"]
+                    ev.population_score = frag_score["population"]
+                    ev.parity_score = frag_score["parity"]
+                    ev.practical_score = frag_score["practical"]
+                    ev.penalty = frag_score["penalty"]
+                    ev.final_fragment_score = frag_score["final"]
+                    fragment_scores.append(frag_score["final"])
+
+                if fragment_scores:
+                    sub_score = self._aggregate_context_score(fragment_scores)
+                    conf_score = self.confidence_calculator.calculate(
+                        evidence_count=len(evidence_list),
+                        fragment_scores=fragment_scores,
+                        relation_types=[e.relation_type for e in evidence_list],
+                    )
+                    explanation = self._build_context_explanation(evidence_list, fragment_scores)
+
+                    existing = (
+                        session.query(PairContextScore)
+                        .filter_by(
+                            model_version_id=model_version_id,
+                            context_id=ctx_id,
+                            molecule_from_id=mol_from,
+                            molecule_to_id=mol_to,
+                        )
+                        .first()
+                    )
+                    if existing:
+                        existing.substitution_score = sub_score
+                        existing.confidence_score = conf_score
+                        existing.evidence_count = len(evidence_list)
+                        existing.explanation_json = explanation
+                    else:
+                        pcs = PairContextScore(
+                            model_version_id=model_version_id,
+                            context_id=ctx_id,
+                            molecule_from_id=mol_from,
+                            molecule_to_id=mol_to,
+                            substitution_score=sub_score,
+                            confidence_score=conf_score,
+                            evidence_count=len(evidence_list),
+                            explanation_json=explanation,
+                        )
+                        session.add(pcs)
+                    count += 1
+
+            session.commit()
+            logger.info(
+                "score_version: scored %d context pairs for version %d, model %d",
+                count, version_id, model_version_id,
+            )
+            return count
+
+        finally:
+            session.close()
+
 
     def score_all(self, model_version_id: int) -> int:
         """Score all pairs for a given model version. Returns count of scored pairs."""
@@ -138,17 +267,26 @@ class ScoringEngine:
         finally:
             session.close()
 
-    def _score_fragment(self, evidence: PairEvidence, weights: dict) -> dict:
-        """Compute component scores and weighted final score for a single evidence record."""
+    def _score_fragment(self, evidence: PairEvidence, weights: dict, content_kind: str = "text") -> dict:
+        """Compute component scores and weighted final score for a single evidence record.
+
+        content_kind is used to apply a practical-score multiplier that penalises
+        evidence extracted from degraded content (e.g., OCR-unavailable image fragments).
+        """
         role = RELATION_ROLE_SCORES.get(evidence.relation_type, 0.5)
         text = self._text_signal_score(evidence.relation_type)
         population = 0.5  # Default; would need population overlap analysis
         parity = self._parity_score(evidence.uur, evidence.udd)
-        practical = 0.5  # Default; would need practical similarity data
+        practical = self._practical_score(content_kind)
         penalty = self._penalty_score(evidence.relation_type)
 
+        # Apply content-kind multiplier to final score
+        ck_multiplier = CONTENT_KIND_MULTIPLIER.get(
+            (content_kind or "text").strip().lower(), 0.8
+        )
+
         w = weights
-        final = (
+        raw_final = (
             w.get("role", 0.2) * role
             + w.get("text", 0.25) * text
             + w.get("population", 0.15) * population
@@ -156,7 +294,7 @@ class ScoringEngine:
             + w.get("practical", 0.1) * practical
             - w.get("penalty", 0.15) * penalty
         )
-        final = max(0.0, min(1.0, final))
+        final = max(0.0, min(1.0, raw_final * ck_multiplier))
 
         return {
             "role": round(role, 4),
@@ -198,6 +336,23 @@ class ScoringEngine:
             "later_line_only": 0.3,
         }
         return penalties.get(relation_type, 0.0)
+
+    @staticmethod
+    def _practical_score(content_kind: str) -> float:
+        """Practical confidence based on content quality.
+
+        Higher scores for high-fidelity content kinds (text/html).
+        Zero for image/ocr-unavailable fragments.
+        """
+        mapping = {
+            "text": 0.8,
+            "html": 0.8,
+            "table_like": 0.6,
+            "unknown": 0.5,
+            "image": 0.0,
+        }
+        ck = (content_kind or "text").strip().lower()
+        return mapping.get(ck, 0.5)
 
     def _aggregate_context_score(self, fragment_scores: list[float]) -> float:
         """Aggregate fragment scores to a context-level substitution score."""

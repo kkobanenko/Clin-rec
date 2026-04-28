@@ -179,3 +179,32 @@ async def list_reviews(
     query = query.order_by(ReviewAction.created_at.desc())
     result = await db.execute(query)
     return [ReviewActionOut.model_validate(r) for r in result.scalars().all()]
+
+
+@router.get(
+    "/evidence-density",
+    summary="Pipeline evidence density summary across all current versions",
+)
+async def get_pipeline_evidence_density(
+    db: AsyncSession = Depends(get_db),
+):
+    """Return lightweight evidence state counters for all current versions.
+
+    This endpoint is intended for release evidence documents and
+    operational dashboards. It does not include fragment-level details.
+    """
+    from app.services.evidence_diagnostics import EvidenceDiagnosticsService
+
+    svc = EvidenceDiagnosticsService()
+    counters = svc.state_counters()
+    return {
+        "evidence_state_counters": counters.model_dump(),
+        "description": {
+            "evidence_rows_present": "Versions with ≥1 pair evidence row",
+            "healthy_empty_state": "Versions where extraction ran but found <2 MNN per fragment",
+            "degraded_routing": "Versions where majority of fragments are OCR-unavailable",
+            "extraction_missing": "Versions where extraction stage never ran",
+            "scoring_missing": "Versions with evidence but no scored matrix cell",
+            "no_mnn": "Versions where extraction ran but found no MNN hits",
+        },
+    }
