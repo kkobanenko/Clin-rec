@@ -1891,6 +1891,110 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Quality Gate Incident Escalation"))
+    incident_col1, incident_col2 = st.columns(2)
+    incident_max_versions = incident_col1.number_input(
+        tr("Incident Max Versions"),
+        min_value=1,
+        value=100,
+        step=1,
+        key="quality_gate_incident_max_versions",
+    )
+    incident_min_pairs = incident_col1.number_input(
+        tr("Incident Min Candidate Pairs"),
+        min_value=0,
+        value=1,
+        step=1,
+        key="quality_gate_incident_min_pairs",
+    )
+    incident_max_items = incident_col2.number_input(
+        tr("Incident Queue Max Items"),
+        min_value=1,
+        value=int(queue_max_items),
+        step=1,
+        key="quality_gate_incident_max_items",
+    )
+    incident_spool_dir = incident_col2.text_input(
+        tr("Incident Spool Directory Override"),
+        value=queue_spool_dir,
+        key="quality_gate_incident_spool_dir",
+    )
+
+    incident_params = {
+        "max_versions": int(incident_max_versions),
+        "high_skip_threshold": float(high_skip_threshold),
+        "max_avg_skip_rate": float(max_avg_skip_rate),
+        "min_candidate_pairs": int(incident_min_pairs),
+        "max_items": int(incident_max_items),
+    }
+    if incident_spool_dir.strip():
+        incident_params["spool_dir"] = incident_spool_dir.strip()
+
+    incident_report = api_get("/outputs/quality-gate/incident", incident_params)
+    if isinstance(incident_report, dict):
+        incident_severity = str(incident_report.get("severity") or "info")
+        should_escalate = bool(incident_report.get("should_escalate"))
+
+        if incident_severity == "critical":
+            st.error(tr("Incident Severity: CRITICAL"))
+        elif incident_severity == "high":
+            st.warning(tr("Incident Severity: HIGH"))
+        else:
+            st.success(tr("Incident Severity: INFO"))
+
+        if should_escalate:
+            st.warning(tr("Escalation required by governance policy"))
+        else:
+            st.caption(tr("Escalation not required"))
+
+        incident_reason = str(incident_report.get("reason") or "")
+        if incident_reason:
+            st.caption(incident_reason)
+
+        incident_actions = incident_report.get("actions") or []
+        if incident_actions:
+            st.markdown(f"**{tr('Incident Actions')}**")
+            for action in incident_actions:
+                st.caption(f"- {action}")
+
+        incident_tags = incident_report.get("tags") or []
+        if incident_tags:
+            st.caption(tr("Tags: {tags}", tags=", ".join(str(tag) for tag in incident_tags)))
+
+        incident_details = incident_report.get("details")
+        if isinstance(incident_details, dict) and incident_details:
+            st.dataframe(
+                localize_dataframe_columns(
+                    pd.DataFrame([
+                        {
+                            "key": key,
+                            "value": value,
+                        }
+                        for key, value in incident_details.items()
+                    ])
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+
+        if st.button(tr("Load Incident Markdown"), key="quality_gate_incident_markdown_btn"):
+            try:
+                incident_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/incident/markdown",
+                    params=incident_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                incident_markdown_response.raise_for_status()
+                st.code(incident_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Incident markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)

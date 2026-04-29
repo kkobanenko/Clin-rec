@@ -33,6 +33,8 @@ QUALITY_GATE_NOTIFY_DRAIN_BEFORE="${QUALITY_GATE_NOTIFY_DRAIN_BEFORE:-1}"
 QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS="${QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS:-50}"
 QUEUE_POLICY_FAIL_ON_DEGRADED="${QUEUE_POLICY_FAIL_ON_DEGRADED:-0}"
 QUEUE_POLICY_ALLOW_EMPTY="${QUEUE_POLICY_ALLOW_EMPTY:-1}"
+INCIDENT_FAIL_ON_HIGH="${INCIDENT_FAIL_ON_HIGH:-0}"
+INCIDENT_ALLOW_INFO="${INCIDENT_ALLOW_INFO:-1}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -236,6 +238,32 @@ if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
     run_step queue_policy_check "Queue policy enforcement" "$PYTHON_BIN" -u "${QUEUE_POLICY_ARGS[@]}"
 else
     run_optional_step queue_policy_check "Queue policy enforcement (best-effort)" "$PYTHON_BIN" -u "${QUEUE_POLICY_ARGS[@]}"
+fi
+
+INCIDENT_ARGS=(
+    scripts/quality_gate_incident_check.py
+    --api-base "$QUALITY_GATE_API_BASE"
+    --max-versions "$QUALITY_GATE_MAX_VERSIONS"
+    --high-skip-threshold "$QUALITY_GATE_HIGH_SKIP_THRESHOLD"
+    --max-avg-skip-rate "$QUALITY_GATE_MAX_AVG_SKIP_RATE"
+    --min-candidate-pairs "$QUALITY_GATE_MIN_CANDIDATE_PAIRS"
+    --spool-dir "$QUALITY_GATE_NOTIFY_SPOOL_DIR"
+    --max-items "$QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS"
+    --json
+)
+
+if [[ "$INCIDENT_FAIL_ON_HIGH" == "1" ]]; then
+    INCIDENT_ARGS+=(--fail-on-high)
+fi
+
+if [[ "$INCIDENT_ALLOW_INFO" == "1" ]]; then
+    INCIDENT_ARGS+=(--allow-info)
+fi
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step incident_escalation_check "Incident escalation governance" "$PYTHON_BIN" -u "${INCIDENT_ARGS[@]}"
+else
+    run_optional_step incident_escalation_check "Incident escalation governance (best-effort)" "$PYTHON_BIN" -u "${INCIDENT_ARGS[@]}"
 fi
 
 QUALITY_GATE_NOTIFY_ARGS=(

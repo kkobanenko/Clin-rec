@@ -722,6 +722,99 @@ async def test_quality_gate_queue_policy_markdown_endpoint_returns_plain_text():
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_incident_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "should_escalate": True,
+            "severity": "high",
+            "reason": "Queue policy is degraded",
+            "actions": ["drain queue"],
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_incident.QualityGateIncidentService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/incident?max_items=10")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["should_escalate"] is True
+        assert payload["severity"] == "high"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_incident_endpoint_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"should_escalate": False, "severity": "info"})
+    try:
+        with patch(
+            "app.services.quality_gate_incident.QualityGateIncidentService.evaluate",
+            return_value=fake_report,
+        ) as evaluate_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/incident?max_versions=77&high_skip_threshold=0.61&max_avg_skip_rate=0.52&min_candidate_pairs=3&max_items=99&spool_dir=/tmp/q"
+                )
+
+        assert resp.status_code == 200
+        evaluate_mock.assert_called_once_with(
+            max_versions=77,
+            high_skip_threshold=0.61,
+            max_avg_skip_rate=0.52,
+            min_candidate_pairs=3,
+            spool_dir="/tmp/q",
+            max_items=99,
+        )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_incident_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Quality Gate Incident Escalation\n\n- Severity: HIGH",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_incident.QualityGateIncidentService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/incident/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Quality Gate Incident Escalation")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [

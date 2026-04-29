@@ -360,6 +360,66 @@ async def get_quality_gate_queue_policy_markdown(
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
 
 
+@router.get(
+    "/quality-gate/incident",
+    summary="Incident escalation report combining quality gate and queue policy",
+)
+async def get_quality_gate_incident(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return escalation report for release incident handling."""
+    del db
+    from app.services.quality_gate_incident import QualityGateIncidentService
+
+    svc = QualityGateIncidentService()
+    report = svc.evaluate(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        max_items=max_items,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/incident/markdown",
+    summary="Incident escalation report as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_incident_markdown(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return escalation report as markdown."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_incident import QualityGateIncidentService
+
+    svc = QualityGateIncidentService()
+    report = svc.evaluate(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        max_items=max_items,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
 @router.get("/{output_id}", response_model=OutputReleaseOut)
 async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()
