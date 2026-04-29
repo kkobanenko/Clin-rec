@@ -2132,6 +2132,80 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Quality Gate Governance Score"))
+    governance_col1, governance_col2, governance_col3 = st.columns(3)
+    governance_max_items = governance_col1.number_input(
+        tr("Governance Max Items"),
+        min_value=1,
+        value=int(queue_max_items),
+        step=1,
+        key="quality_gate_governance_max_items",
+    )
+    governance_spool_dir = governance_col2.text_input(
+        tr("Governance Spool Directory Override"),
+        value=queue_spool_dir,
+        key="quality_gate_governance_spool_dir",
+    )
+    governance_registry_dir = governance_col3.text_input(
+        tr("Governance Registry Directory Override"),
+        value=registry_dir,
+        key="quality_gate_governance_registry_dir",
+    )
+
+    governance_params = {
+        "max_versions": int(incident_max_versions),
+        "high_skip_threshold": float(high_skip_threshold),
+        "max_avg_skip_rate": float(max_avg_skip_rate),
+        "min_candidate_pairs": int(incident_min_pairs),
+        "max_items": int(governance_max_items),
+    }
+    if governance_spool_dir.strip():
+        governance_params["spool_dir"] = governance_spool_dir.strip()
+    if governance_registry_dir.strip():
+        governance_params["registry_dir"] = governance_registry_dir.strip()
+
+    governance_score = api_get("/outputs/quality-gate/governance-score", governance_params)
+    if isinstance(governance_score, dict):
+        score_value = float(governance_score.get("score") or 0.0)
+        score_status = str(governance_score.get("status") or "unknown")
+        score_summary = str(governance_score.get("summary") or "")
+
+        score_metric1, score_metric2 = st.columns(2)
+        score_metric1.metric(tr("Governance Score"), f"{score_value:.2f}")
+        score_metric2.metric(tr("Governance Status"), score_status.upper())
+
+        if score_status == "good":
+            st.success(tr("Governance status is GOOD"))
+        elif score_status == "warning":
+            st.warning(tr("Governance status is WARNING"))
+        else:
+            st.error(tr("Governance status is CRITICAL"))
+
+        if score_summary:
+            st.caption(score_summary)
+
+        score_components = governance_score.get("components") or []
+        if score_components:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(score_components)), width="stretch", hide_index=True)
+
+        if st.button(tr("Load Governance Score Markdown"), key="quality_gate_governance_score_markdown_btn"):
+            try:
+                score_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/governance-score/markdown",
+                    params=governance_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                score_markdown_response.raise_for_status()
+                st.code(score_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Governance score markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)
