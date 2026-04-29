@@ -18,6 +18,13 @@ STRUCTURAL_POLL_TIMEOUT="${STRUCTURAL_SMOKE_POLL_TIMEOUT:-${SMOKE_POLL_TIMEOUT:-
 QUALITY_POLL_TIMEOUT="${QUALITY_SMOKE_POLL_TIMEOUT:-${SMOKE_POLL_TIMEOUT:-}}"
 SKIP_STRUCTURAL_SMOKE="${SKIP_STRUCTURAL_SMOKE:-0}"
 SKIP_QUALITY_SMOKE="${SKIP_QUALITY_SMOKE:-0}"
+QUALITY_GATE_API_BASE="${QUALITY_GATE_API_BASE:-http://127.0.0.1:8000}"
+QUALITY_GATE_MAX_VERSIONS="${QUALITY_GATE_MAX_VERSIONS:-100}"
+QUALITY_GATE_HIGH_SKIP_THRESHOLD="${QUALITY_GATE_HIGH_SKIP_THRESHOLD:-0.8}"
+QUALITY_GATE_MAX_AVG_SKIP_RATE="${QUALITY_GATE_MAX_AVG_SKIP_RATE:-0.75}"
+QUALITY_GATE_MIN_CANDIDATE_PAIRS="${QUALITY_GATE_MIN_CANDIDATE_PAIRS:-1}"
+QUALITY_GATE_FAIL_ON_WARN="${QUALITY_GATE_FAIL_ON_WARN:-0}"
+QUALITY_GATE_ALLOW_NO_DATA="${QUALITY_GATE_ALLOW_NO_DATA:-0}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -122,6 +129,7 @@ if [[ -f "$SUMMARY_FILE" ]]; then
     echo "Seeded summary template: $SUMMARY_FILE"
 fi
 echo "Integration Postgres URL: $INTEGRATION_POSTGRES_URL"
+echo "Quality Gate API base: $QUALITY_GATE_API_BASE"
 
 if [[ "$SKIP_STRUCTURAL_SMOKE" != "1" ]]; then
     run_step structural_smoke "Structural smoke" "$PYTHON_BIN" -u "${STRUCTURAL_SMOKE_ARGS[@]}"
@@ -134,6 +142,26 @@ if [[ "$SKIP_QUALITY_SMOKE" != "1" ]]; then
 else
     echo "Skipping quality smoke because SKIP_QUALITY_SMOKE=1"
 fi
+
+QUALITY_GATE_ARGS=(
+    scripts/quality_gate_check.py
+    --api-base "$QUALITY_GATE_API_BASE"
+    --max-versions "$QUALITY_GATE_MAX_VERSIONS"
+    --high-skip-threshold "$QUALITY_GATE_HIGH_SKIP_THRESHOLD"
+    --max-avg-skip-rate "$QUALITY_GATE_MAX_AVG_SKIP_RATE"
+    --min-candidate-pairs "$QUALITY_GATE_MIN_CANDIDATE_PAIRS"
+    --json
+)
+
+if [[ "$QUALITY_GATE_FAIL_ON_WARN" == "1" ]]; then
+    QUALITY_GATE_ARGS+=(--fail-on-warn)
+fi
+
+if [[ "$QUALITY_GATE_ALLOW_NO_DATA" == "1" ]]; then
+    QUALITY_GATE_ARGS+=(--allow-no-data)
+fi
+
+run_step quality_gate_enforcement "Automated quality gate enforcement" "$PYTHON_BIN" -u "${QUALITY_GATE_ARGS[@]}"
 
 run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
 run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py

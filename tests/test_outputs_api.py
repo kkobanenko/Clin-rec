@@ -457,6 +457,37 @@ async def test_quality_gate_endpoint_returns_report_json():
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_endpoint_forwards_threshold_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"verdict": "pass", "rules": []})
+    try:
+        with patch(
+            "app.services.quality_gate.QualityGateService.evaluate",
+            return_value=fake_report,
+        ) as evaluate_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate?max_versions=77&high_skip_threshold=0.9&max_avg_skip_rate=0.7&min_candidate_pairs=5"
+                )
+
+        assert resp.status_code == 200
+        evaluate_mock.assert_called_once_with(
+            max_versions=77,
+            high_skip_threshold=0.9,
+            max_avg_skip_rate=0.7,
+            min_candidate_pairs=5,
+        )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_quality_gate_markdown_endpoint_returns_plain_text():
     fake_session = FakeAsyncSession([])
 
@@ -479,6 +510,37 @@ async def test_quality_gate_markdown_endpoint_returns_plain_text():
         assert resp.status_code == 200
         assert resp.text.startswith("# Automated Quality Gate")
         assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_markdown_endpoint_forwards_threshold_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_markdown=lambda: "# Automated Quality Gate\n\n- ok")
+    try:
+        with patch(
+            "app.services.quality_gate.QualityGateService.evaluate",
+            return_value=fake_report,
+        ) as evaluate_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/markdown?max_versions=99&high_skip_threshold=0.85&max_avg_skip_rate=0.65&min_candidate_pairs=7"
+                )
+
+        assert resp.status_code == 200
+        evaluate_mock.assert_called_once_with(
+            max_versions=99,
+            high_skip_threshold=0.85,
+            max_avg_skip_rate=0.65,
+            min_candidate_pairs=7,
+        )
     finally:
         app.dependency_overrides.pop(get_db, None)
 
