@@ -43,6 +43,16 @@ QUALITY_GATE_INCIDENT_RETENTION_FAIL_ON_REMOVALS="${QUALITY_GATE_INCIDENT_RETENT
 QUALITY_GATE_GOVERNANCE_MIN_SCORE="${QUALITY_GATE_GOVERNANCE_MIN_SCORE:-60}"
 QUALITY_GATE_GOVERNANCE_BASELINE_WINDOW="${QUALITY_GATE_GOVERNANCE_BASELINE_WINDOW:-10}"
 QUALITY_GATE_GOVERNANCE_TRENDS_FAIL_ON_STATUS="${QUALITY_GATE_GOVERNANCE_TRENDS_FAIL_ON_STATUS:-degrading}"
+QUALITY_GATE_GOVERNANCE_ARCHIVE_DIR="${QUALITY_GATE_GOVERNANCE_ARCHIVE_DIR:-$ROOT_DIR/.artifacts/quality_gate_governance_archive}"
+QUALITY_GATE_ADAPTIVE_QUEUE_WARN="${QUALITY_GATE_ADAPTIVE_QUEUE_WARN:-20}"
+QUALITY_GATE_ADAPTIVE_QUEUE_FAIL="${QUALITY_GATE_ADAPTIVE_QUEUE_FAIL:-100}"
+QUALITY_GATE_ADAPTIVE_FAIL_ON_MODE="${QUALITY_GATE_ADAPTIVE_FAIL_ON_MODE:-none}"
+QUALITY_GATE_SNAPSHOT_BASELINE_FILE="${QUALITY_GATE_SNAPSHOT_BASELINE_FILE:-$ROOT_DIR/.artifacts/quality_gate_snapshot_baseline.json}"
+QUALITY_GATE_SNAPSHOT_CANDIDATE_FILE="${QUALITY_GATE_SNAPSHOT_CANDIDATE_FILE:-$ROOT_DIR/.artifacts/quality_gate_snapshot_candidate.json}"
+QUALITY_GATE_SNAPSHOT_FAIL_ON_STATUS="${QUALITY_GATE_SNAPSHOT_FAIL_ON_STATUS:-none}"
+QUALITY_GATE_RELEASE_DECISION_MIN_SCORE="${QUALITY_GATE_RELEASE_DECISION_MIN_SCORE:-60}"
+QUALITY_GATE_RELEASE_DECISION_MAX_RATIO_DELTA="${QUALITY_GATE_RELEASE_DECISION_MAX_RATIO_DELTA:-0.15}"
+QUALITY_GATE_RELEASE_DECISION_FAIL_ON="${QUALITY_GATE_RELEASE_DECISION_FAIL_ON:-block}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -355,6 +365,88 @@ if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
     run_step governance_trends_check "Governance trends enforcement" "$PYTHON_BIN" -u "${GOVERNANCE_TRENDS_ARGS[@]}"
 else
     run_optional_step governance_trends_check "Governance trends enforcement (best-effort)" "$PYTHON_BIN" -u "${GOVERNANCE_TRENDS_ARGS[@]}"
+fi
+
+GOVERNANCE_ARCHIVE_ARGS=(
+    scripts/quality_gate_governance_archive_export.py
+    --output-dir "$QUALITY_GATE_GOVERNANCE_ARCHIVE_DIR"
+    --max-versions "$QUALITY_GATE_MAX_VERSIONS"
+    --high-skip-threshold "$QUALITY_GATE_HIGH_SKIP_THRESHOLD"
+    --max-avg-skip-rate "$QUALITY_GATE_MAX_AVG_SKIP_RATE"
+    --min-candidate-pairs "$QUALITY_GATE_MIN_CANDIDATE_PAIRS"
+    --spool-dir "$QUALITY_GATE_NOTIFY_SPOOL_DIR"
+    --registry-dir "$QUALITY_GATE_INCIDENT_REGISTRY_DIR"
+    --max-items "$QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS"
+    --baseline-window "$QUALITY_GATE_GOVERNANCE_BASELINE_WINDOW"
+    --json
+)
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step governance_archive_export "Governance archive export" "$PYTHON_BIN" -u "${GOVERNANCE_ARCHIVE_ARGS[@]}"
+else
+    run_optional_step governance_archive_export "Governance archive export (best-effort)" "$PYTHON_BIN" -u "${GOVERNANCE_ARCHIVE_ARGS[@]}"
+fi
+
+ADAPTIVE_POLICY_ARGS=(
+    scripts/quality_gate_adaptive_policy_check.py
+    --api-base "$QUALITY_GATE_API_BASE"
+    --max-versions "$QUALITY_GATE_MAX_VERSIONS"
+    --high-skip-threshold "$QUALITY_GATE_HIGH_SKIP_THRESHOLD"
+    --max-avg-skip-rate "$QUALITY_GATE_MAX_AVG_SKIP_RATE"
+    --min-candidate-pairs "$QUALITY_GATE_MIN_CANDIDATE_PAIRS"
+    --queue-size-warn "$QUALITY_GATE_ADAPTIVE_QUEUE_WARN"
+    --queue-size-fail "$QUALITY_GATE_ADAPTIVE_QUEUE_FAIL"
+    --baseline-window "$QUALITY_GATE_GOVERNANCE_BASELINE_WINDOW"
+    --spool-dir "$QUALITY_GATE_NOTIFY_SPOOL_DIR"
+    --registry-dir "$QUALITY_GATE_INCIDENT_REGISTRY_DIR"
+    --max-items "$QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS"
+    --fail-on-mode "$QUALITY_GATE_ADAPTIVE_FAIL_ON_MODE"
+    --json
+)
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step adaptive_policy_check "Adaptive policy recommendation check" "$PYTHON_BIN" -u "${ADAPTIVE_POLICY_ARGS[@]}"
+else
+    run_optional_step adaptive_policy_check "Adaptive policy recommendation check (best-effort)" "$PYTHON_BIN" -u "${ADAPTIVE_POLICY_ARGS[@]}"
+fi
+
+SNAPSHOT_COMPARE_ARGS=(
+    scripts/quality_gate_governance_snapshot_compare_check.py
+    --baseline-file "$QUALITY_GATE_SNAPSHOT_BASELINE_FILE"
+    --candidate-file "$QUALITY_GATE_SNAPSHOT_CANDIDATE_FILE"
+    --fail-on-status "$QUALITY_GATE_SNAPSHOT_FAIL_ON_STATUS"
+    --json
+)
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step snapshot_compare_check "Governance snapshot compare" "$PYTHON_BIN" -u "${SNAPSHOT_COMPARE_ARGS[@]}"
+else
+    run_optional_step snapshot_compare_check "Governance snapshot compare (best-effort)" "$PYTHON_BIN" -u "${SNAPSHOT_COMPARE_ARGS[@]}"
+fi
+
+RELEASE_DECISION_ARGS=(
+    scripts/quality_gate_release_decision_check.py
+    --api-base "$QUALITY_GATE_API_BASE"
+    --min-score "$QUALITY_GATE_RELEASE_DECISION_MIN_SCORE"
+    --max-allowed-ratio-delta "$QUALITY_GATE_RELEASE_DECISION_MAX_RATIO_DELTA"
+    --max-versions "$QUALITY_GATE_MAX_VERSIONS"
+    --high-skip-threshold "$QUALITY_GATE_HIGH_SKIP_THRESHOLD"
+    --max-avg-skip-rate "$QUALITY_GATE_MAX_AVG_SKIP_RATE"
+    --min-candidate-pairs "$QUALITY_GATE_MIN_CANDIDATE_PAIRS"
+    --queue-size-warn "$QUALITY_GATE_ADAPTIVE_QUEUE_WARN"
+    --queue-size-fail "$QUALITY_GATE_ADAPTIVE_QUEUE_FAIL"
+    --baseline-window "$QUALITY_GATE_GOVERNANCE_BASELINE_WINDOW"
+    --spool-dir "$QUALITY_GATE_NOTIFY_SPOOL_DIR"
+    --registry-dir "$QUALITY_GATE_INCIDENT_REGISTRY_DIR"
+    --max-items "$QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS"
+    --fail-on-decision "$QUALITY_GATE_RELEASE_DECISION_FAIL_ON"
+    --json
+)
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step release_decision_check "Release decision governance check" "$PYTHON_BIN" -u "${RELEASE_DECISION_ARGS[@]}"
+else
+    run_optional_step release_decision_check "Release decision governance check (best-effort)" "$PYTHON_BIN" -u "${RELEASE_DECISION_ARGS[@]}"
 fi
 
 QUALITY_GATE_NOTIFY_ARGS=(

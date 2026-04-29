@@ -662,6 +662,276 @@ async def get_quality_gate_governance_trends_markdown(
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
 
 
+@router.post(
+    "/quality-gate/governance-archive/export",
+    summary="Export governance archive bundle",
+)
+async def export_quality_gate_governance_archive(
+    output_dir: str | None = Query(None, description="Optional override for archive output directory"),
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    max_items: int = Query(50, ge=1, le=500),
+    baseline_window: int = Query(10, ge=2, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create governance archive tarball and return manifest."""
+    del db
+    from app.services.quality_gate_governance_archive import QualityGateGovernanceArchiveService
+
+    svc = QualityGateGovernanceArchiveService()
+    report = svc.export_archive(
+        output_dir=output_dir or os.getenv("QUALITY_GATE_GOVERNANCE_ARCHIVE_DIR", ".artifacts/quality_gate_governance_archive"),
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+        baseline_window=baseline_window,
+    )
+    return report.to_dict()
+
+
+@router.post(
+    "/quality-gate/governance-archive/export/markdown",
+    summary="Export governance archive bundle and return markdown report",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def export_quality_gate_governance_archive_markdown(
+    output_dir: str | None = Query(None, description="Optional override for archive output directory"),
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    max_items: int = Query(50, ge=1, le=500),
+    baseline_window: int = Query(10, ge=2, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create governance archive tarball and return markdown report."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_governance_archive import QualityGateGovernanceArchiveService
+
+    svc = QualityGateGovernanceArchiveService()
+    report = svc.export_archive(
+        output_dir=output_dir or os.getenv("QUALITY_GATE_GOVERNANCE_ARCHIVE_DIR", ".artifacts/quality_gate_governance_archive"),
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+        baseline_window=baseline_window,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
+@router.get(
+    "/quality-gate/adaptive-policy",
+    summary="Adaptive policy recommendation",
+)
+async def get_quality_gate_adaptive_policy(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    queue_size_warn: float = Query(20, ge=0),
+    queue_size_fail: float = Query(100, ge=0),
+    baseline_window: int = Query(10, ge=2, le=500),
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return adaptive threshold recommendations based on governance state."""
+    del db
+    from app.services.quality_gate_adaptive_policy import QualityGateAdaptivePolicyService
+
+    svc = QualityGateAdaptivePolicyService()
+    report = svc.recommend(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        queue_size_warn=queue_size_warn,
+        queue_size_fail=queue_size_fail,
+        baseline_window=baseline_window,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/adaptive-policy/markdown",
+    summary="Adaptive policy recommendation as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_adaptive_policy_markdown(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    queue_size_warn: float = Query(20, ge=0),
+    queue_size_fail: float = Query(100, ge=0),
+    baseline_window: int = Query(10, ge=2, le=500),
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return adaptive threshold recommendations in markdown format."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_adaptive_policy import QualityGateAdaptivePolicyService
+
+    svc = QualityGateAdaptivePolicyService()
+    report = svc.recommend(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        queue_size_warn=queue_size_warn,
+        queue_size_fail=queue_size_fail,
+        baseline_window=baseline_window,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
+@router.get(
+    "/quality-gate/snapshot-compare",
+    summary="Compare governance snapshots",
+)
+async def get_quality_gate_snapshot_compare(
+    baseline_file: str = Query(..., description="Path to baseline snapshot JSON"),
+    candidate_file: str = Query(..., description="Path to candidate snapshot JSON"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return comparison report for two governance snapshots."""
+    del db
+    from app.services.quality_gate_governance_snapshot_compare import QualityGateGovernanceSnapshotCompareService
+
+    svc = QualityGateGovernanceSnapshotCompareService()
+    report = svc.compare(baseline_file=baseline_file, candidate_file=candidate_file)
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/snapshot-compare/markdown",
+    summary="Governance snapshot compare as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_snapshot_compare_markdown(
+    baseline_file: str = Query(..., description="Path to baseline snapshot JSON"),
+    candidate_file: str = Query(..., description="Path to candidate snapshot JSON"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return snapshot compare report in markdown format."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_governance_snapshot_compare import QualityGateGovernanceSnapshotCompareService
+
+    svc = QualityGateGovernanceSnapshotCompareService()
+    report = svc.compare(baseline_file=baseline_file, candidate_file=candidate_file)
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
+@router.get(
+    "/quality-gate/release-decision",
+    summary="Release decision recommendation",
+)
+async def get_quality_gate_release_decision(
+    min_score: float = Query(60.0, ge=0, le=100),
+    max_allowed_ratio_delta: float = Query(0.15, ge=0, le=1),
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    queue_size_warn: float = Query(20, ge=0),
+    queue_size_fail: float = Query(100, ge=0),
+    baseline_window: int = Query(10, ge=2, le=500),
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return final release decision from governance evidence."""
+    del db
+    from app.services.quality_gate_release_decision import QualityGateReleaseDecisionService
+
+    svc = QualityGateReleaseDecisionService()
+    report = svc.evaluate(
+        min_score=min_score,
+        max_allowed_ratio_delta=max_allowed_ratio_delta,
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        queue_size_warn=queue_size_warn,
+        queue_size_fail=queue_size_fail,
+        baseline_window=baseline_window,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/release-decision/markdown",
+    summary="Release decision report as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_release_decision_markdown(
+    min_score: float = Query(60.0, ge=0, le=100),
+    max_allowed_ratio_delta: float = Query(0.15, ge=0, le=1),
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    queue_size_warn: float = Query(20, ge=0),
+    queue_size_fail: float = Query(100, ge=0),
+    baseline_window: int = Query(10, ge=2, le=500),
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return release decision in markdown format."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_release_decision import QualityGateReleaseDecisionService
+
+    svc = QualityGateReleaseDecisionService()
+    report = svc.evaluate(
+        min_score=min_score,
+        max_allowed_ratio_delta=max_allowed_ratio_delta,
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        queue_size_warn=queue_size_warn,
+        queue_size_fail=queue_size_fail,
+        baseline_window=baseline_window,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
 @router.get("/{output_id}", response_model=OutputReleaseOut)
 async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()

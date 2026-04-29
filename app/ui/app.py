@@ -2272,6 +2272,283 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Governance Archive Export"))
+    archive_col1, archive_col2 = st.columns(2)
+    archive_output_dir = archive_col1.text_input(
+        tr("Archive Output Directory Override"),
+        value="",
+        key="quality_gate_governance_archive_output_dir",
+    )
+    archive_baseline_window = archive_col2.number_input(
+        tr("Archive Baseline Window"),
+        min_value=2,
+        value=int(trends_baseline_window),
+        step=1,
+        key="quality_gate_governance_archive_baseline_window",
+    )
+
+    archive_params = {
+        "max_versions": int(incident_max_versions),
+        "high_skip_threshold": float(high_skip_threshold),
+        "max_avg_skip_rate": float(max_avg_skip_rate),
+        "min_candidate_pairs": int(incident_min_pairs),
+        "max_items": int(trends_max_items),
+        "baseline_window": int(archive_baseline_window),
+    }
+    if governance_spool_dir.strip():
+        archive_params["spool_dir"] = governance_spool_dir.strip()
+    if governance_registry_dir.strip():
+        archive_params["registry_dir"] = governance_registry_dir.strip()
+    if archive_output_dir.strip():
+        archive_params["output_dir"] = archive_output_dir.strip()
+
+    if st.button(tr("Export Governance Archive"), key="quality_gate_governance_archive_export_btn"):
+        try:
+            archive_export_response = httpx.post(
+                f"{API_BASE}/outputs/quality-gate/governance-archive/export",
+                params=archive_params,
+                headers=_api_headers(),
+                timeout=60,
+            )
+            archive_export_response.raise_for_status()
+            payload = archive_export_response.json()
+            st.success(
+                tr(
+                    "Archive exported: {path}",
+                    path=str(payload.get("archive_path") or ""),
+                )
+            )
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(payload.get("entries") or [])), width="stretch", hide_index=True)
+        except httpx.HTTPError as exc:
+            st.warning(
+                tr(
+                    "Governance archive export failed: {detail}",
+                    detail=str(exc),
+                )
+            )
+
+    if st.button(tr("Load Governance Archive Markdown"), key="quality_gate_governance_archive_markdown_btn"):
+        try:
+            archive_markdown_response = httpx.post(
+                f"{API_BASE}/outputs/quality-gate/governance-archive/export/markdown",
+                params=archive_params,
+                headers=_api_headers(),
+                timeout=60,
+            )
+            archive_markdown_response.raise_for_status()
+            st.code(archive_markdown_response.text, language="markdown")
+        except httpx.HTTPError as exc:
+            st.warning(
+                tr(
+                    "Governance archive markdown unavailable: {detail}",
+                    detail=str(exc),
+                )
+            )
+
+    st.subheader(tr("Adaptive Policy Recommendation"))
+    adaptive_col1, adaptive_col2, adaptive_col3 = st.columns(3)
+    adaptive_queue_warn = adaptive_col1.number_input(
+        tr("Adaptive Queue Warn"),
+        min_value=0.0,
+        value=20.0,
+        step=1.0,
+        key="quality_gate_adaptive_queue_warn",
+    )
+    adaptive_queue_fail = adaptive_col2.number_input(
+        tr("Adaptive Queue Fail"),
+        min_value=0.0,
+        value=100.0,
+        step=1.0,
+        key="quality_gate_adaptive_queue_fail",
+    )
+    adaptive_baseline = adaptive_col3.number_input(
+        tr("Adaptive Baseline Window"),
+        min_value=2,
+        value=int(trends_baseline_window),
+        step=1,
+        key="quality_gate_adaptive_baseline",
+    )
+
+    adaptive_params = {
+        "max_versions": int(incident_max_versions),
+        "high_skip_threshold": float(high_skip_threshold),
+        "max_avg_skip_rate": float(max_avg_skip_rate),
+        "min_candidate_pairs": int(incident_min_pairs),
+        "queue_size_warn": float(adaptive_queue_warn),
+        "queue_size_fail": float(adaptive_queue_fail),
+        "baseline_window": int(adaptive_baseline),
+        "max_items": int(trends_max_items),
+    }
+    if governance_spool_dir.strip():
+        adaptive_params["spool_dir"] = governance_spool_dir.strip()
+    if governance_registry_dir.strip():
+        adaptive_params["registry_dir"] = governance_registry_dir.strip()
+
+    adaptive_policy = api_get("/outputs/quality-gate/adaptive-policy", adaptive_params)
+    if isinstance(adaptive_policy, dict):
+        adaptive_mode = str(adaptive_policy.get("mode") or "unknown")
+        st.caption(tr("Adaptive mode: {mode}", mode=adaptive_mode.upper()))
+        summary = str(adaptive_policy.get("summary") or "")
+        if summary:
+            st.caption(summary)
+
+        recs = adaptive_policy.get("recommendations") or []
+        if recs:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(recs)), width="stretch", hide_index=True)
+        else:
+            st.info(tr("No adaptive changes recommended"))
+
+        if st.button(tr("Load Adaptive Policy Markdown"), key="quality_gate_adaptive_policy_markdown_btn"):
+            try:
+                adaptive_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/adaptive-policy/markdown",
+                    params=adaptive_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                adaptive_markdown_response.raise_for_status()
+                st.code(adaptive_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Adaptive policy markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
+    st.subheader(tr("Governance Snapshot Compare"))
+    snapshot_col1, snapshot_col2 = st.columns(2)
+    snapshot_baseline_file = snapshot_col1.text_input(
+        tr("Snapshot Baseline File"),
+        value="",
+        key="quality_gate_snapshot_baseline_file",
+    )
+    snapshot_candidate_file = snapshot_col2.text_input(
+        tr("Snapshot Candidate File"),
+        value="",
+        key="quality_gate_snapshot_candidate_file",
+    )
+
+    if snapshot_baseline_file.strip() and snapshot_candidate_file.strip():
+        snapshot_params = {
+            "baseline_file": snapshot_baseline_file.strip(),
+            "candidate_file": snapshot_candidate_file.strip(),
+        }
+        snapshot_compare = api_get("/outputs/quality-gate/snapshot-compare", snapshot_params)
+        if isinstance(snapshot_compare, dict):
+            st.caption(tr("Snapshot status: {status}", status=str(snapshot_compare.get("status") or "unknown").upper()))
+            st.caption(str(snapshot_compare.get("summary") or ""))
+
+            metrics_a, metrics_b, metrics_c = st.columns(3)
+            metrics_a.metric(tr("Snapshot Score Delta"), f"{float(snapshot_compare.get('score_delta') or 0.0):.2f}")
+            metrics_b.metric(
+                tr("Snapshot Ratio Delta"),
+                f"{float(snapshot_compare.get('escalated_ratio_delta') or 0.0):.4f}",
+            )
+            metrics_c.metric(tr("Snapshot Findings"), len(snapshot_compare.get("findings") or []))
+
+            findings = snapshot_compare.get("findings") or []
+            if findings:
+                for finding in findings:
+                    st.caption(f"- {finding}")
+
+            if st.button(tr("Load Snapshot Compare Markdown"), key="quality_gate_snapshot_compare_markdown_btn"):
+                try:
+                    snapshot_markdown_response = httpx.get(
+                        f"{API_BASE}/outputs/quality-gate/snapshot-compare/markdown",
+                        params=snapshot_params,
+                        headers=_api_headers(),
+                        timeout=30,
+                    )
+                    snapshot_markdown_response.raise_for_status()
+                    st.code(snapshot_markdown_response.text, language="markdown")
+                except httpx.HTTPError as exc:
+                    st.warning(
+                        tr(
+                            "Snapshot compare markdown unavailable: {detail}",
+                            detail=str(exc),
+                        )
+                    )
+
+    st.subheader(tr("Release Decision"))
+    decision_col1, decision_col2, decision_col3 = st.columns(3)
+    decision_min_score = decision_col1.number_input(
+        tr("Decision Min Score"),
+        min_value=0.0,
+        max_value=100.0,
+        value=60.0,
+        step=1.0,
+        key="quality_gate_release_decision_min_score",
+    )
+    decision_max_ratio_delta = decision_col2.number_input(
+        tr("Decision Max Ratio Delta"),
+        min_value=0.0,
+        max_value=1.0,
+        value=0.15,
+        step=0.01,
+        key="quality_gate_release_decision_max_ratio_delta",
+    )
+    decision_baseline = decision_col3.number_input(
+        tr("Decision Baseline Window"),
+        min_value=2,
+        value=int(adaptive_baseline),
+        step=1,
+        key="quality_gate_release_decision_baseline_window",
+    )
+
+    decision_params = {
+        "min_score": float(decision_min_score),
+        "max_allowed_ratio_delta": float(decision_max_ratio_delta),
+        "max_versions": int(incident_max_versions),
+        "high_skip_threshold": float(high_skip_threshold),
+        "max_avg_skip_rate": float(max_avg_skip_rate),
+        "min_candidate_pairs": int(incident_min_pairs),
+        "queue_size_warn": float(adaptive_queue_warn),
+        "queue_size_fail": float(adaptive_queue_fail),
+        "baseline_window": int(decision_baseline),
+        "max_items": int(trends_max_items),
+    }
+    if governance_spool_dir.strip():
+        decision_params["spool_dir"] = governance_spool_dir.strip()
+    if governance_registry_dir.strip():
+        decision_params["registry_dir"] = governance_registry_dir.strip()
+
+    release_decision = api_get("/outputs/quality-gate/release-decision", decision_params)
+    if isinstance(release_decision, dict):
+        decision_value = str(release_decision.get("decision") or "unknown")
+        confidence = float(release_decision.get("confidence") or 0.0)
+        if decision_value == "allow":
+            st.success(tr("Release Decision: ALLOW"))
+        elif decision_value == "review":
+            st.warning(tr("Release Decision: REVIEW"))
+        else:
+            st.error(tr("Release Decision: BLOCK"))
+
+        st.caption(tr("Decision confidence: {value}", value=f"{confidence:.2f}"))
+        st.caption(str(release_decision.get("summary") or ""))
+
+        decision_rules = release_decision.get("rules") or []
+        if decision_rules:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(decision_rules)), width="stretch", hide_index=True)
+
+        if st.button(tr("Load Release Decision Markdown"), key="quality_gate_release_decision_markdown_btn"):
+            try:
+                decision_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/release-decision/markdown",
+                    params=decision_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                decision_markdown_response.raise_for_status()
+                st.code(decision_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Release decision markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)

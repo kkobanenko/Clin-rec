@@ -1177,6 +1177,381 @@ async def test_quality_gate_governance_trends_markdown_endpoint_returns_plain_te
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_governance_archive_export_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "archive_path": "/tmp/a.tar.gz",
+            "file_count": 4,
+            "entries": [],
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_governance_archive.QualityGateGovernanceArchiveService.export_archive",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post("/outputs/quality-gate/governance-archive/export?baseline_window=5")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["archive_path"] == "/tmp/a.tar.gz"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_governance_archive_export_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"archive_path": "/tmp/a.tar.gz"})
+    try:
+        with patch(
+            "app.services.quality_gate_governance_archive.QualityGateGovernanceArchiveService.export_archive",
+            return_value=fake_report,
+        ) as export_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post(
+                    "/outputs/quality-gate/governance-archive/export?output_dir=/tmp/out&max_versions=95&high_skip_threshold=0.7&max_avg_skip_rate=0.6&min_candidate_pairs=2&max_items=13&baseline_window=7&spool_dir=/tmp/sp&registry_dir=/tmp/reg"
+                )
+
+        assert resp.status_code == 200
+        export_mock.assert_called_once_with(
+            output_dir="/tmp/out",
+            max_versions=95,
+            high_skip_threshold=0.7,
+            max_avg_skip_rate=0.6,
+            min_candidate_pairs=2,
+            spool_dir="/tmp/sp",
+            registry_dir="/tmp/reg",
+            max_items=13,
+            baseline_window=7,
+        )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_governance_archive_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Governance Archive Export\n\n- file_count: 4",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_governance_archive.QualityGateGovernanceArchiveService.export_archive",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post("/outputs/quality-gate/governance-archive/export/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Governance Archive Export")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_adaptive_policy_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "mode": "hold",
+            "summary": "balanced",
+            "recommendations": [],
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_adaptive_policy.QualityGateAdaptivePolicyService.recommend",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/adaptive-policy?baseline_window=5")
+
+        assert resp.status_code == 200
+        assert resp.json()["mode"] == "hold"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_adaptive_policy_endpoint_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"mode": "tighten"})
+    try:
+        with patch(
+            "app.services.quality_gate_adaptive_policy.QualityGateAdaptivePolicyService.recommend",
+            return_value=fake_report,
+        ) as recommend_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/adaptive-policy?max_versions=96&high_skip_threshold=0.7&max_avg_skip_rate=0.6&min_candidate_pairs=2&queue_size_warn=11&queue_size_fail=22&baseline_window=6&max_items=14&spool_dir=/tmp/sp&registry_dir=/tmp/reg"
+                )
+
+        assert resp.status_code == 200
+        recommend_mock.assert_called_once_with(
+            max_versions=96,
+            high_skip_threshold=0.7,
+            max_avg_skip_rate=0.6,
+            min_candidate_pairs=2,
+            queue_size_warn=11.0,
+            queue_size_fail=22.0,
+            baseline_window=6,
+            spool_dir="/tmp/sp",
+            registry_dir="/tmp/reg",
+            max_items=14,
+        )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_adaptive_policy_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Quality Gate Adaptive Policy\n\n- mode: hold",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_adaptive_policy.QualityGateAdaptivePolicyService.recommend",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/adaptive-policy/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Quality Gate Adaptive Policy")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_snapshot_compare_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "status": "stable",
+            "summary": "ok",
+            "findings": [],
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_governance_snapshot_compare.QualityGateGovernanceSnapshotCompareService.compare",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/snapshot-compare?baseline_file=/tmp/a.json&candidate_file=/tmp/b.json"
+                )
+
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "stable"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_snapshot_compare_endpoint_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"status": "stable"})
+    try:
+        with patch(
+            "app.services.quality_gate_governance_snapshot_compare.QualityGateGovernanceSnapshotCompareService.compare",
+            return_value=fake_report,
+        ) as compare_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/snapshot-compare?baseline_file=/tmp/base.json&candidate_file=/tmp/candidate.json"
+                )
+
+        assert resp.status_code == 200
+        compare_mock.assert_called_once_with(
+            baseline_file="/tmp/base.json",
+            candidate_file="/tmp/candidate.json",
+        )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_snapshot_compare_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Governance Snapshot Compare\n\n- status: stable",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_governance_snapshot_compare.QualityGateGovernanceSnapshotCompareService.compare",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/snapshot-compare/markdown?baseline_file=/tmp/base.json&candidate_file=/tmp/candidate.json"
+                )
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Governance Snapshot Compare")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_release_decision_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "decision": "allow",
+            "confidence": 0.95,
+            "summary": "ok",
+            "rules": [],
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_release_decision.QualityGateReleaseDecisionService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/release-decision?min_score=60")
+
+        assert resp.status_code == 200
+        assert resp.json()["decision"] == "allow"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_release_decision_endpoint_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"decision": "review"})
+    try:
+        with patch(
+            "app.services.quality_gate_release_decision.QualityGateReleaseDecisionService.evaluate",
+            return_value=fake_report,
+        ) as evaluate_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/release-decision?min_score=61&max_allowed_ratio_delta=0.2&max_versions=97&high_skip_threshold=0.71&max_avg_skip_rate=0.62&min_candidate_pairs=3&queue_size_warn=12&queue_size_fail=23&baseline_window=7&max_items=15&spool_dir=/tmp/sp&registry_dir=/tmp/reg"
+                )
+
+        assert resp.status_code == 200
+        evaluate_mock.assert_called_once_with(
+            min_score=61.0,
+            max_allowed_ratio_delta=0.2,
+            max_versions=97,
+            high_skip_threshold=0.71,
+            max_avg_skip_rate=0.62,
+            min_candidate_pairs=3,
+            queue_size_warn=12.0,
+            queue_size_fail=23.0,
+            baseline_window=7,
+            spool_dir="/tmp/sp",
+            registry_dir="/tmp/reg",
+            max_items=15,
+        )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_release_decision_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Release Decision\n\n- decision: allow",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_release_decision.QualityGateReleaseDecisionService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/release-decision/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Release Decision")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [
