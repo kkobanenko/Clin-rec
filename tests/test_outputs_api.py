@@ -635,6 +635,93 @@ async def test_quality_gate_queue_status_markdown_endpoint_returns_plain_text():
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_queue_policy_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "verdict": "degraded",
+            "summary": "warning",
+            "actions": ["drain queue"],
+            "rules": [],
+            "queue_status": {"queue_size": 12},
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_queue_policy.QualityGateQueuePolicyService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/queue-policy?max_items=10")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["verdict"] == "degraded"
+        assert payload["queue_status"]["queue_size"] == 12
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_queue_policy_endpoint_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"verdict": "healthy", "rules": []})
+    try:
+        with patch(
+            "app.services.quality_gate_queue_policy.QualityGateQueuePolicyService.evaluate",
+            return_value=fake_report,
+        ) as evaluate_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/queue-policy?max_items=15&spool_dir=/tmp/s&queue_size_warn=11&queue_size_fail=22&oldest_age_warn=33&oldest_age_fail=44&total_size_warn=55&total_size_fail=66"
+                )
+
+        assert resp.status_code == 200
+        evaluate_mock.assert_called_once_with(spool_dir="/tmp/s", max_items=15)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_queue_policy_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Quality Gate Queue Policy\n\n- verdict: healthy",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_queue_policy.QualityGateQueuePolicyService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/queue-policy/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Quality Gate Queue Policy")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [

@@ -31,6 +31,8 @@ QUALITY_GATE_NOTIFY_REQUIRED="${QUALITY_GATE_NOTIFY_REQUIRED:-0}"
 QUALITY_GATE_NOTIFY_SPOOL_DIR="${QUALITY_GATE_NOTIFY_SPOOL_DIR:-$ROOT_DIR/.artifacts/quality_gate_notify_queue}"
 QUALITY_GATE_NOTIFY_DRAIN_BEFORE="${QUALITY_GATE_NOTIFY_DRAIN_BEFORE:-1}"
 QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS="${QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS:-50}"
+QUEUE_POLICY_FAIL_ON_DEGRADED="${QUEUE_POLICY_FAIL_ON_DEGRADED:-0}"
+QUEUE_POLICY_ALLOW_EMPTY="${QUEUE_POLICY_ALLOW_EMPTY:-1}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -209,6 +211,31 @@ if [[ "$QUALITY_GATE_NOTIFY_DRAIN_BEFORE" == "1" ]]; then
         DRAIN_ARGS+=(--allow-missing-webhook --soft-fail)
         run_optional_step quality_gate_notify_drain "Quality gate queue drain (best-effort)" "$PYTHON_BIN" -u "${DRAIN_ARGS[@]}"
     fi
+fi
+
+QUEUE_POLICY_ARGS=(
+    scripts/quality_gate_queue_policy_check.py
+    --api-base "$QUALITY_GATE_API_BASE"
+    --max-items "$QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS"
+    --json
+)
+
+if [[ -n "$QUALITY_GATE_NOTIFY_SPOOL_DIR" ]]; then
+    QUEUE_POLICY_ARGS+=(--spool-dir "$QUALITY_GATE_NOTIFY_SPOOL_DIR")
+fi
+
+if [[ "$QUEUE_POLICY_FAIL_ON_DEGRADED" == "1" ]]; then
+    QUEUE_POLICY_ARGS+=(--fail-on-degraded)
+fi
+
+if [[ "$QUEUE_POLICY_ALLOW_EMPTY" == "1" ]]; then
+    QUEUE_POLICY_ARGS+=(--allow-empty)
+fi
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step queue_policy_check "Queue policy enforcement" "$PYTHON_BIN" -u "${QUEUE_POLICY_ARGS[@]}"
+else
+    run_optional_step queue_policy_check "Queue policy enforcement (best-effort)" "$PYTHON_BIN" -u "${QUEUE_POLICY_ARGS[@]}"
 fi
 
 QUALITY_GATE_NOTIFY_ARGS=(

@@ -288,6 +288,78 @@ async def get_quality_gate_queue_status_markdown(
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
 
 
+@router.get(
+    "/quality-gate/queue-policy",
+    summary="Queue policy/SLO verdict for quality gate notification backlog",
+)
+async def get_quality_gate_queue_policy(
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    queue_size_warn: float = Query(20, ge=0),
+    queue_size_fail: float = Query(100, ge=0),
+    oldest_age_warn: float = Query(900, ge=0),
+    oldest_age_fail: float = Query(3600, ge=0),
+    total_size_warn: float = Query(1_000_000, ge=0),
+    total_size_fail: float = Query(10_000_000, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return queue policy verdict derived from queue status metrics."""
+    del db
+    from app.services.quality_gate_queue_policy import QualityGateQueuePolicyService
+
+    thresholds = {
+        "queue_size_warn": queue_size_warn,
+        "queue_size_fail": queue_size_fail,
+        "oldest_age_warn": oldest_age_warn,
+        "oldest_age_fail": oldest_age_fail,
+        "total_size_warn": total_size_warn,
+        "total_size_fail": total_size_fail,
+    }
+    svc = QualityGateQueuePolicyService(thresholds=thresholds)
+    report = svc.evaluate(
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        max_items=max_items,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/queue-policy/markdown",
+    summary="Queue policy/SLO verdict as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_queue_policy_markdown(
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    queue_size_warn: float = Query(20, ge=0),
+    queue_size_fail: float = Query(100, ge=0),
+    oldest_age_warn: float = Query(900, ge=0),
+    oldest_age_fail: float = Query(3600, ge=0),
+    total_size_warn: float = Query(1_000_000, ge=0),
+    total_size_fail: float = Query(10_000_000, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return queue policy verdict report as Markdown."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_queue_policy import QualityGateQueuePolicyService
+
+    thresholds = {
+        "queue_size_warn": queue_size_warn,
+        "queue_size_fail": queue_size_fail,
+        "oldest_age_warn": oldest_age_warn,
+        "oldest_age_fail": oldest_age_fail,
+        "total_size_warn": total_size_warn,
+        "total_size_fail": total_size_fail,
+    }
+    svc = QualityGateQueuePolicyService(thresholds=thresholds)
+    report = svc.evaluate(
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        max_items=max_items,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
 @router.get("/{output_id}", response_model=OutputReleaseOut)
 async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()

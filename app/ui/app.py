@@ -1789,6 +1789,108 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Quality Gate Queue Policy"))
+    policy_col1, policy_col2, policy_col3 = st.columns(3)
+    policy_queue_warn = policy_col1.number_input(
+        tr("Queue Size Warn"),
+        min_value=0.0,
+        value=20.0,
+        step=1.0,
+        key="quality_gate_policy_queue_warn",
+    )
+    policy_queue_fail = policy_col1.number_input(
+        tr("Queue Size Fail"),
+        min_value=0.0,
+        value=100.0,
+        step=1.0,
+        key="quality_gate_policy_queue_fail",
+    )
+    policy_age_warn = policy_col2.number_input(
+        tr("Oldest Age Warn (s)"),
+        min_value=0.0,
+        value=900.0,
+        step=30.0,
+        key="quality_gate_policy_age_warn",
+    )
+    policy_age_fail = policy_col2.number_input(
+        tr("Oldest Age Fail (s)"),
+        min_value=0.0,
+        value=3600.0,
+        step=60.0,
+        key="quality_gate_policy_age_fail",
+    )
+    policy_size_warn = policy_col3.number_input(
+        tr("Total Size Warn (bytes)"),
+        min_value=0.0,
+        value=1000000.0,
+        step=100000.0,
+        key="quality_gate_policy_size_warn",
+    )
+    policy_size_fail = policy_col3.number_input(
+        tr("Total Size Fail (bytes)"),
+        min_value=0.0,
+        value=10000000.0,
+        step=100000.0,
+        key="quality_gate_policy_size_fail",
+    )
+    policy_params = {
+        "max_items": int(queue_max_items),
+        "queue_size_warn": float(policy_queue_warn),
+        "queue_size_fail": float(policy_queue_fail),
+        "oldest_age_warn": float(policy_age_warn),
+        "oldest_age_fail": float(policy_age_fail),
+        "total_size_warn": float(policy_size_warn),
+        "total_size_fail": float(policy_size_fail),
+    }
+    if queue_spool_dir.strip():
+        policy_params["spool_dir"] = queue_spool_dir.strip()
+
+    queue_policy = api_get("/outputs/quality-gate/queue-policy", policy_params)
+    if isinstance(queue_policy, dict):
+        policy_verdict = str(queue_policy.get("verdict") or "unknown")
+        if policy_verdict == "healthy":
+            st.success(tr("Queue Policy Verdict: HEALTHY"))
+        elif policy_verdict == "degraded":
+            st.warning(tr("Queue Policy Verdict: DEGRADED"))
+        elif policy_verdict == "critical":
+            st.error(tr("Queue Policy Verdict: CRITICAL"))
+        elif policy_verdict == "empty":
+            st.info(tr("Queue Policy Verdict: EMPTY"))
+        else:
+            st.info(tr("Queue Policy Verdict: {verdict}", verdict=policy_verdict.upper()))
+
+        policy_summary = str(queue_policy.get("summary") or "")
+        if policy_summary:
+            st.caption(policy_summary)
+
+        policy_rules = queue_policy.get("rules") or []
+        if policy_rules:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(policy_rules)), width="stretch", hide_index=True)
+
+        actions = queue_policy.get("actions") or []
+        if actions:
+            st.markdown(f"**{tr('Recommended Actions')}**")
+            for action in actions:
+                st.caption(f"- {action}")
+
+        if st.button(tr("Load Queue Policy Markdown"), key="quality_gate_queue_policy_markdown_btn"):
+            try:
+                policy_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/queue-policy/markdown",
+                    params=policy_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                policy_markdown_response.raise_for_status()
+                st.code(policy_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Queue policy markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)
