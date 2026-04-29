@@ -2059,6 +2059,79 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Incident Registry Retention"))
+    retention_col1, retention_col2, retention_col3 = st.columns(3)
+    retention_max_items = retention_col1.number_input(
+        tr("Retention Max Items"),
+        min_value=1,
+        value=1000,
+        step=10,
+        key="quality_gate_incident_retention_max_items",
+    )
+    retention_max_age_days = retention_col2.number_input(
+        tr("Retention Max Age (days)"),
+        min_value=1,
+        value=30,
+        step=1,
+        key="quality_gate_incident_retention_max_age_days",
+    )
+    retention_apply_changes = retention_col3.checkbox(
+        tr("Apply Cleanup"),
+        value=False,
+        key="quality_gate_incident_retention_apply",
+    )
+
+    retention_registry_dir = st.text_input(
+        tr("Retention Registry Directory Override"),
+        value=registry_dir,
+        key="quality_gate_incident_retention_registry_dir",
+    )
+
+    retention_params = {
+        "max_items": int(retention_max_items),
+        "max_age_days": int(retention_max_age_days),
+        "apply_changes": bool(retention_apply_changes),
+    }
+    if retention_registry_dir.strip():
+        retention_params["registry_dir"] = retention_registry_dir.strip()
+
+    retention_report = api_get("/outputs/quality-gate/incident/retention", retention_params)
+    if isinstance(retention_report, dict):
+        retention_metric1, retention_metric2, retention_metric3, retention_metric4 = st.columns(4)
+        retention_metric1.metric(tr("Retention Before"), retention_report.get("total_items_before", 0))
+        retention_metric2.metric(tr("Retention After"), retention_report.get("total_items_after", 0))
+        retention_metric3.metric(tr("Retention Removed"), retention_report.get("removed_items", 0))
+        retention_metric4.metric(tr("Retention Dry Run"), str(retention_report.get("dry_run", True)))
+
+        removed_reasons = retention_report.get("removed_reasons") or {}
+        if isinstance(removed_reasons, dict) and removed_reasons:
+            st.caption(
+                tr(
+                    "retention removed reasons: {reasons}",
+                    reasons=", ".join(
+                        f"{key}={value}" for key, value in sorted(removed_reasons.items())
+                    ),
+                )
+            )
+
+        if st.button(tr("Load Retention Markdown"), key="quality_gate_incident_retention_markdown_btn"):
+            try:
+                retention_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/incident/retention/markdown",
+                    params=retention_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                retention_markdown_response.raise_for_status()
+                st.code(retention_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Incident retention markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)

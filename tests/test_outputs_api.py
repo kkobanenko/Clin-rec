@@ -901,6 +901,93 @@ async def test_quality_gate_incident_registry_markdown_endpoint_returns_plain_te
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_incident_retention_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "total_items_before": 10,
+            "total_items_after": 8,
+            "removed_items": 2,
+            "dry_run": True,
+            "removed_reasons": {"max_age": 2},
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_incident_retention.QualityGateIncidentRetentionService.evaluate_policy",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/incident/retention?max_items=100")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["removed_items"] == 2
+        assert payload["dry_run"] is True
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_incident_retention_endpoint_apply_uses_apply_policy():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"removed_items": 1, "dry_run": False})
+    try:
+        with patch(
+            "app.services.quality_gate_incident_retention.QualityGateIncidentRetentionService.apply_policy",
+            return_value=fake_report,
+        ) as apply_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/incident/retention?apply_changes=true&max_items=77&max_age_days=15&registry_dir=/tmp/inc-reg"
+                )
+
+        assert resp.status_code == 200
+        apply_mock.assert_called_once_with(registry_dir="/tmp/inc-reg", max_items=77, max_age_days=15)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_incident_retention_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Incident Registry Retention\n\n- removed_items: 0",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_incident_retention.QualityGateIncidentRetentionService.evaluate_policy",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/incident/retention/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Incident Registry Retention")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [

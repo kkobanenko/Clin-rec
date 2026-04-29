@@ -464,6 +464,72 @@ async def get_quality_gate_incident_registry_markdown(
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
 
 
+@router.get(
+    "/quality-gate/incident/retention",
+    summary="Incident registry retention policy evaluation",
+)
+async def get_quality_gate_incident_retention(
+    max_items: int = Query(1000, ge=1, le=100000),
+    max_age_days: int = Query(30, ge=1, le=3650),
+    apply_changes: bool = Query(False, description="Apply retention cleanup if true"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return retention policy outcome for incident registry."""
+    del db
+    from app.services.quality_gate_incident_retention import QualityGateIncidentRetentionService
+
+    svc = QualityGateIncidentRetentionService()
+    resolved_registry_dir = registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry")
+    if apply_changes:
+        report = svc.apply_policy(
+            registry_dir=resolved_registry_dir,
+            max_items=max_items,
+            max_age_days=max_age_days,
+        )
+    else:
+        report = svc.evaluate_policy(
+            registry_dir=resolved_registry_dir,
+            max_items=max_items,
+            max_age_days=max_age_days,
+        )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/incident/retention/markdown",
+    summary="Incident registry retention policy as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_incident_retention_markdown(
+    max_items: int = Query(1000, ge=1, le=100000),
+    max_age_days: int = Query(30, ge=1, le=3650),
+    apply_changes: bool = Query(False, description="Apply retention cleanup if true"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return retention policy outcome for incident registry in markdown."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_incident_retention import QualityGateIncidentRetentionService
+
+    svc = QualityGateIncidentRetentionService()
+    resolved_registry_dir = registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry")
+    if apply_changes:
+        report = svc.apply_policy(
+            registry_dir=resolved_registry_dir,
+            max_items=max_items,
+            max_age_days=max_age_days,
+        )
+    else:
+        report = svc.evaluate_policy(
+            registry_dir=resolved_registry_dir,
+            max_items=max_items,
+            max_age_days=max_age_days,
+        )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
 @router.get("/{output_id}", response_model=OutputReleaseOut)
 async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()

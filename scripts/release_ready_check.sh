@@ -36,6 +36,10 @@ QUEUE_POLICY_ALLOW_EMPTY="${QUEUE_POLICY_ALLOW_EMPTY:-1}"
 INCIDENT_FAIL_ON_HIGH="${INCIDENT_FAIL_ON_HIGH:-0}"
 INCIDENT_ALLOW_INFO="${INCIDENT_ALLOW_INFO:-1}"
 QUALITY_GATE_INCIDENT_REGISTRY_DIR="${QUALITY_GATE_INCIDENT_REGISTRY_DIR:-$ROOT_DIR/.artifacts/quality_gate_incident_registry}"
+QUALITY_GATE_INCIDENT_RETENTION_MAX_ITEMS="${QUALITY_GATE_INCIDENT_RETENTION_MAX_ITEMS:-1000}"
+QUALITY_GATE_INCIDENT_RETENTION_MAX_AGE_DAYS="${QUALITY_GATE_INCIDENT_RETENTION_MAX_AGE_DAYS:-30}"
+QUALITY_GATE_INCIDENT_RETENTION_APPLY="${QUALITY_GATE_INCIDENT_RETENTION_APPLY:-0}"
+QUALITY_GATE_INCIDENT_RETENTION_FAIL_ON_REMOVALS="${QUALITY_GATE_INCIDENT_RETENTION_FAIL_ON_REMOVALS:-0}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -285,6 +289,28 @@ if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
     run_step incident_registry_update "Incident registry persistence" "$PYTHON_BIN" -u "${INCIDENT_REGISTRY_ARGS[@]}"
 else
     run_optional_step incident_registry_update "Incident registry persistence (best-effort)" "$PYTHON_BIN" -u "${INCIDENT_REGISTRY_ARGS[@]}"
+fi
+
+INCIDENT_RETENTION_ARGS=(
+    scripts/quality_gate_incident_retention_check.py
+    --registry-dir "$QUALITY_GATE_INCIDENT_REGISTRY_DIR"
+    --max-items "$QUALITY_GATE_INCIDENT_RETENTION_MAX_ITEMS"
+    --max-age-days "$QUALITY_GATE_INCIDENT_RETENTION_MAX_AGE_DAYS"
+    --json
+)
+
+if [[ "$QUALITY_GATE_INCIDENT_RETENTION_APPLY" == "1" ]]; then
+    INCIDENT_RETENTION_ARGS+=(--apply)
+fi
+
+if [[ "$QUALITY_GATE_INCIDENT_RETENTION_FAIL_ON_REMOVALS" == "1" ]]; then
+    INCIDENT_RETENTION_ARGS+=(--fail-on-removals)
+fi
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step incident_retention_check "Incident registry retention policy" "$PYTHON_BIN" -u "${INCIDENT_RETENTION_ARGS[@]}"
+else
+    run_optional_step incident_retention_check "Incident registry retention policy (best-effort)" "$PYTHON_BIN" -u "${INCIDENT_RETENTION_ARGS[@]}"
 fi
 
 QUALITY_GATE_NOTIFY_ARGS=(
