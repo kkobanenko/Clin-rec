@@ -546,6 +546,95 @@ async def test_quality_gate_markdown_endpoint_forwards_threshold_params():
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_queue_status_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "spool_dir": ".artifacts/quality_gate_notify_queue",
+            "queue_size": 2,
+            "oldest_age_seconds": 5.0,
+            "newest_age_seconds": 1.0,
+            "total_size_bytes": 1024,
+            "verdict_counters": {"warn": 1, "pass": 1},
+            "items": [],
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_queue_status.QualityGateQueueStatusService.generate_report",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/queue-status?max_items=25")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["queue_size"] == 2
+        assert payload["total_size_bytes"] == 1024
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_queue_status_endpoint_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"queue_size": 0, "items": []})
+    try:
+        with patch(
+            "app.services.quality_gate_queue_status.QualityGateQueueStatusService.generate_report",
+            return_value=fake_report,
+        ) as generate_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/queue-status?max_items=99&spool_dir=/tmp/qg"
+                )
+
+        assert resp.status_code == 200
+        generate_mock.assert_called_once_with(spool_dir="/tmp/qg", max_items=99)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_queue_status_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Quality Gate Notification Queue Status\n\n- queue_size: 0",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_queue_status.QualityGateQueueStatusService.generate_report",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/queue-status/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Quality Gate Notification Queue Status")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [

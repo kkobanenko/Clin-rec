@@ -1,6 +1,7 @@
 """API аналитических outputs и output filing (TZ §17)."""
 
 
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -239,6 +240,50 @@ async def get_quality_gate_markdown(
         high_skip_threshold=high_skip_threshold,
         max_avg_skip_rate=max_avg_skip_rate,
         min_candidate_pairs=min_candidate_pairs,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
+@router.get(
+    "/quality-gate/queue-status",
+    summary="Quality gate notification queue status",
+)
+async def get_quality_gate_queue_status(
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return queue status for quality gate notification spool."""
+    del db
+    from app.services.quality_gate_queue_status import QualityGateQueueStatusService
+
+    svc = QualityGateQueueStatusService()
+    report = svc.generate_report(
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        max_items=max_items,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/queue-status/markdown",
+    summary="Quality gate queue status as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_queue_status_markdown(
+    max_items: int = Query(50, ge=1, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return queue status report as Markdown."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_queue_status import QualityGateQueueStatusService
+
+    svc = QualityGateQueueStatusService()
+    report = svc.generate_report(
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        max_items=max_items,
     )
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
 

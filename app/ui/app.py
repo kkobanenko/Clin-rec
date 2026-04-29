@@ -1720,6 +1720,75 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Quality Gate Queue Status"))
+    queue_col1, queue_col2 = st.columns(2)
+    queue_max_items = queue_col1.number_input(
+        tr("Queue Preview Items"),
+        min_value=1,
+        max_value=500,
+        value=50,
+        step=1,
+        key="quality_gate_queue_max_items",
+    )
+    queue_spool_dir = queue_col2.text_input(
+        tr("Queue Spool Dir Override"),
+        key="quality_gate_queue_spool_dir",
+        help=tr("Leave empty to use server default QUALITY_GATE_NOTIFY_SPOOL_DIR"),
+    )
+    queue_params = {"max_items": int(queue_max_items)}
+    if queue_spool_dir.strip():
+        queue_params["spool_dir"] = queue_spool_dir.strip()
+
+    queue_status = api_get("/outputs/quality-gate/queue-status", queue_params)
+    if isinstance(queue_status, dict):
+        queue_metric1, queue_metric2, queue_metric3, queue_metric4 = st.columns(4)
+        queue_metric1.metric(tr("Queue Size"), queue_status.get("queue_size", 0))
+        queue_metric2.metric(
+            tr("Total Size (bytes)"),
+            queue_status.get("total_size_bytes", 0),
+        )
+        queue_metric3.metric(
+            tr("Oldest Age (s)"),
+            f"{float(queue_status.get('oldest_age_seconds') or 0.0):.1f}",
+        )
+        queue_metric4.metric(
+            tr("Newest Age (s)"),
+            f"{float(queue_status.get('newest_age_seconds') or 0.0):.1f}",
+        )
+
+        verdict_counters = queue_status.get("verdict_counters") or {}
+        if isinstance(verdict_counters, dict) and verdict_counters:
+            st.caption(
+                tr(
+                    "queue verdict counters: {counters}",
+                    counters=", ".join(f"{key}={value}" for key, value in sorted(verdict_counters.items())),
+                )
+            )
+
+        queue_items = queue_status.get("items") or []
+        if queue_items:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(queue_items)), width="stretch", hide_index=True)
+        else:
+            st.info(tr("Quality gate notification queue is empty"))
+
+        if st.button(tr("Load Queue Status Markdown"), key="quality_gate_queue_markdown_btn"):
+            try:
+                queue_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/queue-status/markdown",
+                    params=queue_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                queue_markdown_response.raise_for_status()
+                st.code(queue_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Queue status markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)
