@@ -1995,6 +1995,70 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Quality Gate Incident Registry"))
+    registry_col1, registry_col2 = st.columns(2)
+    registry_max_items = registry_col1.number_input(
+        tr("Registry Max Items"),
+        min_value=1,
+        value=50,
+        step=1,
+        key="quality_gate_incident_registry_max_items",
+    )
+    registry_dir = registry_col2.text_input(
+        tr("Registry Directory Override"),
+        value="",
+        key="quality_gate_incident_registry_dir",
+    )
+
+    registry_params = {"max_items": int(registry_max_items)}
+    if registry_dir.strip():
+        registry_params["registry_dir"] = registry_dir.strip()
+
+    incident_registry = api_get("/outputs/quality-gate/incident/registry", registry_params)
+    if isinstance(incident_registry, dict):
+        registry_metric1, registry_metric2, registry_metric3 = st.columns(3)
+        registry_metric1.metric(tr("Registered Incidents"), incident_registry.get("total_items", 0))
+        registry_metric2.metric(tr("Escalation Items"), incident_registry.get("escalate_items", 0))
+        registry_metric3.metric(
+            tr("Latest Incident"),
+            str(incident_registry.get("latest_created_at") or "n/a"),
+        )
+
+        severity_counters = incident_registry.get("severity_counters") or {}
+        if isinstance(severity_counters, dict) and severity_counters:
+            st.caption(
+                tr(
+                    "severity counters: {counters}",
+                    counters=", ".join(
+                        f"{key}={value}" for key, value in sorted(severity_counters.items())
+                    ),
+                )
+            )
+
+        registry_items = incident_registry.get("items") or []
+        if registry_items:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(registry_items)), width="stretch", hide_index=True)
+        else:
+            st.info(tr("No incident registry records yet"))
+
+        if st.button(tr("Load Incident Registry Markdown"), key="quality_gate_incident_registry_markdown_btn"):
+            try:
+                incident_registry_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/incident/registry/markdown",
+                    params=registry_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                incident_registry_markdown_response.raise_for_status()
+                st.code(incident_registry_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Incident registry markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)

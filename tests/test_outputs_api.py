@@ -815,6 +815,92 @@ async def test_quality_gate_incident_markdown_endpoint_returns_plain_text():
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_incident_registry_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "total_items": 5,
+            "escalate_items": 2,
+            "severity_counters": {"high": 2, "critical": 1},
+            "items": [],
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_incident_registry.QualityGateIncidentRegistryService.generate_report",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/incident/registry?max_items=10")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["total_items"] == 5
+        assert payload["escalate_items"] == 2
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_incident_registry_endpoint_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"total_items": 0, "items": []})
+    try:
+        with patch(
+            "app.services.quality_gate_incident_registry.QualityGateIncidentRegistryService.generate_report",
+            return_value=fake_report,
+        ) as generate_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/incident/registry?max_items=77&registry_dir=/tmp/incidents"
+                )
+
+        assert resp.status_code == 200
+        generate_mock.assert_called_once_with(registry_dir="/tmp/incidents", max_items=77)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_incident_registry_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Quality Gate Incident Registry\n\n- total_items: 0",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_incident_registry.QualityGateIncidentRegistryService.generate_report",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/incident/registry/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Quality Gate Incident Registry")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [

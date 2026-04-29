@@ -420,6 +420,50 @@ async def get_quality_gate_incident_markdown(
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
 
 
+@router.get(
+    "/quality-gate/incident/registry",
+    summary="Incident registry aggregate status",
+)
+async def get_quality_gate_incident_registry(
+    max_items: int = Query(50, ge=1, le=500),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return aggregate incident registry report."""
+    del db
+    from app.services.quality_gate_incident_registry import QualityGateIncidentRegistryService
+
+    svc = QualityGateIncidentRegistryService()
+    report = svc.generate_report(
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/incident/registry/markdown",
+    summary="Incident registry aggregate status as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_incident_registry_markdown(
+    max_items: int = Query(50, ge=1, le=500),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return aggregate incident registry report in markdown format."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_incident_registry import QualityGateIncidentRegistryService
+
+    svc = QualityGateIncidentRegistryService()
+    report = svc.generate_report(
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
 @router.get("/{output_id}", response_model=OutputReleaseOut)
 async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()
