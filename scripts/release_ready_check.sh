@@ -28,6 +28,9 @@ QUALITY_GATE_ALLOW_NO_DATA="${QUALITY_GATE_ALLOW_NO_DATA:-0}"
 QUALITY_GATE_WEBHOOK_URL="${QUALITY_GATE_WEBHOOK_URL:-}"
 QUALITY_GATE_NOTIFY_RETRIES="${QUALITY_GATE_NOTIFY_RETRIES:-2}"
 QUALITY_GATE_NOTIFY_REQUIRED="${QUALITY_GATE_NOTIFY_REQUIRED:-0}"
+QUALITY_GATE_NOTIFY_SPOOL_DIR="${QUALITY_GATE_NOTIFY_SPOOL_DIR:-$ROOT_DIR/.artifacts/quality_gate_notify_queue}"
+QUALITY_GATE_NOTIFY_DRAIN_BEFORE="${QUALITY_GATE_NOTIFY_DRAIN_BEFORE:-1}"
+QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS="${QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS:-50}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -65,6 +68,24 @@ run_step() {
     if [[ $status -ne 0 ]]; then
         echo "Step failed: ${title}" | tee -a "$log_file" >&2
         return "$status"
+    fi
+}
+
+run_optional_step() {
+    local step_id="$1"
+    local title="$2"
+    local log_file="$OUT_DIR/${step_id}.log"
+    shift
+    shift
+    echo
+    echo "==> ${title}"
+    echo "Log: ${log_file}"
+    set +e
+    "$@" 2>&1 | tee "$log_file"
+    local status=${PIPESTATUS[0]}
+    set -e
+    if [[ $status -ne 0 ]]; then
+        echo "Optional step failed (continuing): ${title}" | tee -a "$log_file" >&2
     fi
 }
 
@@ -138,6 +159,7 @@ if [[ -n "$QUALITY_GATE_WEBHOOK_URL" ]]; then
 else
     echo "Quality Gate webhook: not configured"
 fi
+echo "Quality Gate spool dir: $QUALITY_GATE_NOTIFY_SPOOL_DIR"
 
 if [[ "$SKIP_STRUCTURAL_SMOKE" != "1" ]]; then
     run_step structural_smoke "Structural smoke" "$PYTHON_BIN" -u "${STRUCTURAL_SMOKE_ARGS[@]}"
@@ -171,6 +193,24 @@ fi
 
 run_step quality_gate_enforcement "Automated quality gate enforcement" "$PYTHON_BIN" -u "${QUALITY_GATE_ARGS[@]}"
 
+if [[ "$QUALITY_GATE_NOTIFY_DRAIN_BEFORE" == "1" ]]; then
+    DRAIN_ARGS=(
+        scripts/quality_gate_notify_drain.py
+        --spool-dir "$QUALITY_GATE_NOTIFY_SPOOL_DIR"
+        --max-items "$QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS"
+        --retries "$QUALITY_GATE_NOTIFY_RETRIES"
+    )
+    if [[ -n "$QUALITY_GATE_WEBHOOK_URL" ]]; then
+        DRAIN_ARGS+=(--webhook-url "$QUALITY_GATE_WEBHOOK_URL")
+    fi
+    if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+        run_step quality_gate_notify_drain "Quality gate queue drain" "$PYTHON_BIN" -u "${DRAIN_ARGS[@]}"
+    else
+        DRAIN_ARGS+=(--allow-missing-webhook --soft-fail)
+        run_optional_step quality_gate_notify_drain "Quality gate queue drain (best-effort)" "$PYTHON_BIN" -u "${DRAIN_ARGS[@]}"
+    fi
+fi
+
 QUALITY_GATE_NOTIFY_ARGS=(
     scripts/quality_gate_notify.py
     --api-base "$QUALITY_GATE_API_BASE"
@@ -181,6 +221,8 @@ QUALITY_GATE_NOTIFY_ARGS=(
     --runtime-profile "$RUNTIME_PROFILE"
     --operator "$OPERATOR_NAME"
     --retries "$QUALITY_GATE_NOTIFY_RETRIES"
+    --spool-dir "$QUALITY_GATE_NOTIFY_SPOOL_DIR"
+    --enqueue-on-failure
 )
 
 if [[ -n "$QUALITY_GATE_WEBHOOK_URL" ]]; then
@@ -190,8 +232,8 @@ fi
 if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
     run_step quality_gate_notify "Quality gate external notification" "$PYTHON_BIN" -u "${QUALITY_GATE_NOTIFY_ARGS[@]}"
 else
-    QUALITY_GATE_NOTIFY_ARGS+=(--allow-missing-webhook)
-    run_step quality_gate_notify "Quality gate external notification (best-effort)" "$PYTHON_BIN" -u "${QUALITY_GATE_NOTIFY_ARGS[@]}"
+    QUALITY_GATE_NOTIFY_ARGS+=(--allow-missing-webhook --enqueue-on-missing-webhook --succeed-on-enqueue)
+    run_optional_step quality_gate_notify "Quality gate external notification (best-effort)" "$PYTHON_BIN" -u "${QUALITY_GATE_NOTIFY_ARGS[@]}"
 fi
 
 run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py

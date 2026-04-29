@@ -13,6 +13,8 @@ from typing import Any
 
 import httpx
 
+from scripts.quality_gate_delivery_queue import enqueue_payload
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Notify external webhook about quality gate verdict")
@@ -27,6 +29,22 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--retries", type=int, default=2)
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--spool-dir", default=".artifacts/quality_gate_notify_queue")
+    parser.add_argument(
+        "--enqueue-on-failure",
+        action="store_true",
+        help="Store payload in local queue when webhook delivery fails",
+    )
+    parser.add_argument(
+        "--succeed-on-enqueue",
+        action="store_true",
+        help="Return 0 if payload was enqueued after delivery failure",
+    )
+    parser.add_argument(
+        "--enqueue-on-missing-webhook",
+        action="store_true",
+        help="Fetch gate report and enqueue payload when webhook URL is absent",
+    )
     parser.add_argument(
         "--allow-missing-webhook",
         action="store_true",
@@ -114,11 +132,39 @@ def run(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
     webhook_url = (args.webhook_url or "").strip()
+
+    def _fetch_and_enqueue_missing_webhook() -> bool:
+        if not args.enqueue_on_missing_webhook:
+            return False
+        try:
+            gate_report = _fetch_gate_report(
+                api_base=args.api_base,
+                max_versions=args.max_versions,
+                high_skip_threshold=args.high_skip_threshold,
+                max_avg_skip_rate=args.max_avg_skip_rate,
+                min_candidate_pairs=args.min_candidate_pairs,
+                timeout=args.timeout,
+            )
+            payload = _build_notification_payload(
+                gate_report=gate_report,
+                api_base=args.api_base,
+                runtime_profile=args.runtime_profile,
+                operator=args.operator,
+            )
+            queued_path = enqueue_payload(args.spool_dir, payload)
+            print(f"quality-gate notify: queued payload because webhook is missing: {queued_path}")
+            return True
+        except Exception as exc:  # noqa: BLE001
+            print(f"quality-gate notify: queue on missing webhook failed: {exc}", file=sys.stderr)
+            return False
+
     if not webhook_url:
         message = "quality-gate notify: webhook URL is missing"
         if args.allow_missing_webhook:
+            _fetch_and_enqueue_missing_webhook()
             print(f"{message}; skipping")
             return 0
+        _fetch_and_enqueue_missing_webhook()
         print(message, file=sys.stderr)
         return 2
 
@@ -146,6 +192,7 @@ def run(argv: list[str] | None = None) -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
 
+    enqueued_path: str | None = None
     try:
         _post_with_retries(
             webhook_url=webhook_url,
@@ -154,7 +201,17 @@ def run(argv: list[str] | None = None) -> int:
             timeout=args.timeout,
         )
     except Exception as exc:  # noqa: BLE001
+        if args.enqueue_on_failure:
+            try:
+                queued_path = enqueue_payload(args.spool_dir, payload)
+                enqueued_path = str(queued_path)
+                print(f"quality-gate notify: queued payload after delivery failure: {queued_path}")
+            except Exception as queue_exc:  # noqa: BLE001
+                print(f"quality-gate notify: queue fallback failed: {queue_exc}", file=sys.stderr)
         print(f"quality-gate notify: webhook post failed: {exc}", file=sys.stderr)
+        if enqueued_path and args.succeed_on_enqueue:
+            print("quality-gate notify: treating enqueue fallback as success")
+            return 0
         return 1
 
     print(

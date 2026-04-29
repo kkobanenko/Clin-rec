@@ -102,6 +102,48 @@ def test_run_posts_and_returns_zero(capsys):
     post_mock.assert_called_once()
 
 
+def test_run_enqueue_on_failure_with_success_on_enqueue(tmp_path, capsys):
+    spool_dir = tmp_path / "queue"
+    with patch("scripts.quality_gate_notify._fetch_gate_report", return_value=_gate_payload("warn")):
+        with patch(
+            "scripts.quality_gate_notify._post_with_retries",
+            side_effect=RuntimeError("post failed"),
+        ):
+            code = quality_gate_notify.run([
+                "--api-base",
+                "http://test",
+                "--webhook-url",
+                "http://webhook",
+                "--enqueue-on-failure",
+                "--succeed-on-enqueue",
+                "--spool-dir",
+                str(spool_dir),
+            ])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "queued payload after delivery failure" in captured.out
+    assert len(list(spool_dir.glob("*.json"))) == 1
+
+
+def test_run_enqueue_on_missing_webhook_when_allowed(tmp_path, capsys):
+    spool_dir = tmp_path / "queue"
+    with patch("scripts.quality_gate_notify._fetch_gate_report", return_value=_gate_payload("warn")):
+        code = quality_gate_notify.run([
+            "--api-base",
+            "http://test",
+            "--allow-missing-webhook",
+            "--enqueue-on-missing-webhook",
+            "--spool-dir",
+            str(spool_dir),
+        ])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "queued payload because webhook is missing" in captured.out
+    assert len(list(spool_dir.glob("*.json"))) == 1
+
+
 def test_post_with_retries_succeeds_after_retry():
     calls = {"count": 0}
 
