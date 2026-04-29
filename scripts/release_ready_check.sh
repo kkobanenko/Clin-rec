@@ -25,6 +25,9 @@ QUALITY_GATE_MAX_AVG_SKIP_RATE="${QUALITY_GATE_MAX_AVG_SKIP_RATE:-0.75}"
 QUALITY_GATE_MIN_CANDIDATE_PAIRS="${QUALITY_GATE_MIN_CANDIDATE_PAIRS:-1}"
 QUALITY_GATE_FAIL_ON_WARN="${QUALITY_GATE_FAIL_ON_WARN:-0}"
 QUALITY_GATE_ALLOW_NO_DATA="${QUALITY_GATE_ALLOW_NO_DATA:-0}"
+QUALITY_GATE_WEBHOOK_URL="${QUALITY_GATE_WEBHOOK_URL:-}"
+QUALITY_GATE_NOTIFY_RETRIES="${QUALITY_GATE_NOTIFY_RETRIES:-2}"
+QUALITY_GATE_NOTIFY_REQUIRED="${QUALITY_GATE_NOTIFY_REQUIRED:-0}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -130,6 +133,11 @@ if [[ -f "$SUMMARY_FILE" ]]; then
 fi
 echo "Integration Postgres URL: $INTEGRATION_POSTGRES_URL"
 echo "Quality Gate API base: $QUALITY_GATE_API_BASE"
+if [[ -n "$QUALITY_GATE_WEBHOOK_URL" ]]; then
+    echo "Quality Gate webhook: configured"
+else
+    echo "Quality Gate webhook: not configured"
+fi
 
 if [[ "$SKIP_STRUCTURAL_SMOKE" != "1" ]]; then
     run_step structural_smoke "Structural smoke" "$PYTHON_BIN" -u "${STRUCTURAL_SMOKE_ARGS[@]}"
@@ -162,6 +170,29 @@ if [[ "$QUALITY_GATE_ALLOW_NO_DATA" == "1" ]]; then
 fi
 
 run_step quality_gate_enforcement "Automated quality gate enforcement" "$PYTHON_BIN" -u "${QUALITY_GATE_ARGS[@]}"
+
+QUALITY_GATE_NOTIFY_ARGS=(
+    scripts/quality_gate_notify.py
+    --api-base "$QUALITY_GATE_API_BASE"
+    --max-versions "$QUALITY_GATE_MAX_VERSIONS"
+    --high-skip-threshold "$QUALITY_GATE_HIGH_SKIP_THRESHOLD"
+    --max-avg-skip-rate "$QUALITY_GATE_MAX_AVG_SKIP_RATE"
+    --min-candidate-pairs "$QUALITY_GATE_MIN_CANDIDATE_PAIRS"
+    --runtime-profile "$RUNTIME_PROFILE"
+    --operator "$OPERATOR_NAME"
+    --retries "$QUALITY_GATE_NOTIFY_RETRIES"
+)
+
+if [[ -n "$QUALITY_GATE_WEBHOOK_URL" ]]; then
+    QUALITY_GATE_NOTIFY_ARGS+=(--webhook-url "$QUALITY_GATE_WEBHOOK_URL")
+fi
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step quality_gate_notify "Quality gate external notification" "$PYTHON_BIN" -u "${QUALITY_GATE_NOTIFY_ARGS[@]}"
+else
+    QUALITY_GATE_NOTIFY_ARGS+=(--allow-missing-webhook)
+    run_step quality_gate_notify "Quality gate external notification (best-effort)" "$PYTHON_BIN" -u "${QUALITY_GATE_NOTIFY_ARGS[@]}"
+fi
 
 run_step review_api "Pipeline review API regression" "$PYTEST_BIN" tests/test_pipeline_review_api.py
 run_step matrix_model_ops "Matrix model ops regression" "$PYTEST_BIN" tests/test_matrix_model_ops_api.py
