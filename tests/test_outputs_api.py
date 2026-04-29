@@ -1082,6 +1082,101 @@ async def test_quality_gate_governance_score_markdown_endpoint_returns_plain_tex
 
 
 @pytest.mark.asyncio
+async def test_quality_gate_governance_trends_endpoint_returns_json():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_dict=lambda: {
+            "status": "stable",
+            "summary": "ok",
+            "score_delta": 0.5,
+            "escalated_ratio_delta": 0.01,
+            "points": [],
+        }
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_governance_trends.QualityGateGovernanceTrendsService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/governance-trends?baseline_window=5")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["status"] == "stable"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_governance_trends_endpoint_forwards_params():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(to_dict=lambda: {"status": "stable"})
+    try:
+        with patch(
+            "app.services.quality_gate_governance_trends.QualityGateGovernanceTrendsService.evaluate",
+            return_value=fake_report,
+        ) as evaluate_mock:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get(
+                    "/outputs/quality-gate/governance-trends?max_versions=91&high_skip_threshold=0.71&max_avg_skip_rate=0.62&min_candidate_pairs=4&max_items=12&baseline_window=6&spool_dir=/tmp/sp&registry_dir=/tmp/reg"
+                )
+
+        assert resp.status_code == 200
+        evaluate_mock.assert_called_once_with(
+            max_versions=91,
+            high_skip_threshold=0.71,
+            max_avg_skip_rate=0.62,
+            min_candidate_pairs=4,
+            spool_dir="/tmp/sp",
+            registry_dir="/tmp/reg",
+            max_items=12,
+            baseline_window=6,
+        )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_quality_gate_governance_trends_markdown_endpoint_returns_plain_text():
+    fake_session = FakeAsyncSession([])
+
+    async def override_get_db():
+        yield fake_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    fake_report = SimpleNamespace(
+        to_markdown=lambda: "# Quality Gate Governance Trends\n\n- status: stable",
+    )
+    try:
+        with patch(
+            "app.services.quality_gate_governance_trends.QualityGateGovernanceTrendsService.evaluate",
+            return_value=fake_report,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/outputs/quality-gate/governance-trends/markdown")
+
+        assert resp.status_code == 200
+        assert resp.text.startswith("# Quality Gate Governance Trends")
+        assert resp.headers["content-type"].startswith("text/markdown")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_list_outputs_applies_artifact_filter():
     fake_session = FakeAsyncSession(
         [

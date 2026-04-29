@@ -594,6 +594,74 @@ async def get_quality_gate_governance_score_markdown(
     return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
 
 
+@router.get(
+    "/quality-gate/governance-trends",
+    summary="Governance trend analytics",
+)
+async def get_quality_gate_governance_trends(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    max_items: int = Query(50, ge=1, le=500),
+    baseline_window: int = Query(10, ge=2, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return governance trend analytics relative to baseline window."""
+    del db
+    from app.services.quality_gate_governance_trends import QualityGateGovernanceTrendsService
+
+    svc = QualityGateGovernanceTrendsService()
+    report = svc.evaluate(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+        baseline_window=baseline_window,
+    )
+    return report.to_dict()
+
+
+@router.get(
+    "/quality-gate/governance-trends/markdown",
+    summary="Governance trends report as Markdown",
+    response_class=__import__("fastapi").responses.PlainTextResponse,
+)
+async def get_quality_gate_governance_trends_markdown(
+    max_versions: int = Query(100, ge=1, le=500),
+    high_skip_threshold: float = Query(0.8, ge=0, le=1),
+    max_avg_skip_rate: float = Query(0.75, ge=0, le=1),
+    min_candidate_pairs: int = Query(1, ge=0, le=50),
+    max_items: int = Query(50, ge=1, le=500),
+    baseline_window: int = Query(10, ge=2, le=500),
+    spool_dir: str | None = Query(None, description="Optional override for spool directory path"),
+    registry_dir: str | None = Query(None, description="Optional override for incident registry directory"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return governance trends report in markdown format."""
+    del db
+    from fastapi.responses import PlainTextResponse
+    from app.services.quality_gate_governance_trends import QualityGateGovernanceTrendsService
+
+    svc = QualityGateGovernanceTrendsService()
+    report = svc.evaluate(
+        max_versions=max_versions,
+        high_skip_threshold=high_skip_threshold,
+        max_avg_skip_rate=max_avg_skip_rate,
+        min_candidate_pairs=min_candidate_pairs,
+        spool_dir=spool_dir or os.getenv("QUALITY_GATE_NOTIFY_SPOOL_DIR", ".artifacts/quality_gate_notify_queue"),
+        registry_dir=registry_dir or os.getenv("QUALITY_GATE_INCIDENT_REGISTRY_DIR", ".artifacts/quality_gate_incident_registry"),
+        max_items=max_items,
+        baseline_window=baseline_window,
+    )
+    return PlainTextResponse(content=report.to_markdown(), media_type="text/markdown")
+
+
 @router.get("/{output_id}", response_model=OutputReleaseOut)
 async def get_output(output_id: int, db: AsyncSession = Depends(get_db)):
     row = (await db.execute(select(OutputRelease).where(OutputRelease.id == output_id))).scalar_one_or_none()

@@ -41,6 +41,8 @@ QUALITY_GATE_INCIDENT_RETENTION_MAX_AGE_DAYS="${QUALITY_GATE_INCIDENT_RETENTION_
 QUALITY_GATE_INCIDENT_RETENTION_APPLY="${QUALITY_GATE_INCIDENT_RETENTION_APPLY:-0}"
 QUALITY_GATE_INCIDENT_RETENTION_FAIL_ON_REMOVALS="${QUALITY_GATE_INCIDENT_RETENTION_FAIL_ON_REMOVALS:-0}"
 QUALITY_GATE_GOVERNANCE_MIN_SCORE="${QUALITY_GATE_GOVERNANCE_MIN_SCORE:-60}"
+QUALITY_GATE_GOVERNANCE_BASELINE_WINDOW="${QUALITY_GATE_GOVERNANCE_BASELINE_WINDOW:-10}"
+QUALITY_GATE_GOVERNANCE_TRENDS_FAIL_ON_STATUS="${QUALITY_GATE_GOVERNANCE_TRENDS_FAIL_ON_STATUS:-degrading}"
 
 if [[ -n "$STRUCTURAL_POLL_TIMEOUT" ]]; then
     STRUCTURAL_SMOKE_ARGS+=(--poll-timeout "$STRUCTURAL_POLL_TIMEOUT")
@@ -332,6 +334,27 @@ if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
     run_step governance_score_check "Governance score enforcement" "$PYTHON_BIN" -u "${GOVERNANCE_SCORE_ARGS[@]}"
 else
     run_optional_step governance_score_check "Governance score enforcement (best-effort)" "$PYTHON_BIN" -u "${GOVERNANCE_SCORE_ARGS[@]}"
+fi
+
+GOVERNANCE_TRENDS_ARGS=(
+    scripts/quality_gate_governance_trends_check.py
+    --api-base "$QUALITY_GATE_API_BASE"
+    --max-versions "$QUALITY_GATE_MAX_VERSIONS"
+    --high-skip-threshold "$QUALITY_GATE_HIGH_SKIP_THRESHOLD"
+    --max-avg-skip-rate "$QUALITY_GATE_MAX_AVG_SKIP_RATE"
+    --min-candidate-pairs "$QUALITY_GATE_MIN_CANDIDATE_PAIRS"
+    --spool-dir "$QUALITY_GATE_NOTIFY_SPOOL_DIR"
+    --registry-dir "$QUALITY_GATE_INCIDENT_REGISTRY_DIR"
+    --max-items "$QUALITY_GATE_NOTIFY_DRAIN_MAX_ITEMS"
+    --baseline-window "$QUALITY_GATE_GOVERNANCE_BASELINE_WINDOW"
+    --fail-on-status "$QUALITY_GATE_GOVERNANCE_TRENDS_FAIL_ON_STATUS"
+    --json
+)
+
+if [[ "$QUALITY_GATE_NOTIFY_REQUIRED" == "1" ]]; then
+    run_step governance_trends_check "Governance trends enforcement" "$PYTHON_BIN" -u "${GOVERNANCE_TRENDS_ARGS[@]}"
+else
+    run_optional_step governance_trends_check "Governance trends enforcement (best-effort)" "$PYTHON_BIN" -u "${GOVERNANCE_TRENDS_ARGS[@]}"
 fi
 
 QUALITY_GATE_NOTIFY_ARGS=(

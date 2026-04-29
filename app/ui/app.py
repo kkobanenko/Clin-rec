@@ -2206,6 +2206,72 @@ def page_outputs():
                     )
                 )
 
+    st.subheader(tr("Quality Gate Governance Trends"))
+    trends_col1, trends_col2 = st.columns(2)
+    trends_baseline_window = trends_col1.number_input(
+        tr("Trends Baseline Window"),
+        min_value=2,
+        value=10,
+        step=1,
+        key="quality_gate_governance_trends_baseline_window",
+    )
+    trends_max_items = trends_col2.number_input(
+        tr("Trends Max Items"),
+        min_value=2,
+        value=int(governance_max_items),
+        step=1,
+        key="quality_gate_governance_trends_max_items",
+    )
+
+    trends_params = dict(governance_params)
+    trends_params["baseline_window"] = int(trends_baseline_window)
+    trends_params["max_items"] = int(trends_max_items)
+
+    governance_trends = api_get("/outputs/quality-gate/governance-trends", trends_params)
+    if isinstance(governance_trends, dict):
+        trends_status = str(governance_trends.get("status") or "unknown")
+        trends_summary = str(governance_trends.get("summary") or "")
+
+        trends_metric1, trends_metric2, trends_metric3 = st.columns(3)
+        trends_metric1.metric(tr("Trends Status"), trends_status.upper())
+        trends_metric2.metric(tr("Score Delta"), f"{float(governance_trends.get('score_delta') or 0.0):.2f}")
+        trends_metric3.metric(
+            tr("Escalated Ratio Delta"),
+            f"{float(governance_trends.get('escalated_ratio_delta') or 0.0):.4f}",
+        )
+
+        if trends_status == "improving":
+            st.success(tr("Governance trend is improving"))
+        elif trends_status == "degrading":
+            st.error(tr("Governance trend is degrading"))
+        else:
+            st.info(tr("Governance trend is stable"))
+
+        if trends_summary:
+            st.caption(trends_summary)
+
+        trend_points = governance_trends.get("points") or []
+        if trend_points:
+            st.dataframe(localize_dataframe_columns(pd.DataFrame(trend_points)), width="stretch", hide_index=True)
+
+        if st.button(tr("Load Governance Trends Markdown"), key="quality_gate_governance_trends_markdown_btn"):
+            try:
+                trends_markdown_response = httpx.get(
+                    f"{API_BASE}/outputs/quality-gate/governance-trends/markdown",
+                    params=trends_params,
+                    headers=_api_headers(),
+                    timeout=30,
+                )
+                trends_markdown_response.raise_for_status()
+                st.code(trends_markdown_response.text, language="markdown")
+            except httpx.HTTPError as exc:
+                st.warning(
+                    tr(
+                        "Governance trends markdown unavailable: {detail}",
+                        detail=str(exc),
+                    )
+                )
+
     st.subheader(tr("Output Detail"))
     current_output_options = {
         item["id"]: format_output_option_label(item)
